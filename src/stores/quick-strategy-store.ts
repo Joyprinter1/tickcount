@@ -2,6 +2,7 @@
 import { action, makeObservable, observable, reaction } from 'mobx';
 import { ApiHelpers, config as qs_config, load } from '@/external/bot-skeleton';
 import { save_types } from '@/external/bot-skeleton/constants/save-type';
+import { buildSignalBotXml } from '@/utils/signal-bot-xml';
 import { applySignalExtras, TSignalExtras } from '@/utils/signal-strategy';
 import { addDynamicBlockToDOM } from '@/utils/xml-dom-quick-strategy';
 import { STRATEGIES } from '../pages/bot-builder/quick-strategy/config';
@@ -274,6 +275,44 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
         const tradetype = SIGNAL_TRADE_TYPES[signal.contract];
         if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
         const has_prediction = tradetype !== 'evenodd';
+
+        // 1. Preferred: the full signal bot (every setting is a variable the user can edit).
+        try {
+            const { contracts_for } = ApiHelpers?.instance ?? {};
+            const market = await contracts_for?.getMarketBySymbol(signal.symbol);
+            const submarket = await contracts_for?.getSubmarketBySymbol(signal.symbol);
+            if (market && submarket) {
+                const xml = buildSignalBotXml({
+                    market,
+                    submarket,
+                    symbol: signal.symbol,
+                    tradetype: tradetype as 'overunder' | 'evenodd' | 'matchesdiffers',
+                    contract: signal.contract,
+                    prediction: has_prediction ? Number(signal.barrier ?? 0) : null,
+                    trigger: signal.trigger,
+                    runs: signal.runs,
+                    stake: 1,
+                });
+                this.setFormVisibility(false);
+                const result = await load({
+                    block_string: xml,
+                    file_name: 'Tickdesk signal',
+                    workspace: window.Blockly.derivWorkspace,
+                    from: save_types.UNSAVED,
+                    drop_event: null,
+                    strategy_id: null,
+                    showIncompatibleStrategyDialog: null,
+                });
+                if (!result?.error) return;
+                // eslint-disable-next-line no-console
+                console.warn('Signal bot was rejected by the builder, loading the simple bot instead.', result.error);
+            }
+        } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn('Signal bot could not be built, loading the simple bot instead.', e);
+        }
+
+        // 2. Fallback: Deriv's Martingale bot with the signal's settings (known to load).
         this.selected_strategy = 'MARTINGALE';
         const stake = Number(signal.stake) > 0 ? Number(signal.stake) : 1;
         await this.onSubmit(
