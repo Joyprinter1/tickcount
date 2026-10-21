@@ -36,6 +36,7 @@ import {
     LabelPairedPuzzlePieceTwoCaptionBoldIcon,
 } from '@deriv/quill-icons/LabelPaired';
 import { LegacyGuide1pxIcon } from '@deriv/quill-icons/Legacy';
+import { ApiHelpers } from '@/external/bot-skeleton';
 import { Localize, localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 import RunPanel from '../../components/run-panel';
@@ -76,9 +77,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, SIGNALS } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'signals', 'chart', 'tutorial'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -341,6 +342,41 @@ const AppWrapper = observer(() => {
         };
     }, [dashboard_strategies, active_tab]);
 
+    // Trade now on the Signals page: open the bot builder with the signal's settings loaded.
+    // The user still taps Run themselves.
+    React.useEffect(() => {
+        let cancelled = false;
+        const onMessage = async (event: MessageEvent) => {
+            if (event.origin !== window.location.origin) return;
+            const data = event.data;
+            if (!data || data.type !== 'tickdesk:signal' || !data.signal) return;
+            const signal = data.signal;
+            setActiveTab(BOT_BUILDER);
+            // Wait (up to ~20s) for the builder and Deriv's contract data to be ready.
+            const ready = () => !!(window.Blockly?.derivWorkspace && ApiHelpers?.instance?.contracts_for);
+            for (let i = 0; i < 80 && !ready() && !cancelled; i++) {
+                await new Promise(resolve => setTimeout(resolve, 250));
+            }
+            if (cancelled) return;
+            if (!ready()) {
+                window.alert('The bot builder is not ready yet. Log in to Deriv, then tap Trade now again.');
+                return;
+            }
+            try {
+                await quick_strategy.loadSignal(signal);
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error(e);
+                window.alert('Could not load this signal into the bot builder. Please try another signal.');
+            }
+        };
+        window.addEventListener('message', onMessage);
+        return () => {
+            cancelled = true;
+            window.removeEventListener('message', onMessage);
+        };
+    }, []);
+
     const handleTabChange = React.useCallback(
         (tab_index: number) => {
             setActiveTab(tab_index);
@@ -405,6 +441,29 @@ const AppWrapper = observer(() => {
                                 }
                                 id='id-bot-builder'
                             />
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='Signals' />
+                                    </>
+                                }
+                                id='id-signals'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === SIGNALS && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/signals.html'
+                                            title='Tickdesk signals'
+                                        />
+                                    )}
+                                </div>
+                            </div>
                             <div
                                 label={
                                     <>
