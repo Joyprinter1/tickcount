@@ -2,11 +2,32 @@
 import { action, makeObservable, observable, reaction } from 'mobx';
 import { ApiHelpers, config as qs_config, load } from '@/external/bot-skeleton';
 import { save_types } from '@/external/bot-skeleton/constants/save-type';
+import { applySignalExtras, TSignalExtras } from '@/utils/signal-strategy';
 import { addDynamicBlockToDOM } from '@/utils/xml-dom-quick-strategy';
 import { STRATEGIES } from '../pages/bot-builder/quick-strategy/config';
 import { TFormData } from '../pages/bot-builder/quick-strategy/types';
 import { getSetting, storeSetting } from '../utils/settings';
 import RootStore from './root-store';
+
+export type TTickdeskSignal = {
+    symbol: string;
+    contract: string;
+    barrier: number | null;
+    trigger: number[];
+    runs: number;
+    stake?: number;
+    tp?: number;
+    sl?: number;
+};
+
+const SIGNAL_TRADE_TYPES: Record<string, string> = {
+    DIGITOVER: 'overunder',
+    DIGITUNDER: 'overunder',
+    DIGITEVEN: 'evenodd',
+    DIGITODD: 'evenodd',
+    DIGITMATCH: 'matchesdiffers',
+    DIGITDIFF: 'matchesdiffers',
+};
 
 export type TActiveSymbol = {
     group: string;
@@ -43,7 +64,8 @@ interface IQuickStrategyStore {
     setFormVisibility: (is_open: boolean) => void;
     setSelectedStrategy: (strategy: string) => void;
     setValue: (name: string, value: string) => void;
-    onSubmit: (data: TFormData) => void;
+    onSubmit: (data: TFormData, signal_extras?: TSignalExtras) => void;
+    loadSignal: (signal: TTickdeskSignal) => Promise<void>;
     toggleStopBotDialog: () => void;
     setCurrentDurationMinMax: (min: number, max: number) => void;
     setOptionsLoading: (is_loading: boolean) => void;
@@ -86,6 +108,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             selected_strategy_for_notofy: observable,
             loss_threshold_warning_data: observable,
             onSubmit: action,
+            loadSignal: action,
             setAdditionalData: action,
             setCurrentDurationMinMax: action,
             setFormVisibility: action,
@@ -153,7 +176,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
         };
     };
 
-    onSubmit = async (data: TFormData) => {
+    onSubmit = async (data: TFormData, signal_extras?: TSignalExtras) => {
         const { contracts_for } = ApiHelpers?.instance ?? {};
         if (!contracts_for) return;
         const market = await contracts_for.getMarketBySymbol(data.symbol);
@@ -210,6 +233,16 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             }
         });
 
+        if (signal_extras) {
+            try {
+                applySignalExtras(strategy_dom, signal_extras);
+            } catch (e) {
+                // Never block the user: fall back to the plain template with the signal's settings.
+                // eslint-disable-next-line no-console
+                console.warn('Signal extras could not be applied, loading the plain strategy.', e);
+            }
+        }
+
         const { derivWorkspace: workspace } = Blockly;
 
         if (action === 'RUN') {
@@ -235,6 +268,31 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             strategy_id: null,
             showIncompatibleStrategyDialog: null,
         });
+    };
+
+    loadSignal = async (signal: TTickdeskSignal) => {
+        const tradetype = SIGNAL_TRADE_TYPES[signal.contract];
+        if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
+        const has_prediction = tradetype !== 'evenodd';
+        this.selected_strategy = 'MARTINGALE';
+        const stake = Number(signal.stake) > 0 ? Number(signal.stake) : 1;
+        await this.onSubmit(
+            {
+                symbol: signal.symbol,
+                tradetype,
+                type: signal.contract,
+                durationtype: 't',
+                duration: 1,
+                stake,
+                loss: Number(signal.sl) > 0 ? Number(signal.sl) : stake * 10,
+                profit: Number(signal.tp) > 0 ? Number(signal.tp) : stake * 10,
+                size: 1,
+                unit: 1,
+                last_digit_prediction: has_prediction ? Number(signal.barrier ?? 0) : 0,
+                action: 'EDIT',
+            } as unknown as TFormData,
+            { trigger: signal.trigger, runs: signal.runs, has_prediction }
+        );
     };
 
     toggleStopBotDialog = (): void => {
