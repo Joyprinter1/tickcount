@@ -1,5 +1,5 @@
 import React from 'react';
-import { toast } from 'react-toastify';
+import { Bounce, toast } from 'react-toastify';
 import { notification_style, TAction, TNotificationContent, TNotificationStyle } from './bot-notification-utils';
 
 export const NotificationContent: React.FC<TNotificationContent> = ({ message, primary_action, closeToast }) => {
@@ -44,6 +44,7 @@ export const botNotification = (
             closeOnClick: custom_style?.closeOnClick ?? notification_style.closeOnClick,
             pauseOnHover: custom_style?.pauseOnHover ?? notification_style.pauseOnHover,
             pauseOnFocusLoss: custom_style?.pauseOnFocusLoss ?? notification_style.pauseOnFocusLoss,
+            transition: Bounce,
             closeButton: custom_style?.closeButton ?? true,
             className: custom_style?.className ?? '',
         }

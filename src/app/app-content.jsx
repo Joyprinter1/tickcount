@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
-import { ToastContainer } from 'react-toastify';
+import { Bounce, ToastContainer } from 'react-toastify';
 import AuthLoadingWrapper from '@/components/auth-loading-wrapper';
 import { botNotification } from '@/components/bot-notification/bot-notification';
 import useLiveChat from '@/components/chat/useLiveChat';
@@ -200,7 +200,20 @@ const AppContent = observer(() => {
                             <BotBuilder />
                             <BotStopped />
                             <TransactionDetailsModal />
-                            <ToastContainer limit={3} draggable={false} />
+                            {/* Props are explicit because react-toastify 9 relies on defaultProps, which React 19 ignores:
+                                transition was left undefined and every toast crashed the page (React error 130). */}
+                            <ToastContainer
+                                limit={3}
+                                draggable={false}
+                                transition={Bounce}
+                                position='bottom-left'
+                                autoClose={6000}
+                                hideProgressBar
+                                closeOnClick={false}
+                                pauseOnHover
+                                pauseOnFocusLoss={false}
+                                theme={is_dark_mode_on ? 'dark' : 'light'}
+                            />
                         </div>
                     </ThemeProvider>
                 </AuthLoadingWrapper>
