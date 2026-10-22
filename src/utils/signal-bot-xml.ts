@@ -21,6 +21,15 @@ export type TSignalBotOptions = {
     martingale_level?: number;
 };
 
+const CONTRACT_LABELS: Record<string, string> = {
+    DIGITOVER: 'Over',
+    DIGITUNDER: 'Under',
+    DIGITEVEN: 'Even',
+    DIGITODD: 'Odd',
+    DIGITMATCH: 'Match',
+    DIGITDIFF: 'Differs',
+};
+
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export const buildSignalBotXml = (o: TSignalBotOptions) => {
@@ -93,8 +102,22 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
     const purchase = `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', o.contract)}</block>`;
     const digit_checks = search_names.map(name => cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, get(name)));
     const trigger_condition = digit_checks.length ? digit_checks.reduce((a, b) => logic('OR', a, b)) : '';
+    // Journal line each time a search number shows up: "Search number 6 found - buying Match 4".
+    const label = `${CONTRACT_LABELS[o.contract] ?? o.contract}${has_prediction ? ` ${o.prediction}` : ''}`;
+    const text_item = (inner: string, next = '') =>
+        `<block type="text_statement" id="${id()}"><value name="TEXT">${inner}</value>${next ? `<next>${next}</next>` : ''}</block>`;
+    const text_shadow = (t: string) => `<shadow type="text" id="${id()}"><field name="TEXT">${esc(t)}</field></shadow>`;
+    const search_note = !trigger_condition
+        ? ''
+        : `<block type="text_join" id="${id()}"><field name="VARIABLE" id="${v('Search Message')}" variabletype="">Search Message</field><statement name="STACK">${text_item(
+        text_shadow('Search number '),
+        text_item(
+            `${text_shadow('')}<block type="last_digit" id="${id()}"></block>`,
+            text_item(text_shadow(` found - buying ${label}`))
+        )
+    )}</statement><next><block type="notify" id="${id()}">${field('NOTIFICATION_TYPE', 'info')}${field('NOTIFICATION_SOUND', 'silent')}<value name="MESSAGE">${text_shadow('abc')}${get('Search Message')}</value><next>${purchase}</next></block></next></block>`;
     const before_purchase_stack = trigger_condition
-        ? `<block type="controls_if" id="${id()}">${value('IF0', trigger_condition)}<statement name="DO0">${purchase}</statement></block>`
+        ? `<block type="controls_if" id="${id()}">${value('IF0', trigger_condition)}<statement name="DO0">${search_note}</statement></block>`
         : purchase;
 
     // ---- After purchase: bookkeeping, martingale, stop rules ----
