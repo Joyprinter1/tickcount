@@ -108,18 +108,6 @@ const AppHeader = observer(() => {
             const oauthUrl = await generateOAuthURL();
 
             if (oauthUrl) {
-                // Temporary diagnostic: show exactly what Deriv will be sent, so it can be compared
-                // with the redirect URLs saved on the Deriv app.
-                try {
-                    const u = new URL(oauthUrl);
-                    window.alert(
-                        `Login check\nApp ID: ${u.searchParams.get('client_id')}\nRedirect URL sent: ${u.searchParams.get(
-                            'redirect_uri'
-                        )}`
-                    );
-                } catch (e) {
-                    // ignore
-                }
                 // Redirect to OAuth URL
                 window.location.replace(oauthUrl);
             } else {

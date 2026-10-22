@@ -409,6 +409,18 @@ function freq(digits,n){
   for(const d of digits.slice(-n))f[d]++;
   return f;
 }
+/* Match signals: the search number is the digit that most often comes right before the hot digit
+   (never the hot digit itself), so the bot waits for it and then matches the hot digit. */
+function topLead(digits,b){
+  const w=digits.slice(-100),c=[0,0,0,0,0,0,0,0,0,0],last=[-1,-1,-1,-1,-1,-1,-1,-1,-1,-1];
+  for(let i=1;i<w.length;i++)if(w[i]===b&&w[i-1]!==b){c[w[i-1]]++;last[w[i-1]]=i;}
+  let best=-1;
+  for(let d=0;d<10;d++){
+    if(d===b)continue;
+    if(best<0||c[d]>c[best]||(c[d]===c[best]&&last[d]>last[best]))best=d;
+  }
+  return [best<0?(b+1)%10:best];
+}
 function topLoss(digits,ct,b,k){
   const f=freq(digits,100);
   return [0,1,2,3,4,5,6,7,8,9].filter(d=>!CT[ct].win(d,b)).sort((x,y)=>f[y]-f[x]||x-y).slice(0,k).sort((x,y)=>x-y);
@@ -426,7 +438,7 @@ function evaluate(tab,digits,sens,prevKey){
   let signal=best.edge>=minEdge-1e-9;
   const prev=prevKey?scored.find(s=>s.key===prevKey&&s.edge>=minEdge-5-1e-9):null;
   if(prev){best=prev;signal=true;}
-  const trigger=best.ct==='MATCH'?[best.b]:topLoss(digits,best.ct,best.b,3);
+  const trigger=best.ct==='MATCH'?topLead(digits,best.b):topLoss(digits,best.ct,best.b,3);
   return Object.assign({},best,{signal,trigger,minEdge,need:best.base+minEdge,n:T.win,runs:sizeRuns(best.edge)});
 }
 /* ==ENGINE END== */
@@ -810,7 +822,9 @@ function paintCard(key){
     c.sub.innerHTML='<b>'+Math.round(ev.rate)+'%</b> hit rate · base '+Math.round(ev.base)+'% · last '+ev.n;
     c.meta.hidden=false;
     const tl=ev.trigger.length>1?ev.trigger.slice(0,-1).join(', ')+' or '+ev.trigger[ev.trigger.length-1]:String(ev.trigger[0]);
-    c.meta.innerHTML='Enter when the last digit is <b>'+tl+'</b> · <b>'+ev.runs+'</b> runs';
+    c.meta.innerHTML=ev.ct==='MATCH'
+      ?'Wait for <b>'+tl+'</b>, then match <b>'+ev.b+'</b> · <b>'+ev.runs+'</b> runs'
+      :'Enter when the last digit is <b>'+tl+'</b> · <b>'+ev.runs+'</b> runs';
   }else{
     c.state.textContent='SCANNING';c.sigline.innerHTML='';
     c.sub.innerHTML='Closest: <b>'+nm+'</b> at '+Math.round(ev.rate)+'% · needs '+Math.round(ev.need)+'%';
