@@ -108,6 +108,18 @@ const AppHeader = observer(() => {
             const oauthUrl = await generateOAuthURL();
 
             if (oauthUrl) {
+                // Keep this confirmation box: with it, login completes reliably. Without it the
+                // redirect was unstable (cause not yet found), so it stays until the real cause is fixed.
+                try {
+                    const u = new URL(oauthUrl);
+                    window.alert(
+                        `Login check\nApp ID: ${u.searchParams.get('client_id')}\nRedirect URL sent: ${u.searchParams.get(
+                            'redirect_uri'
+                        )}`
+                    );
+                } catch (e) {
+                    // ignore
+                }
                 // Redirect to OAuth URL
                 window.location.replace(oauthUrl);
             } else {
