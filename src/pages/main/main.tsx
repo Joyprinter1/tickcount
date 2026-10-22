@@ -77,9 +77,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'chart', 'tutorial'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -483,6 +483,29 @@ const AppWrapper = observer(() => {
                                             className='signals-frame'
                                             src='/signals.html'
                                             title='Tickdesk signals'
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='DerivScope' />
+                                    </>
+                                }
+                                id='id-derivscope'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === DERIVSCOPE && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/derivscope/index.html'
+                                            title='DerivScope analysis desk'
                                         />
                                     )}
                                 </div>
