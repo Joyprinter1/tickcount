@@ -77,9 +77,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, SIGNALS } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'signals', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'chart', 'tutorial'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -441,6 +441,29 @@ const AppWrapper = observer(() => {
                                 }
                                 id='id-bot-builder'
                             />
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='Analysis tool' />
+                                    </>
+                                }
+                                id='id-analysis'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === ANALYSIS && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/analysis.html'
+                                            title='Tickdesk analysis tool'
+                                        />
+                                    )}
+                                </div>
+                            </div>
                             <div
                                 label={
                                     <>
