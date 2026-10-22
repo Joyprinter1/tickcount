@@ -9,8 +9,9 @@ export type TSignalBotOptions = {
     market: string;
     submarket: string;
     symbol: string;
-    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers';
-    contract: string; // e.g. DIGITOVER
+    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs';
+    contract: string; // e.g. DIGITOVER, CALL, RUNHIGH
+    ticks?: number; // duration in ticks (Rise/Fall and Only Ups/Downs)
     prediction: number | null; // barrier digit, null for even/odd
     trigger: number[]; // last digits that start a trade
     runs: number;
@@ -28,6 +29,19 @@ const CONTRACT_LABELS: Record<string, string> = {
     DIGITODD: 'Odd',
     DIGITMATCH: 'Match',
     DIGITDIFF: 'Differs',
+    CALL: 'Rise',
+    PUT: 'Fall',
+    RUNHIGH: 'Only Ups',
+    RUNLOW: 'Only Downs',
+};
+
+// Deriv's trade type category / trade type names for each kind of signal bot.
+const TRADE_CATEGORY: Record<string, [string, string]> = {
+    overunder: ['digits', 'overunder'],
+    evenodd: ['digits', 'evenodd'],
+    matchesdiffers: ['digits', 'matchesdiffers'],
+    risefall: ['callput', 'callput'],
+    runs: ['runs', 'runs'],
 };
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -56,7 +70,10 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const chain = (blocks: ((next: string) => string)[]) =>
         blocks.reduceRight((next, make) => make(next), '');
 
-    const has_prediction = o.tradetype !== 'evenodd' && o.prediction !== null;
+    const has_prediction =
+        (o.tradetype === 'overunder' || o.tradetype === 'matchesdiffers') && o.prediction !== null;
+    const uses_ticks = o.tradetype === 'risefall' || o.tradetype === 'runs';
+    const ticks = Math.max(1, Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : 1));
     const triggers = Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 3);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
     const martingale = o.martingale && o.martingale > 0 ? o.martingale : 2;
@@ -78,6 +95,7 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
                   ['Prediction after loss', o.prediction as number],
               ] as [string, number][])
             : []),
+        ...(uses_ticks ? ([['Ticks', ticks]] as [string, number][]) : []),
         ['Martingale', martingale],
         ['Take Profit', take_profit],
         ['Stop Loss', stop_loss],
@@ -93,7 +111,7 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const trade_options = `<block type="trade_definition_tradeoptions" id="${id()}">
 <mutation has_first_barrier="false" has_second_barrier="false" has_prediction="${has_prediction}"></mutation>
 ${field('DURATIONTYPE_LIST', 't')}${field('CURRENCY_LIST', 'USD')}
-<value name="DURATION"><shadow type="math_number" id="${id()}">${field('NUM', 1)}</shadow></value>
+<value name="DURATION"><shadow type="math_number" id="${id()}">${field('NUM', uses_ticks ? ticks : 1)}</shadow>${uses_ticks ? get('Ticks') : ''}</value>
 <value name="AMOUNT"><shadow type="math_number" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
 ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow>${get('Prediction')}</value>` : ''}
 </block>`;
@@ -158,7 +176,7 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
     const body = `<block type="trade_definition" id="${id()}" x="0" y="0">
 <statement name="TRADE_OPTIONS">
 <block type="trade_definition_market" id="${id()}" deletable="false" movable="false">${field('MARKET_LIST', o.market)}${field('SUBMARKET_LIST', o.submarket)}${field('SYMBOL_LIST', o.symbol)}
-<next><block type="trade_definition_tradetype" id="${id()}" deletable="false" movable="false">${field('TRADETYPECAT_LIST', 'digits')}${field('TRADETYPE_LIST', o.tradetype)}
+<next><block type="trade_definition_tradetype" id="${id()}" deletable="false" movable="false">${field('TRADETYPECAT_LIST', TRADE_CATEGORY[o.tradetype][0])}${field('TRADETYPE_LIST', TRADE_CATEGORY[o.tradetype][1])}
 <next><block type="trade_definition_contracttype" id="${id()}" deletable="false" movable="false">${field('TYPE_LIST', 'both')}
 <next><block type="trade_definition_candleinterval" id="${id()}" deletable="false" movable="false">${field('CANDLEINTERVAL_LIST', 60)}
 <next><block type="trade_definition_restartbuysell" id="${id()}" deletable="false" movable="false">${field('TIME_MACHINE_ENABLED', 'FALSE')}
