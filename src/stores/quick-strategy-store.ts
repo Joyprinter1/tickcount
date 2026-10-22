@@ -16,6 +16,7 @@ export type TTickdeskSignal = {
     barrier: number | null;
     trigger: number[];
     runs: number;
+    ticks?: number;
     stake?: number;
     tp?: number;
     sl?: number;
@@ -28,6 +29,10 @@ const SIGNAL_TRADE_TYPES: Record<string, string> = {
     DIGITODD: 'evenodd',
     DIGITMATCH: 'matchesdiffers',
     DIGITDIFF: 'matchesdiffers',
+    CALL: 'risefall',
+    PUT: 'risefall',
+    RUNHIGH: 'runs',
+    RUNLOW: 'runs',
 };
 
 export type TActiveSymbol = {
@@ -274,7 +279,8 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
     loadSignal = async (signal: TTickdeskSignal) => {
         const tradetype = SIGNAL_TRADE_TYPES[signal.contract];
         if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
-        const has_prediction = tradetype !== 'evenodd';
+        const has_prediction = tradetype === 'overunder' || tradetype === 'matchesdiffers';
+        const is_directional = tradetype === 'risefall' || tradetype === 'runs';
 
         // 1. Preferred: the full signal bot (every setting is a variable the user can edit).
         try {
@@ -286,11 +292,12 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     market,
                     submarket,
                     symbol: signal.symbol,
-                    tradetype: tradetype as 'overunder' | 'evenodd' | 'matchesdiffers',
+                    tradetype: tradetype as 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs',
                     contract: signal.contract,
                     prediction: has_prediction ? Number(signal.barrier ?? 0) : null,
                     trigger: signal.trigger,
                     runs: signal.runs,
+                    ticks: signal.ticks,
                     stake: 1,
                 });
                 this.setFormVisibility(false);
@@ -311,6 +318,8 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             // eslint-disable-next-line no-console
             console.warn('Signal bot could not be built, loading the simple bot instead.', e);
         }
+
+        if (is_directional) throw new Error('This signal bot could not be loaded.');
 
         // 2. Fallback: Deriv's Martingale bot with the signal's settings (known to load).
         this.selected_strategy = 'MARTINGALE';

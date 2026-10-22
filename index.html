@@ -30,10 +30,45 @@
             content="Import your current bot or learn how to create a trading bot from scratch with our detailed guides, FAQs, and tutorials. Start with a quick strategy!"
         />
         <title>Automate Your Trades | Deriv Bot</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=JetBrains+Mono:wght@500..600&display=swap" rel="stylesheet" />
         <style>
             :root {
                 font-size: 62.5%;
             }
+        </style>
+        <style>
+            /* Tickdesk opening loader: shows instantly, fades out once the app is on screen. */
+            #td-splash{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;
+                background:radial-gradient(120% 90% at 50% 0%,#17222C 0%,#0B1117 60%);color:#E7EDF2;
+                font-family:'Bricolage Grotesque','Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+                font-size:16px;transition:opacity .55s ease,visibility .55s ease}
+            #td-splash.td-out{opacity:0;visibility:hidden;pointer-events:none}
+            #td-splash *{box-sizing:border-box}
+            .td-wrap{width:min(320px,82vw);display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+            .td-mark{position:relative;width:132px;height:132px;display:grid;place-items:center}
+            .td-ring{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(242,181,68,.16);border-top-color:#F2B544;border-right-color:rgba(242,181,68,.55);animation:td-spin 1.6s cubic-bezier(.55,.15,.35,.85) infinite}
+            .td-ring.b{inset:12px;border-color:rgba(55,201,139,.14);border-bottom-color:#37C98B;border-left-color:rgba(55,201,139,.5);animation-duration:2.3s;animation-direction:reverse}
+            .td-glow{position:absolute;inset:26px;border-radius:50%;background:radial-gradient(circle,rgba(242,181,68,.25),transparent 70%);animation:td-pulse 2.2s ease-in-out infinite}
+            .td-chart{position:relative;width:76px;height:44px;overflow:visible}
+            .td-line{fill:none;stroke:#F2B544;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:140;stroke-dashoffset:140;animation:td-draw 2.4s ease-in-out infinite;filter:drop-shadow(0 0 6px rgba(242,181,68,.55))}
+            .td-dot{fill:#fff;animation:td-dot 2.4s ease-in-out infinite;filter:drop-shadow(0 0 5px #F2B544)}
+            .td-name{font-weight:700;font-size:32px;letter-spacing:-.02em;line-height:1}
+            .td-name b{color:#F2B544;font-weight:800}
+            .td-sub{margin-top:6px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#8997A6;font-weight:500}
+            .td-digits{display:flex;gap:6px}
+            .td-digits i{font-style:normal;width:22px;height:28px;border-radius:7px;display:grid;place-items:center;font:600 13px 'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;color:#8997A6;background:#131B23;border:1px solid #26323E;animation:td-hit 2s ease-in-out infinite;animation-delay:calc(var(--i)*.2s)}
+            .td-bar{width:100%;height:4px;border-radius:99px;background:#1A242E;overflow:hidden}
+            .td-bar i{display:block;height:100%;width:40%;border-radius:99px;background:linear-gradient(90deg,transparent,#F2B544,#37C98B);animation:td-slide 1.5s ease-in-out infinite}
+            .td-msg{margin:0;font-size:14px;color:#8997A6;min-height:1.4em}
+            @keyframes td-spin{to{transform:rotate(360deg)}}
+            @keyframes td-pulse{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:1;transform:scale(1.08)}}
+            @keyframes td-draw{0%{stroke-dashoffset:140}55%,85%{stroke-dashoffset:0}100%{stroke-dashoffset:-140}}
+            @keyframes td-dot{0%{opacity:0;transform:translate(0,0)}8%{opacity:0}55%,85%{opacity:1}100%{opacity:0}}
+            @keyframes td-hit{0%,100%{color:#8997A6;background:#131B23;border-color:#26323E;transform:none}12%{color:#1A1303;background:#F2B544;border-color:#F2B544;transform:translateY(-4px)}30%{color:#8997A6;background:#131B23;border-color:#26323E;transform:none}}
+            @keyframes td-slide{0%{transform:translateX(-110%)}100%{transform:translateX(260%)}}
+            @media (prefers-reduced-motion:reduce){#td-splash *{animation-duration:6s!important}}
         </style>
     </head>
 
@@ -49,6 +84,47 @@
         ></noscript>
         <!-- End Google Tag Manager (noscript) -->
 
+        <div id="td-splash" role="status" aria-live="polite" aria-label="Loading Tickdesk">
+            <div class="td-wrap">
+                <div class="td-mark">
+                    <span class="td-ring"></span><span class="td-ring b"></span><span class="td-glow"></span>
+                    <svg class="td-chart" viewBox="0 0 76 44" aria-hidden="true">
+                        <polyline class="td-line" points="2,34 16,26 26,31 38,14 49,22 60,6 74,12" />
+                        <circle class="td-dot" r="3.6" cx="74" cy="12" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="td-name">tick<b>desk</b></div>
+                    <div class="td-sub">Signals &middot; Analysis &middot; Bots</div>
+                </div>
+                <div class="td-digits" aria-hidden="true">
+                    <i style="--i:0">0</i><i style="--i:1">1</i><i style="--i:2">2</i><i style="--i:3">3</i><i style="--i:4">4</i><i style="--i:5">5</i><i style="--i:6">6</i><i style="--i:7">7</i><i style="--i:8">8</i><i style="--i:9">9</i>
+                </div>
+                <div class="td-bar"><i></i></div>
+                <p class="td-msg" id="td-msg">Warming up your trading desk&hellip;</p>
+            </div>
+        </div>
+        <script>
+            (function () {
+                var splash = document.getElementById('td-splash');
+                if (!splash) return;
+                var start = Date.now(), loaded = document.readyState === 'complete', done = false;
+                var msgs = ['Warming up your trading desk\u2026', 'Connecting to live markets\u2026', 'Loading your bot builder\u2026', 'Almost there\u2026'];
+                var msg = document.getElementById('td-msg'), k = 0;
+                var rot = setInterval(function () { k = Math.min(k + 1, msgs.length - 1); if (msg) msg.textContent = msgs[k]; }, 1700);
+                window.addEventListener('load', function () { loaded = true; });
+                function hide() {
+                    if (done) return; done = true; clearInterval(rot); clearInterval(poll);
+                    splash.classList.add('td-out');
+                    setTimeout(function () { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 800);
+                }
+                var poll = setInterval(function () {
+                    var root = document.getElementById('root');
+                    var age = Date.now() - start;
+                    if ((loaded && root && root.children.length && age > 2000) || age > 12000) hide();
+                }, 200);
+            })();
+        </script>
         <div id="modal_root" class="modal-root"></div>
         <div id="popup_root" class="popup-root"></div>
         <div id="root"></div>
