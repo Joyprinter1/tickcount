@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en" dir="auto" class="light">
     <head>
+        <script>
+            // One address only: login keeps its security check in the browser, which is per address.
+            if (location.hostname.indexOf('www.') === 0) {
+                location.replace(location.protocol + '//' + location.hostname.slice(4) + location.pathname + location.search + location.hash);
+            }
+        </script>
         <!-- Google Tag Manager -->
         <script>
             (function (w, d, s, l, i) {

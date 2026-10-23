@@ -1,3 +1,4 @@
+import { installLazyRetry } from './utils/lazy-retry';
 import { configure } from 'mobx';
 import ReactDOM from 'react-dom/client';
 import { AuthWrapper } from './app/AuthWrapper';
@@ -14,6 +15,7 @@ import { applyReact19DomPolyfills } from './utils/react19-dom-polyfills';
 import { performVersionCheck } from './utils/version-check';
 import './styles/index.scss';
 
+installLazyRetry();
 applyReact19DomPolyfills();
 installCopyBroadcast();
 
