@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ErrorComponent from './index';
+import { isChunkError } from '@/utils/lazy-retry';
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -11,6 +12,20 @@ class ErrorBoundary extends React.Component {
     componentDidCatch = (error, info) => {
         if (window.TrackJS) window.TrackJS.console.log(this.props.root_store);
 
+        // A part of the app failed to download (weak connection). One automatic reload usually fixes it,
+        // but never while Deriv is sending the user back after login (the page address carries a one-time code).
+        try {
+            const returning = /[?&](code|state)=/.test(window.location.search);
+            const last = Number(window.sessionStorage.getItem('td.chunk.reload') || 0);
+            if (isChunkError(error) && !returning && Date.now() - last > 30000) {
+                window.sessionStorage.setItem('td.chunk.reload', String(Date.now()));
+                window.location.reload();
+                return;
+            }
+        } catch (e) {
+            // ignore
+        }
+
         this.setState({
             hasError: true,
             error,
@@ -20,6 +35,7 @@ class ErrorBoundary extends React.Component {
     render = () => {
         if (!this.state.hasError) return this.props.children;
         const { error, info } = this.state;
+        const show_details = /[?&]debug=1/.test(window.location.search);
         const details = [
             String((error && (error.stack || error.message)) || error),
             info && info.componentStack ? String(info.componentStack).split('\n').slice(0, 6).join('\n') : '',
@@ -29,7 +45,8 @@ class ErrorBoundary extends React.Component {
         return (
             <>
                 <ErrorComponent should_show_refresh={true} />
-                {/* Shown so a screenshot of a crash tells us what went wrong. */}
+                {/* Add ?debug=1 to the address to see what went wrong. */}
+                {show_details && (
                 <pre
                     style={{
                         position: 'fixed',
@@ -50,6 +67,7 @@ class ErrorBoundary extends React.Component {
                 >
                     {details}
                 </pre>
+                )}
             </>
         );
     };

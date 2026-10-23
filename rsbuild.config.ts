@@ -65,8 +65,6 @@ export default defineConfig({
     },
   },
   output: {
-    // Temporary: keep component names so crash screens show which part failed.
-    minify: false,
     assetPrefix: isStaticBuild ? '/bot/preview/' : '/',
     distPath: {
       root: isStaticBuild ? 'out/preview' : 'dist',
