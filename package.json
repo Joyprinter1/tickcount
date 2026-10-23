@@ -14,6 +14,7 @@
     "prebuild": "node scripts/generate-brand-css.js"
   },
   "dependencies": {
+    "@netlify/blobs": "^8.1.0",
     "@deriv-com/quill-ui": "1.18.1",
     "@deriv-com/quill-ui-next": "^2.4.5",
     "@deriv-com/smartcharts-champion": "1.10.8",

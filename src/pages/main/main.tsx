@@ -77,9 +77,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'free_bots', 'chart', 'tutorial'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -349,6 +349,25 @@ const AppWrapper = observer(() => {
         const onMessage = async (event: MessageEvent) => {
             if (event.origin !== window.location.origin) return;
             const data = event.data;
+            if (data?.type === 'tickdesk:loadbot' && typeof data.xml === 'string') {
+                setActiveTab(BOT_BUILDER);
+                for (let i = 0; i < 80 && !window.Blockly?.derivWorkspace && !cancelled; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                }
+                if (cancelled) return;
+                if (!window.Blockly?.derivWorkspace) {
+                    window.alert('The bot builder is not ready yet. Wait a moment, then tap Load bot again.');
+                    return;
+                }
+                try {
+                    await quick_strategy.loadBotXml(data.xml, String(data.name || 'Free bot'));
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error(e);
+                    window.alert('Could not load this bot into the bot builder.');
+                }
+                return;
+            }
             if (!data || data.type !== 'tickdesk:signal' || !data.signal) return;
             const signal = data.signal;
             setActiveTab(BOT_BUILDER);
@@ -506,6 +525,29 @@ const AppWrapper = observer(() => {
                                             className='signals-frame'
                                             src='/derivscope/index.html'
                                             title='DerivScope analysis desk'
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='Free Bots' />
+                                    </>
+                                }
+                                id='id-free-bots'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === FREE_BOTS && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/freebots.html'
+                                            title='Free bots'
                                         />
                                     )}
                                 </div>
