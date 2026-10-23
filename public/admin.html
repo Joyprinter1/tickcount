@@ -41,6 +41,8 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
 .sw input:checked+span{background:var(--win)}.sw input:checked+span::after{transform:translateX(22px)}
 .sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
 .lbl{font-size:11.5px;color:var(--muted);text-align:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stats div{background:var(--raise);border-radius:12px;padding:10px 6px;text-align:center}.stats b{display:block;font:700 22px var(--f-display)}.stats span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--raise);color:var(--muted)}.pill.on{background:rgba(55,201,139,.16);color:var(--win)}.pill.bad{background:rgba(242,106,126,.16);color:var(--loss)}
 .top-actions{display:flex;gap:8px}
 .muted{color:var(--muted)}
 </style>
@@ -72,6 +74,21 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
         <div style="display:flex;align-items:center;gap:10px"><div class="lbl" style="text-align:right">Allow people to load it<br>right after upload</div><div class="sw"><input type="checkbox" id="dl"><span></span></div></div></div>
       <p class="msg" id="umsg"></p>
       <button class="btn" id="up">Upload bot</button>
+    </section>
+
+
+    <section class="card" id="copy">
+      <div class="row"><h2 style="margin:0">Copy trading</h2><label class="sw" style="margin:0" title="Live copying on/off"><input type="checkbox" id="c-live" aria-label="Live copying"><span></span></label></div>
+      <p class="muted" style="margin:6px 0 0;font-size:13px">Live copying is <b id="c-state">off</b>. When it is on, every trade you place from your bot is copied to the clients below that you have switched on.</p>
+      <div class="stats" id="c-stats"></div>
+      <div class="row" style="margin-top:12px"><div style="flex:1;min-width:150px"><label style="margin-top:0" for="c-markup">App markup % on copied trades (0 to 3)</label><input type="text" id="c-markup" inputmode="decimal" placeholder="0"></div>
+        <button class="btn sec sm" id="c-save">Save</button></div>
+      <div class="row" style="margin-top:12px"><div><div style="font-weight:700">Send my trades from this browser</div><div class="muted" style="font-size:13px">Turn on while you run your bot. Stays on this device only.</div></div>
+        <label class="sw" style="margin:0"><input type="checkbox" id="c-send" aria-label="Send my trades"><span></span></label></div>
+      <p class="msg" id="c-msg"></p>
+      <div class="row" style="margin-top:6px"><b>Clients</b><button class="btn sec sm" id="c-check">Check connections</button></div>
+      <div id="c-list"></div>
+      <div id="c-log" class="muted" style="font-size:13px;margin-top:10px"></div>
     </section>
 
     <section class="card">
@@ -109,6 +126,7 @@ async function showGate(){
 async function showPanel(){
   $('#gate').hidden=true;$('#panel').hidden=false;$('#topbtns').hidden=false;
   await refresh();
+  refreshCopy();
 }
 async function refresh(){
   try{
@@ -127,7 +145,7 @@ $('#go').onclick=async()=>{
   catch(e){msg($('#gmsg'),e.message);}
 };
 $('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('#go').click();});
-$('#out').onclick=()=>{setToken('');showGate();};
+$('#out').onclick=()=>{setToken('');try{localStorage.removeItem('tickdesk.copy.owner')}catch(e){}showGate();};
 $('#pw').onclick=async()=>{
   const cur=prompt('Current password');if(cur===null)return;const nx=prompt('New password (8+ characters)');if(nx===null)return;
   try{await api('POST','password',{current:cur,next:nx});alert('Password changed. Please log in again.');setToken('');showGate();}catch(e){alert(e.message);}
@@ -156,6 +174,30 @@ $('#list').addEventListener('click',async e=>{
 });
 $('#all-on').onclick=()=>api('POST','downloads',{downloadable:true}).then(refresh).catch(e=>msg($('#lmsg'),e.message));
 $('#all-off').onclick=()=>api('POST','downloads',{downloadable:false}).then(refresh).catch(e=>msg($('#lmsg'),e.message));
+
+// ---------- copy trading ----------
+const OWNER_KEY='tickdesk.copy.owner';
+function ownerOn(){try{return !!localStorage.getItem(OWNER_KEY)}catch(e){return false}}
+async function refreshCopy(){
+  try{
+    const j=await api('GET','copy');
+    $('#c-live').checked=j.settings.enabled;$('#c-state').textContent=j.settings.enabled?'on':'off';
+    $('#c-markup').value=j.settings.markup||'';$('#c-send').checked=ownerOn()&&!!token;
+    $('#c-stats').innerHTML='<div><b>'+j.counts.active+'</b><span>Copying now</span></div><div><b>'+j.counts.pending+'</b><span>Waiting</span></div><div><b>'+j.counts.total+'</b><span>Total</span></div>';
+    $('#c-list').innerHTML=j.clients.length?j.clients.map(c=>{
+      const st=c.tokenOk===false?'<span class="pill bad">Token problem</span>':c.paused?'<span class="pill">Paused by client</span>':c.active?'<span class="pill on">Copying</span>':'<span class="pill">Waiting for you</span>';
+      return '<div class="bot"><div class="info"><b>'+esc(c.name)+' '+st+'</b><small>'+(c.accountType==='demo'?'Demo':'Real')+' '+esc(c.accountId)+' &middot; '+esc(c.currency)+' '+c.balance+' &middot; '+c.multiplier+'x &middot; '+c.copied+' copied, '+c.failed+' failed'+(c.lastResult&&c.lastResult!=='copied'?' &middot; '+esc(c.lastResult):'')+'</small></div>'+
+       '<div><label class="sw" style="margin:0"><input type="checkbox" data-ca="'+c.id+'" '+(c.active?'checked':'')+' aria-label="Switch on '+esc(c.name)+'"><span></span></label><div class="lbl">'+(c.active?'On':'Off')+'</div></div>'+
+       '<button class="btn bad sm" data-cd="'+c.id+'">Remove</button></div>';}).join(''):'<p class="muted">No clients yet. They appear here after they add their token on the Copy Trading page.</p>';
+    $('#c-log').innerHTML=j.log.length?'<b>Latest trades</b><br>'+j.log.slice(0,6).map(l=>new Date(l.at).toLocaleTimeString()+' &middot; '+esc(l.trade)+' &middot; '+l.ok+'/'+l.tried+' copied').join('<br>'):'';
+  }catch(e){msg($('#c-msg'),e.message);}
+}
+$('#c-live').onchange=async e=>{try{await api('POST','copy/settings',{enabled:e.target.checked});}catch(err){msg($('#c-msg'),err.message);}refreshCopy();};
+$('#c-save').onclick=async()=>{try{await api('POST','copy/settings',{markup:Number($('#c-markup').value||0)});msg($('#c-msg'),'Saved.',true);}catch(e){msg($('#c-msg'),e.message);}};
+$('#c-send').onchange=e=>{try{e.target.checked?localStorage.setItem(OWNER_KEY,JSON.stringify({token,at:Date.now()})):localStorage.removeItem(OWNER_KEY);}catch(err){}msg($('#c-msg'),e.target.checked?'Your trades from this browser will now be sent to copiers (while live copying is on).':'Stopped sending trades from this browser.',e.target.checked);};
+$('#c-check').onclick=async()=>{$('#c-check').disabled=true;try{await api('POST','copy/check');}catch(e){msg($('#c-msg'),e.message);}$('#c-check').disabled=false;refreshCopy();};
+$('#c-list').addEventListener('change',async e=>{const id=e.target.dataset.ca;if(!id)return;try{await api('PATCH','copy/clients/'+id,{active:e.target.checked});}catch(err){msg($('#c-msg'),err.message);}refreshCopy();});
+$('#c-list').addEventListener('click',async e=>{const id=e.target.dataset.cd;if(!id||!confirm('Remove this client and delete their token?'))return;try{await api('DELETE','copy/clients/'+id);}catch(err){msg($('#c-msg'),err.message);}refreshCopy();});
 (async()=>{if(token){try{await showPanel();return;}catch(e){}}showGate();})();
 </script>
 </body>

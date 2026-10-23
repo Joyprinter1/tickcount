@@ -1,4 +1,5 @@
 // Tickdesk bot library API. Pure logic: the storage object is passed in, so it can be tested without Netlify.
+import { handleCopy } from './copy.mjs';
 import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypto';
 
 export const CATEGORIES = ['Over / Under', 'Even / Odd', 'Rise / Fall', 'Matches / Differs', 'Only Ups / Downs', 'Other'];
@@ -44,7 +45,7 @@ const noteFail = ip => {
     failures.set(ip, f);
 };
 
-export async function handle(req, store, env = {}) {
+export async function handle(req, store, env = {}, deps = {}) {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/(?:\.netlify\/functions\/api|api)\/?/, '').replace(/\/+$/, '');
     const parts = path.split('/').filter(Boolean);
@@ -96,6 +97,12 @@ export async function handle(req, store, env = {}) {
         return new Response(xml, { status: 200, headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'no-store' } });
     }
 
+    // ---------- copy trading: client side + owner's trade signal ----------
+    if (parts[0] === 'copy') {
+        const res = await handleCopy({ req, parts, method, store, env, body, isAdmin, deps });
+        if (res) return res;
+    }
+
     // ---------- admin ----------
     if (parts[0] !== 'admin') return json({ error: 'Not found.' }, 404);
     const sub = parts[1];
@@ -128,6 +135,11 @@ export async function handle(req, store, env = {}) {
     }
 
     if (!(await isAdmin())) return json({ error: 'Please log in.' }, 401);
+
+    if (sub === 'copy') {
+        const res = await handleCopy({ req, parts, method, store, env, body, isAdmin, deps });
+        if (res) return res;
+    }
 
     if (method === 'GET' && sub === 'bots') {
         return json({ bots: (await getIndex()).map(b => ({ ...publicBot(b), size: b.size ?? 0 })), categories: CATEGORIES });
