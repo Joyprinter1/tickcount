@@ -77,9 +77,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS, COPY_TRADING } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'free_bots', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'free_bots', 'copy_trading', 'chart', 'tutorial'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -548,6 +548,29 @@ const AppWrapper = observer(() => {
                                             className='signals-frame'
                                             src='/freebots.html'
                                             title='Free bots'
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='Copy Trading' />
+                                    </>
+                                }
+                                id='id-copy-trading'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === COPY_TRADING && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/copytrading.html'
+                                            title='Copy trading'
                                         />
                                     )}
                                 </div>

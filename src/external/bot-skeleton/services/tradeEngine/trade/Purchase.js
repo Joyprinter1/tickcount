@@ -29,6 +29,19 @@ export default Engine =>
                 this.contractId = buy.contract_id;
                 this.store.dispatch(purchaseSuccessful());
 
+                // Copy trading (owner only, see utils/copy-broadcast): never allowed to affect the bot.
+                try {
+                    if (typeof window !== 'undefined' && window.__tickdeskCopy) {
+                        window.__tickdeskCopy({
+                            parameters: tradeOptionToBuy(contract_type, this.tradeOptions).parameters,
+                            isVirtual: /^VR/i.test(String(this.accountInfo?.loginid ?? '')),
+                            masterContractId: buy.contract_id,
+                        });
+                    }
+                } catch (e) {
+                    // ignore
+                }
+
                 if (this.is_proposal_subscription_required) {
                     this.renewProposalsOnPurchase();
                 }

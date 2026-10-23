@@ -9,11 +9,13 @@ import {
     applyFaviconFromLogo,
     applyPrimaryColorFromConfig,
 } from './utils/document-branding';
+import { installCopyBroadcast } from './utils/copy-broadcast';
 import { applyReact19DomPolyfills } from './utils/react19-dom-polyfills';
 import { performVersionCheck } from './utils/version-check';
 import './styles/index.scss';
 
 applyReact19DomPolyfills();
+installCopyBroadcast();
 
 // Configure MobX to handle multiple instances in production builds
 configure({ isolateGlobalState: true });
