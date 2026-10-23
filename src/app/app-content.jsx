@@ -20,6 +20,7 @@ import { localize } from '@deriv-com/translations';
 import Audio from '../components/audio';
 import BlocklyLoading from '../components/blockly-loading';
 import BotStopped from '../components/bot-stopped';
+import SessionCard from '../components/session-card';
 import BotBuilder from '../pages/bot-builder';
 import Main from '../pages/main';
 import './app.scss';
@@ -199,6 +200,7 @@ const AppContent = observer(() => {
                             <Main />
                             <BotBuilder />
                             <BotStopped />
+                            <SessionCard />
                             <TransactionDetailsModal />
                             {/* Props are explicit because react-toastify 9 relies on defaultProps, which React 19 ignores:
                                 transition was left undefined and every toast crashed the page (React error 130). */}
