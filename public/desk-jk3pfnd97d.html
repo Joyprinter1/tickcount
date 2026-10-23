@@ -43,6 +43,15 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
 .lbl{font-size:11.5px;color:var(--muted);text-align:center}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stats div{background:var(--raise);border-radius:12px;padding:10px 6px;text-align:center}.stats b{display:block;font:700 22px var(--f-display)}.stats span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--raise);color:var(--muted)}.pill.on{background:rgba(55,201,139,.16);color:var(--win)}.pill.bad{background:rgba(242,106,126,.16);color:var(--loss)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 16px;font-weight:700;font-size:14px;min-height:42px;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+@media(min-width:560px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:12px;text-align:left;cursor:pointer}
+.tile b{display:block;font:800 26px var(--f-display);letter-spacing:-.02em}.tile span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tile em{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:2px}
+.soc{display:flex;gap:10px;align-items:center}.soc svg{width:28px;height:28px;flex:none}
 .top-actions{display:flex;gap:8px}
 .muted{color:var(--muted)}
 </style>
@@ -63,6 +72,37 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
   </section>
 
   <div id="panel" hidden>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Admin sections">
+      <button role="tab" data-tab="dash" aria-selected="true">Dashboard</button>
+      <button role="tab" data-tab="bots" aria-selected="false">Bots</button>
+      <button role="tab" data-tab="copy" aria-selected="false">Copy trading</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    </nav>
+
+    <div data-pane="dash">
+      <div class="tiles" id="d-tiles"></div>
+      <section class="card"><h2>Right now</h2><div id="d-now" class="muted"></div></section>
+      <section class="card"><h2>Latest copied trades</h2><div id="d-log" class="muted">Nothing yet.</div></section>
+    </div>
+
+    <div data-pane="settings" hidden>
+      <section class="card">
+        <h2>Social links</h2>
+        <p class="muted" style="margin:0 0 4px;font-size:13px">These show on the opening screen so clients can reach you. Leave a box empty to hide that icon. You can paste a full link, an @name, or for WhatsApp a number with the country code (like +254712345678).</p>
+        <label for="s-whatsapp">WhatsApp</label><input type="text" id="s-whatsapp" placeholder="+254712345678 or https://wa.me/...">
+        <label for="s-telegram">Telegram</label><input type="text" id="s-telegram" placeholder="@yourname or https://t.me/yourname">
+        <label for="s-youtube">YouTube</label><input type="text" id="s-youtube" placeholder="@yourchannel or https://youtube.com/@yourchannel">
+        <label for="s-tiktok">TikTok</label><input type="text" id="s-tiktok" placeholder="@yourname or https://tiktok.com/@yourname">
+        <p class="msg" id="s-msg"></p>
+        <button class="btn" id="s-save">Save links</button>
+      </section>
+      <section class="card">
+        <h2>Account</h2>
+        <p class="muted" style="margin:0 0 10px;font-size:13px">Change your admin password. You will be logged out afterwards.</p>
+        <button class="btn sec sm" id="pw2">Change password</button>
+      </section>
+    </div>
+    <div data-pane="bots" hidden>
     <section class="card">
       <h2>Upload a bot</h2>
       <label for="file">Bot file (.xml from Deriv Bot)</label>
@@ -77,6 +117,16 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
     </section>
 
 
+    <section class="card">
+      <div class="row"><h2 style="margin:0">Your bots <span class="muted" id="count"></span></h2>
+        <div class="top-actions"><button class="btn sec sm" id="all-on">Enable all</button><button class="btn sec sm" id="all-off">Disable all</button></div></div>
+      <p class="muted" style="margin:6px 0 0;font-size:13px">Switch on = visitors can load the bot. Switch off = the card still shows Premium but the file stays locked.</p>
+      <div id="list"></div>
+      <p class="msg" id="lmsg"></p>
+    </section>
+    </div>
+
+    <div data-pane="copy" hidden>
     <section class="card" id="copy">
       <div class="row"><h2 style="margin:0">Copy trading</h2><label class="sw" style="margin:0" title="Live copying on/off"><input type="checkbox" id="c-live" aria-label="Live copying"><span></span></label></div>
       <p class="muted" style="margin:6px 0 0;font-size:13px">Live copying is <b id="c-state">off</b>. When it is on, every trade you place from your bot is copied to the clients below that you have switched on.</p>
@@ -91,13 +141,8 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
       <div id="c-log" class="muted" style="font-size:13px;margin-top:10px"></div>
     </section>
 
-    <section class="card">
-      <div class="row"><h2 style="margin:0">Your bots <span class="muted" id="count"></span></h2>
-        <div class="top-actions"><button class="btn sec sm" id="all-on">Enable all</button><button class="btn sec sm" id="all-off">Disable all</button></div></div>
-      <p class="muted" style="margin:6px 0 0;font-size:13px">Switch on = visitors can load the bot. Switch off = the card still shows Premium but the file stays locked.</p>
-      <div id="list"></div>
-      <p class="msg" id="lmsg"></p>
-    </section>
+    </div>
+
   </div>
 </div>
 <script>
@@ -126,7 +171,7 @@ async function showGate(){
 async function showPanel(){
   $('#gate').hidden=true;$('#panel').hidden=false;$('#topbtns').hidden=false;
   await refresh();
-  refreshCopy();
+  setTab('dash');
 }
 async function refresh(){
   try{
@@ -198,6 +243,47 @@ $('#c-send').onchange=e=>{try{e.target.checked?localStorage.setItem(OWNER_KEY,JS
 $('#c-check').onclick=async()=>{$('#c-check').disabled=true;try{await api('POST','copy/check');}catch(e){msg($('#c-msg'),e.message);}$('#c-check').disabled=false;refreshCopy();};
 $('#c-list').addEventListener('change',async e=>{const id=e.target.dataset.ca;if(!id)return;try{await api('PATCH','copy/clients/'+id,{active:e.target.checked});}catch(err){msg($('#c-msg'),err.message);}refreshCopy();});
 $('#c-list').addEventListener('click',async e=>{const id=e.target.dataset.cd;if(!id||!confirm('Remove this client and delete their token?'))return;try{await api('DELETE','copy/clients/'+id);}catch(err){msg($('#c-msg'),err.message);}refreshCopy();});
+
+// ---------- tabs, dashboard, settings ----------
+const ICONS={
+  whatsapp:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#25D366"/><path fill="#fff" d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1l-.9 1.1c-.2.2-.3.2-.6.1-1.6-.8-2.6-1.4-3.6-3.2-.3-.5.3-.5.8-1.6.1-.2 0-.4 0-.5l-.9-2.1c-.2-.5-.4-.4-.7-.4h-.6c-.2 0-.5.1-.8.4-.9.9-1.2 2-1.2 3.2.1 1.4.7 2.7 1.6 3.8 1.7 2.1 3.800 3.300 6.200 4 .9.3 1.700.2 2.300-.1.700-.4 1.100-1.100 1.300-1.900.1-.2.1-.4 0-.5-.1-.1-.3-.2-.6-.4z"/></svg>',
+  telegram:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#229ED9"/><path fill="#fff" d="M5.4 11.700l11.100-4.300c.5-.2 1 .1.8.9l-1.900 8.900c-.1.600-.5.800-1 .5l-2.800-2.100-1.400 1.300c-.1.100-.3.300-.6.300l.2-2.900 5.200-4.700c.2-.2 0-.3-.3-.1l-6.400 4-2.800-.9c-.6-.2-.6-.6.1-.9z"/></svg>',
+  youtube:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#FF0000"/><path fill="#fff" d="M18.600 8.600c-.2-.7-.7-1.100-1.400-1.300C16 7 12 7 12 7s-4 0-5.200.3c-.7.2-1.200.6-1.400 1.300C5 9.800 5 12 5 12s0 2.200.4 3.400c.2.700.7 1.100 1.400 1.300C8 17 12 17 12 17s4 0 5.200-.3c.7-.2 1.200-.6 1.400-1.300.4-1.200.4-3.400.4-3.400s0-2.200-.4-3.400zM10.500 14.200V9.800l3.600 2.200-3.600 2.200z"/></svg>',
+  tiktok:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#111"/><path fill="#fff" d="M16.500 8.300c-.7-.5-1.200-1.300-1.300-2.200h-1.900v8.200c0 1-.8 1.700-1.700 1.700s-1.700-.8-1.700-1.700c0-1 .8-1.700 1.700-1.700.2 0 .4 0 .5.100v-1.900c-.2 0-.3-.1-.5-.1-2 0-3.600 1.600-3.600 3.600s1.600 3.600 3.600 3.600 3.600-1.600 3.600-3.600V10c.7.5 1.500.8 2.400.8V8.900c-.4 0-.8-.2-1.100-.6z"/></svg>'};
+function setTab(t){
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  document.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==t);
+  if(t==='dash')refreshDash();if(t==='settings')loadSettings();if(t==='copy')refreshCopy();if(t==='bots')refresh();
+  window.scrollTo(0,0);
+}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab);});
+async function refreshDash(){
+  try{
+    const [b,c]=await Promise.all([api('GET','bots'),api('GET','copy')]);
+    const open=b.bots.filter(x=>x.downloadable).length;
+    $('#d-tiles').innerHTML=
+      '<button class="tile" data-go="bots"><b>'+b.bots.length+'</b><span>Bots</span><em>'+open+' open &middot; '+(b.bots.length-open)+' locked</em></button>'+
+      '<button class="tile" data-go="copy"><b>'+c.counts.active+'</b><span>Copying now</span><em>of '+c.counts.total+' clients</em></button>'+
+      '<button class="tile" data-go="copy"><b>'+c.counts.pending+'</b><span>Waiting for you</span><em>'+(c.counts.pending?'tap to review':'all caught up')+'</em></button>'+
+      '<button class="tile" data-go="copy"><b>'+(c.settings.enabled?'On':'Off')+'</b><span>Live copying</span><em>'+(ownerOn()?'sending from this browser':'not sending from this browser')+'</em></button>';
+    const bad=c.clients.filter(x=>x.tokenOk===false).length;
+    $('#d-now').innerHTML=[
+      c.counts.pending?'<p style="margin:0 0 6px"><b>'+c.counts.pending+'</b> client'+(c.counts.pending>1?'s are':' is')+' waiting for you to switch them on.</p>':'',
+      bad?'<p style="margin:0 0 6px;color:var(--loss)"><b>'+bad+'</b> client'+(bad>1?'s have':' has')+' a token problem. Use Check connections in Copy trading.</p>':'',
+      !c.settings.enabled?'<p style="margin:0 0 6px">Live copying is off, so nothing is being copied.</p>':'',
+      (!b.bots.length)?'<p style="margin:0">No bots uploaded yet.</p>':''].join('')||'Everything looks fine.';
+    $('#d-log').innerHTML=c.log.length?c.log.slice(0,8).map(l=>new Date(l.at).toLocaleString()+' &middot; '+esc(l.trade)+' &middot; '+l.ok+'/'+l.tried+' copied').join('<br>'):'Nothing yet.';
+  }catch(e){$('#d-now').textContent=e.message;}
+}
+$('#d-tiles').addEventListener('click',e=>{const t=e.target.closest('[data-go]');if(t)setTab(t.dataset.go);});
+async function loadSettings(){
+  try{const j=await api('GET','settings');for(const k of Object.keys(ICONS))$('#s-'+k).value=j.socials[k]||'';}catch(e){msg($('#s-msg'),e.message);}
+}
+$('#s-save').onclick=async()=>{
+  const socials={};for(const k of Object.keys(ICONS))socials[k]=$('#s-'+k).value;
+  try{const j=await api('POST','settings',{socials});for(const k of Object.keys(ICONS))$('#s-'+k).value=j.socials[k]||'';msg($('#s-msg'),'Saved. The opening screen will show these links.',true);}catch(e){msg($('#s-msg'),e.message);}
+};
+$('#pw2').onclick=()=>$('#pw').click();
 (async()=>{if(token){try{await showPanel();return;}catch(e){}}showGate();})();
 </script>
 </body>

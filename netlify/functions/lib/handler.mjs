@@ -6,6 +6,40 @@ export const CATEGORIES = ['Over / Under', 'Even / Odd', 'Rise / Fall', 'Matches
 const MAX_XML = 1_500_000;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 
+
+// ---------- site settings (social links) ----------
+const SOCIALS = {
+    whatsapp: { label: 'WhatsApp', hosts: ['wa.me', 'whatsapp.com', 'chat.whatsapp.com', 'api.whatsapp.com'] },
+    telegram: { label: 'Telegram', hosts: ['t.me', 'telegram.me', 'telegram.org'] },
+    youtube: { label: 'YouTube', hosts: ['youtube.com', 'youtu.be'] },
+    tiktok: { label: 'TikTok', hosts: ['tiktok.com'] },
+};
+// Accepts a full https link, an @handle, or (WhatsApp) a phone number. Returns '' for empty, null for invalid.
+export function normalizeSocial(kind, raw) {
+    const v = String(raw ?? '').trim();
+    if (!v) return '';
+    const spec = SOCIALS[kind];
+    if (!spec || v.length > 200) return null;
+    let url = v;
+    if (kind === 'whatsapp' && /^0[0-9\s-]{6,16}$/.test(v)) return null; // needs a country code
+    if (kind === 'whatsapp' && /^\+?[0-9][0-9\s-]{6,16}$/.test(v)) url = `https://wa.me/${v.replace(/\D/g, '')}`;
+    else if (kind === 'telegram' && /^@?[A-Za-z0-9_]{4,32}$/.test(v)) url = `https://t.me/${v.replace(/^@/, '')}`;
+    else if (kind === 'youtube' && /^@[A-Za-z0-9_.-]{2,40}$/.test(v)) url = `https://www.youtube.com/${v}`;
+    else if (kind === 'tiktok' && /^@[A-Za-z0-9_.]{2,40}$/.test(v)) url = `https://www.tiktok.com/${v}`;
+    else if (!/^https?:\/\//i.test(v)) url = `https://${v}`;
+    try {
+        const u = new URL(url);
+        if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+        const host = u.hostname.toLowerCase().replace(/^www\./, '').replace(/^m\./, '');
+        if (!spec.hosts.some(h => host === h || host.endsWith('.' + h))) return null;
+        u.protocol = 'https:';
+        return u.toString();
+    } catch {
+        return null;
+    }
+}
+const DEFAULT_SITE = { socials: { whatsapp: '', telegram: '', youtube: '', tiktok: '' } };
+
 const json = (data, status = 200, extra = {}) =>
     new Response(JSON.stringify(data), {
         status,
@@ -97,6 +131,11 @@ export async function handle(req, store, env = {}, deps = {}) {
         return new Response(xml, { status: 200, headers: { 'content-type': 'application/xml; charset=utf-8', 'cache-control': 'no-store' } });
     }
 
+    if (method === 'GET' && parts[0] === 'settings' && parts.length === 1) {
+        const site = (await store.get('site', { type: 'json' })) ?? DEFAULT_SITE;
+        return json({ socials: { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) } }, 200, { 'cache-control': 'public, max-age=60' });
+    }
+
     // ---------- copy trading: client side + owner's trade signal ----------
     if (parts[0] === 'copy') {
         const res = await handleCopy({ req, parts, method, store, env, body, isAdmin, deps });
@@ -135,6 +174,24 @@ export async function handle(req, store, env = {}, deps = {}) {
     }
 
     if (!(await isAdmin())) return json({ error: 'Please log in.' }, 401);
+
+    if (sub === 'settings') {
+        const site = (await store.get('site', { type: 'json' })) ?? DEFAULT_SITE;
+        if (method === 'GET') return json({ socials: { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) } });
+        if (method === 'POST') {
+            const b = (await body()) ?? {};
+            const next = { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) };
+            for (const k of Object.keys(SOCIALS)) {
+                if (b.socials && k in b.socials) {
+                    const n = normalizeSocial(k, b.socials[k]);
+                    if (n === null) return json({ error: `That ${SOCIALS[k].label} link does not look right.` }, 400);
+                    next[k] = n;
+                }
+            }
+            await store.setJSON('site', { ...site, socials: next });
+            return json({ socials: next });
+        }
+    }
 
     if (sub === 'copy') {
         const res = await handleCopy({ req, parts, method, store, env, body, isAdmin, deps });
