@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Tickdesk admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF0F3;--surface:#FFFFFF;--raise:#F2F5F8;--line:#D9DFE6;--fg:#101C26;--muted:#5B6977;--accent:#F0B03A;--on-accent:#1B1303;--win:#10915E;--loss:#D03A50;--shadow:0 1px 2px rgba(16,28,38,.06),0 8px 20px rgba(16,28,38,.05);--f-display:'Bricolage Grotesque',system-ui,sans-serif;--f-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0B1117;--surface:#131B23;--raise:#1A242E;--line:#26323E;--fg:#E7EDF2;--muted:#8997A6;--accent:#F2B544;--on-accent:#1A1303;--win:#37C98B;--loss:#F26A7E;--shadow:0 0 0 1px rgba(255,255,255,.02);color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+h1{font:800 24px var(--f-display);margin:0;letter-spacing:-.02em}h1 b{color:var(--accent)}
+h2{font:700 17px var(--f-display);margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin-top:12px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=password],select,textarea{width:100%;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
+textarea{min-height:70px;resize:vertical}
+input[type=color]{width:56px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--raise);padding:3px}
+input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-radius:10px;background:var(--raise)}
+.btn{border:0;border-radius:11px;padding:11px 16px;font-weight:700;min-height:44px;background:var(--accent);color:var(--on-accent)}
+.btn.sec{background:var(--raise);color:var(--fg);border:1px solid var(--line)}
+.btn.bad{background:transparent;color:var(--loss);border:1px solid var(--loss)}
+.btn.sm{min-height:38px;padding:7px 12px;font-size:13.5px}
+.msg{margin:10px 0 0;font-size:14px;min-height:1.3em}.msg.err{color:var(--loss)}.msg.ok{color:var(--win)}
+.bot{display:flex;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.bot:first-of-type{border-top:0}
+.dot{width:34px;height:34px;border-radius:10px;flex:none}
+.bot .info{flex:1;min-width:0}.bot .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bot .info small{color:var(--muted)}
+.sw{position:relative;width:52px;height:30px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:.2s}
+.sw span::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+span{background:var(--win)}.sw input:checked+span::after{transform:translateX(22px)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.lbl{font-size:11.5px;color:var(--muted);text-align:center}
+.top-actions{display:flex;gap:8px}
+.muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="row"><h1>tick<b>desk</b> admin</h1><div class="top-actions" id="topbtns" hidden><button class="btn sec sm" id="pw">Change password</button><button class="btn sec sm" id="out">Log out</button></div></div>
+
+  <section class="card" id="gate" hidden>
+    <h2 id="gate-title">Log in</h2>
+    <p class="muted" id="gate-note"></p>
+    <label for="pass">Password</label>
+    <input type="password" id="pass" autocomplete="current-password">
+    <label for="pass2" id="pass2l" hidden>Repeat password</label>
+    <input type="password" id="pass2" autocomplete="new-password" hidden>
+    <p class="msg" id="gmsg"></p>
+    <button class="btn" id="go">Continue</button>
+  </section>
+
+  <div id="panel" hidden>
+    <section class="card">
+      <h2>Upload a bot</h2>
+      <label for="file">Bot file (.xml from Deriv Bot)</label>
+      <input type="file" id="file" accept=".xml,text/xml,application/xml">
+      <label for="name">Name</label><input type="text" id="name" maxlength="60" placeholder="e.g. Nexus Speedbot V5">
+      <label for="cat">Type</label><select id="cat"></select>
+      <label for="desc">Short description (optional)</label><textarea id="desc" maxlength="160" placeholder="One line that appears on the card"></textarea>
+      <div class="row" style="margin-top:10px"><div><label style="margin-top:0">Card colour</label><input type="color" id="accent" value="#f2b544"></div>
+        <div style="display:flex;align-items:center;gap:10px"><div class="lbl" style="text-align:right">Allow people to load it<br>right after upload</div><div class="sw"><input type="checkbox" id="dl"><span></span></div></div></div>
+      <p class="msg" id="umsg"></p>
+      <button class="btn" id="up">Upload bot</button>
+    </section>
+
+    <section class="card">
+      <div class="row"><h2 style="margin:0">Your bots <span class="muted" id="count"></span></h2>
+        <div class="top-actions"><button class="btn sec sm" id="all-on">Enable all</button><button class="btn sec sm" id="all-off">Disable all</button></div></div>
+      <p class="muted" style="margin:6px 0 0;font-size:13px">Switch on = visitors can load the bot. Switch off = the card still shows Premium but the file stays locked.</p>
+      <div id="list"></div>
+      <p class="msg" id="lmsg"></p>
+    </section>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const K='tickdesk.admin.token';
+let token='',cats=[],mode='login';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+try{token=sessionStorage.getItem(K)||''}catch(e){}
+async function api(method,path,body){
+  const r=await fetch('/api/admin/'+path,{method,headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401&&token&&path!=='login'&&path!=='password'){setToken('');showGate();}
+  if(!r.ok)throw new Error(j.error||'Something went wrong.');
+  return j;
+}
+function setToken(t){token=t;try{t?sessionStorage.setItem(K,t):sessionStorage.removeItem(K)}catch(e){}}
+function msg(el,t,ok){el.textContent=t||'';el.className='msg'+(t?(ok?' ok':' err'):'');}
+async function showGate(){
+  $('#panel').hidden=true;$('#topbtns').hidden=true;$('#gate').hidden=false;
+  try{const s=await api('GET','status');mode=s.setup?'login':'setup';}catch(e){mode='login';msg($('#gmsg'),'Could not reach the server.');}
+  $('#gate-title').textContent=mode==='setup'?'Create your admin password':'Log in';
+  $('#gate-note').textContent=mode==='setup'?'First time here. Choose a password of at least 8 characters. Only you will know it.':'Enter your admin password.';
+  $('#pass2').hidden=$('#pass2l').hidden=mode!=='setup';
+  $('#pass').autocomplete=mode==='setup'?'new-password':'current-password';
+}
+async function showPanel(){
+  $('#gate').hidden=true;$('#panel').hidden=false;$('#topbtns').hidden=false;
+  await refresh();
+}
+async function refresh(){
+  try{
+    const j=await api('GET','bots');cats=j.categories;
+    if(!$('#cat').options.length)$('#cat').innerHTML=cats.map(c=>'<option>'+esc(c)+'</option>').join('');
+    $('#count').textContent='('+j.bots.length+')';
+    $('#list').innerHTML=j.bots.length?j.bots.map(b=>'<div class="bot" data-id="'+b.id+'"><span class="dot" style="background:'+esc(b.accent)+'"></span><div class="info"><b>'+esc(b.name)+'</b><small>'+esc(b.category)+' &middot; '+Math.round((b.size||0)/1024)+' KB</small></div>'+
+      '<div><label class="sw" style="margin:0"><input type="checkbox" data-t="'+b.id+'" '+(b.downloadable?'checked':'')+' aria-label="Allow loading '+esc(b.name)+'"><span></span></label><div class="lbl">'+(b.downloadable?'Open':'Locked')+'</div></div>'+
+      '<button class="btn bad sm" data-d="'+b.id+'">Delete</button></div>').join(''):'<p class="muted">No bots yet. Upload your first one above.</p>';
+  }catch(e){msg($('#lmsg'),e.message);}
+}
+$('#go').onclick=async()=>{
+  const p=$('#pass').value;msg($('#gmsg'),'');
+  if(mode==='setup'&&p!==$('#pass2').value){msg($('#gmsg'),'The two passwords do not match.');return;}
+  try{const j=await api('POST',mode,{password:p});setToken(j.token);$('#pass').value=$('#pass2').value='';await showPanel();}
+  catch(e){msg($('#gmsg'),e.message);}
+};
+$('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('#go').click();});
+$('#out').onclick=()=>{setToken('');showGate();};
+$('#pw').onclick=async()=>{
+  const cur=prompt('Current password');if(cur===null)return;const nx=prompt('New password (8+ characters)');if(nx===null)return;
+  try{await api('POST','password',{current:cur,next:nx});alert('Password changed. Please log in again.');setToken('');showGate();}catch(e){alert(e.message);}
+};
+$('#file').onchange=e=>{const f=e.target.files[0];if(f&&!$('#name').value)$('#name').value=f.name.replace(/\.xml$/i,'').replace(/[_-]+/g,' ').slice(0,60);};
+$('#up').onclick=async()=>{
+  const f=$('#file').files[0];msg($('#umsg'),'');
+  if(!f){msg($('#umsg'),'Choose the bot .xml file first.');return;}
+  if(f.size>1.5e6){msg($('#umsg'),'That file is too big (max 1.5 MB).');return;}
+  $('#up').disabled=true;
+  try{
+    const xml=await f.text();
+    await api('POST','bots',{name:$('#name').value,category:$('#cat').value,description:$('#desc').value,accent:$('#accent').value,downloadable:$('#dl').checked,xml});
+    msg($('#umsg'),'Uploaded. It now shows on the Free bots page.',true);
+    $('#file').value='';$('#name').value='';$('#desc').value='';await refresh();
+  }catch(e){msg($('#umsg'),e.message);}finally{$('#up').disabled=false;}
+};
+$('#list').addEventListener('change',async e=>{
+  const id=e.target.dataset.t;if(!id)return;
+  try{await api('PATCH','bots/'+id,{downloadable:e.target.checked});await refresh();}catch(err){msg($('#lmsg'),err.message);e.target.checked=!e.target.checked;}
+});
+$('#list').addEventListener('click',async e=>{
+  const id=e.target.dataset.d;if(!id)return;
+  if(!confirm('Delete this bot for good?'))return;
+  try{await api('DELETE','bots/'+id);await refresh();}catch(err){msg($('#lmsg'),err.message);}
+});
+$('#all-on').onclick=()=>api('POST','downloads',{downloadable:true}).then(refresh).catch(e=>msg($('#lmsg'),e.message));
+$('#all-off').onclick=()=>api('POST','downloads',{downloadable:false}).then(refresh).catch(e=>msg($('#lmsg'),e.message));
+(async()=>{if(token){try{await showPanel();return;}catch(e){}}showGate();})();
+</script>
+</body>
+</html>

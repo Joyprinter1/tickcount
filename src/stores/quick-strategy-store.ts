@@ -72,6 +72,7 @@ interface IQuickStrategyStore {
     setValue: (name: string, value: string) => void;
     onSubmit: (data: TFormData, signal_extras?: TSignalExtras) => void;
     loadSignal: (signal: TTickdeskSignal) => Promise<void>;
+    loadBotXml: (xml: string, name?: string) => Promise<void>;
     toggleStopBotDialog: () => void;
     setCurrentDurationMinMax: (min: number, max: number) => void;
     setOptionsLoading: (is_loading: boolean) => void;
@@ -115,6 +116,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             loss_threshold_warning_data: observable,
             onSubmit: action,
             loadSignal: action,
+            loadBotXml: action,
             setAdditionalData: action,
             setCurrentDurationMinMax: action,
             setFormVisibility: action,
@@ -341,6 +343,21 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             } as unknown as TFormData,
             { trigger: signal.trigger, runs: signal.runs, has_prediction }
         );
+    };
+
+    // Free Bots page: load a ready-made bot file into the builder (the user taps Run).
+    loadBotXml = async (xml: string, name = 'Free bot') => {
+        this.setFormVisibility(false);
+        const result = await load({
+            block_string: xml,
+            file_name: name,
+            workspace: window.Blockly.derivWorkspace,
+            from: save_types.UNSAVED,
+            drop_event: null,
+            strategy_id: null,
+            showIncompatibleStrategyDialog: null,
+        });
+        if (result?.error) throw new Error(String(result.error));
     };
 
     toggleStopBotDialog = (): void => {
