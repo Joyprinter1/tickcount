@@ -77,9 +77,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS, COPY_TRADING } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, MORE_SIGNALS, FREE_BOTS, COPY_TRADING } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'free_bots', 'copy_trading', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'more_signals', 'free_bots', 'copy_trading', 'chart', 'tutorial'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -525,6 +525,29 @@ const AppWrapper = observer(() => {
                                             className='signals-frame'
                                             src='/derivscope/index.html'
                                             title='DerivScope analysis desk'
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='More Signals' />
+                                    </>
+                                }
+                                id='id-more-signals'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === MORE_SIGNALS && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/moresignals/index.html'
+                                            title='More signals'
                                         />
                                     )}
                                 </div>
