@@ -33,6 +33,8 @@ const SIGNAL_TRADE_TYPES: Record<string, string> = {
     PUT: 'risefall',
     RUNHIGH: 'runs',
     RUNLOW: 'runs',
+    TICKHIGH: 'highlowticks',
+    TICKLOW: 'highlowticks',
 };
 
 export type TActiveSymbol = {
@@ -282,7 +284,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
         const tradetype = SIGNAL_TRADE_TYPES[signal.contract];
         if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
         const has_prediction = tradetype === 'overunder' || tradetype === 'matchesdiffers';
-        const is_directional = tradetype === 'risefall' || tradetype === 'runs';
+        const is_directional = tradetype === 'risefall' || tradetype === 'runs' || tradetype === 'highlowticks';
 
         // 1. Preferred: the full signal bot (every setting is a variable the user can edit).
         try {
@@ -294,9 +296,9 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     market,
                     submarket,
                     symbol: signal.symbol,
-                    tradetype: tradetype as 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs',
+                    tradetype: tradetype as 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks',
                     contract: signal.contract,
-                    prediction: has_prediction ? Number(signal.barrier ?? 0) : null,
+                    prediction: has_prediction || tradetype === 'highlowticks' ? Number(signal.barrier ?? 0) : null,
                     trigger: signal.trigger,
                     runs: signal.runs,
                     ticks: signal.ticks,
