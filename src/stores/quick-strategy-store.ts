@@ -2,7 +2,7 @@
 import { action, makeObservable, observable, reaction } from 'mobx';
 import { ApiHelpers, config as qs_config, load } from '@/external/bot-skeleton';
 import { save_types } from '@/external/bot-skeleton/constants/save-type';
-import { buildSignalBotXml } from '@/utils/signal-bot-xml';
+import { buildSignalBotXml, type TSignalBotOptions } from '@/utils/signal-bot-xml';
 import { applySignalExtras, TSignalExtras } from '@/utils/signal-strategy';
 import { addDynamicBlockToDOM } from '@/utils/xml-dom-quick-strategy';
 import { STRATEGIES } from '../pages/bot-builder/quick-strategy/config';
@@ -17,6 +17,10 @@ export type TTickdeskSignal = {
     trigger: number[];
     runs: number;
     ticks?: number;
+    minutes?: number;
+    offset?: number;
+    growth_rate?: number;
+    tick_count?: number;
     stake?: number;
     tp?: number;
     sl?: number;
@@ -35,6 +39,11 @@ const SIGNAL_TRADE_TYPES: Record<string, string> = {
     RUNLOW: 'runs',
     TICKHIGH: 'highlowticks',
     TICKLOW: 'highlowticks',
+    RESETCALL: 'reset',
+    RESETPUT: 'reset',
+    EXPIRYRANGE: 'endsinout',
+    EXPIRYMISS: 'endsinout',
+    ACCU: 'accumulator',
 };
 
 export type TActiveSymbol = {
@@ -284,7 +293,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
         const tradetype = SIGNAL_TRADE_TYPES[signal.contract];
         if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
         const has_prediction = tradetype === 'overunder' || tradetype === 'matchesdiffers';
-        const is_directional = tradetype === 'risefall' || tradetype === 'runs' || tradetype === 'highlowticks';
+        const is_directional = tradetype === 'risefall' || tradetype === 'runs' || tradetype === 'highlowticks' || tradetype === 'reset' || tradetype === 'endsinout' || tradetype === 'accumulator';
 
         // 1. Preferred: the full signal bot (every setting is a variable the user can edit).
         try {
@@ -296,12 +305,16 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     market,
                     submarket,
                     symbol: signal.symbol,
-                    tradetype: tradetype as 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks',
+                    tradetype: tradetype as TSignalBotOptions['tradetype'],
                     contract: signal.contract,
                     prediction: has_prediction || tradetype === 'highlowticks' ? Number(signal.barrier ?? 0) : null,
                     trigger: signal.trigger,
                     runs: signal.runs,
                     ticks: signal.ticks,
+                    minutes: signal.minutes,
+                    offset: signal.offset,
+                    growth_rate: signal.growth_rate,
+                    tick_count: signal.tick_count,
                     stake: 1,
                 });
                 this.setFormVisibility(false);

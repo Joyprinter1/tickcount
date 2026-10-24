@@ -9,9 +9,13 @@ export type TSignalBotOptions = {
     market: string;
     submarket: string;
     symbol: string;
-    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks';
+    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks' | 'reset' | 'endsinout' | 'accumulator';
     contract: string; // e.g. DIGITOVER, CALL, RUNHIGH
-    ticks?: number; // duration in ticks (Rise/Fall and Only Ups/Downs)
+    ticks?: number; // duration in ticks (Rise/Fall, Only Ups/Downs, High/Low Tick, Reset)
+    minutes?: number; // duration in minutes (Ends Between/Outside)
+    offset?: number; // barrier distance for Ends Between/Outside (high = +offset, low = -offset)
+    growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
+    tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
     trigger: number[]; // last digits that start a trade
     runs: number;
@@ -35,6 +39,11 @@ const CONTRACT_LABELS: Record<string, string> = {
     RUNLOW: 'Only Downs',
     TICKHIGH: 'High Tick',
     TICKLOW: 'Low Tick',
+    RESETCALL: 'Reset Call',
+    RESETPUT: 'Reset Put',
+    EXPIRYRANGE: 'Ends Between',
+    EXPIRYMISS: 'Ends Outside',
+    ACCU: 'Accumulator',
 };
 
 // Deriv's trade type category / trade type names for each kind of signal bot.
@@ -45,6 +54,9 @@ const TRADE_CATEGORY: Record<string, [string, string]> = {
     risefall: ['callput', 'callput'],
     runs: ['runs', 'runs'],
     highlowticks: ['highlowticks', 'highlowticks'],
+    reset: ['reset', 'reset'],
+    endsinout: ['inout', 'endsinout'],
+    accumulator: ['accumulator', 'accumulator'],
 };
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -76,11 +88,24 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const has_prediction =
         (o.tradetype === 'overunder' || o.tradetype === 'matchesdiffers' || o.tradetype === 'highlowticks') &&
         o.prediction !== null;
-    const uses_ticks = o.tradetype === 'risefall' || o.tradetype === 'runs' || o.tradetype === 'highlowticks';
+    const is_inout = o.tradetype === 'endsinout';
+    const is_accu = o.tradetype === 'accumulator';
+    const uses_ticks =
+        o.tradetype === 'risefall' ||
+        o.tradetype === 'runs' ||
+        o.tradetype === 'highlowticks' ||
+        o.tradetype === 'reset';
+    const uses_duration = uses_ticks || is_inout;
+    const dur_name = is_inout ? 'Minutes' : 'Ticks';
     const ticks = Math.max(
         1,
-        Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : o.tradetype === 'highlowticks' ? 5 : 1)
+        Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : o.tradetype === 'highlowticks' || o.tradetype === 'reset' ? 5 : 1)
     );
+    const minutes = Math.max(2, Math.floor(Number(o.minutes)) || 2);
+    const duration = is_inout ? minutes : ticks;
+    const offset = o.offset && o.offset > 0 ? o.offset : 1;
+    const growth_rate = o.growth_rate && o.growth_rate > 0 ? o.growth_rate : 0.01;
+    const tick_count = Math.max(1, Math.floor(Number(o.tick_count)) || 5);
     const triggers = Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 3);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
     const martingale = o.martingale && o.martingale > 0 ? o.martingale : 2;
@@ -102,7 +127,9 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
                   ['Prediction after loss', o.prediction as number],
               ] as [string, number][])
             : []),
-        ...(uses_ticks ? ([['Ticks', ticks]] as [string, number][]) : []),
+        ...(uses_duration ? ([[dur_name, duration]] as [string, number][]) : []),
+        ...(is_inout ? ([['Barrier Offset', offset]] as [string, number][]) : []),
+        ...(is_accu ? ([['Tick Count', tick_count]] as [string, number][]) : []),
         ['Martingale', martingale],
         ['Take Profit', take_profit],
         ['Stop Loss', stop_loss],
@@ -116,10 +143,11 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
 
     // ---- Trade options ----
     const trade_options = `<block type="trade_definition_tradeoptions" id="${id()}">
-<mutation has_first_barrier="false" has_second_barrier="false" has_prediction="${has_prediction}"></mutation>
-${field('DURATIONTYPE_LIST', 't')}${field('CURRENCY_LIST', 'USD')}
-<value name="DURATION"><shadow type="math_number" id="${id()}">${field('NUM', uses_ticks ? ticks : 1)}</shadow>${uses_ticks ? get('Ticks') : ''}</value>
+<mutation has_first_barrier="${is_inout}" has_second_barrier="${is_inout}" has_prediction="${has_prediction}"></mutation>
+${field('DURATIONTYPE_LIST', is_inout ? 'm' : 't')}${field('CURRENCY_LIST', 'USD')}${is_inout ? field('BARRIEROFFSETTYPE_LIST', '+') + field('SECONDBARRIEROFFSETTYPE_LIST', '-') : ''}
+<value name="DURATION"><shadow type="math_number" id="${id()}">${field('NUM', uses_duration ? duration : 1)}</shadow>${uses_duration ? get(dur_name) : ''}</value>
 <value name="AMOUNT"><shadow type="math_number" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
+${is_inout ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value><value name="SECONDBARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}
 ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow>${get('Prediction')}</value>` : ''}
 </block>`;
 
@@ -141,7 +169,17 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
             text_item(text_shadow(` found - buying ${label}`))
         )
     )}</statement><next><block type="notify" id="${id()}">${field('NOTIFICATION_TYPE', 'info')}${field('NOTIFICATION_SOUND', 'silent')}<value name="MESSAGE">${text_shadow('abc')}${get('Search Message')}</value><next>${purchase}</next></block></next></block>`;
-    const before_purchase_stack = trigger_condition
+    const accu_block = `<block type="trade_definition_accumulator" id="${id()}">${field('GROWTHRATE_LIST', growth_rate)}
+<value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
+<statement name="ACCUMULATOR_PARAMS"><block type="accumulator_take_profit" id="${id()}" disabled="true"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow></value></block></statement></block>`;
+    const accu_reset = chain([
+        next => set('Current Tick Value', num(0), next),
+        next => set('Is Bought', `<block type="logic_boolean" id="${id()}">${field('BOOL', 'FALSE')}</block>`, next),
+        () => purchase,
+    ]);
+    const before_purchase_stack = is_accu
+        ? accu_reset
+        : trigger_condition
         ? `<block type="controls_if" id="${id()}">${value('IF0', trigger_condition)}<statement name="DO0">${search_note}</statement></block>`
         : purchase;
 
@@ -180,21 +218,41 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
             `<block type="controls_if" id="${id()}">${value('IF0', keep_going)}<statement name="DO0"><block type="trade_again" id="${id()}"></block></statement></block>`,
     ]);
 
+    // Accumulators have no expiry: count ticks while the trade is open, then sell at market.
+    const accu_extra = !is_accu
+        ? ''
+        : `<block type="during_purchase" id="${id()}" x="760" y="360"><statement name="DURING_PURCHASE_STACK">${set(
+              'Is Bought',
+              `<block type="logic_boolean" id="${id()}">${field('BOOL', 'TRUE')}</block>`,
+              `<block type="controls_if" id="${id()}">${value(
+                  'IF0',
+                  logic(
+                      'AND',
+                      `<block type="check_sell" id="${id()}"></block>`,
+                      cmp('GT', get('Current Tick Value'), get('Tick Count'))
+                  )
+              )}<statement name="DO0"><block type="sell_at_market" id="${id()}"></block></statement></block>`
+          )}</statement></block>
+<block type="tick_analysis" id="${id()}" x="760" y="560"><statement name="TICKANALYSIS_STACK"><block type="controls_if" id="${id()}">${value(
+              'IF0',
+              get('Is Bought')
+          )}<statement name="DO0">${change('Current Tick Value', num(1))}</statement></block></statement></block>`;
+
     const body = `<block type="trade_definition" id="${id()}" x="0" y="0">
 <statement name="TRADE_OPTIONS">
 <block type="trade_definition_market" id="${id()}" deletable="false" movable="false">${field('MARKET_LIST', o.market)}${field('SUBMARKET_LIST', o.submarket)}${field('SYMBOL_LIST', o.symbol)}
 <next><block type="trade_definition_tradetype" id="${id()}" deletable="false" movable="false">${field('TRADETYPECAT_LIST', TRADE_CATEGORY[o.tradetype][0])}${field('TRADETYPE_LIST', TRADE_CATEGORY[o.tradetype][1])}
-<next><block type="trade_definition_contracttype" id="${id()}" deletable="false" movable="false">${field('TYPE_LIST', 'both')}
+<next><block type="trade_definition_contracttype" id="${id()}" deletable="false" movable="false">${field('TYPE_LIST', is_accu ? 'ACCU' : 'both')}
 <next><block type="trade_definition_candleinterval" id="${id()}" deletable="false" movable="false">${field('CANDLEINTERVAL_LIST', 60)}
 <next><block type="trade_definition_restartbuysell" id="${id()}" deletable="false" movable="false">${field('TIME_MACHINE_ENABLED', 'FALSE')}
 <next><block type="trade_definition_restartonerror" id="${id()}" deletable="false" movable="false">${field('RESTARTONERROR', 'TRUE')}</block></next>
 </block></next></block></next></block></next></block></next></block>
 </statement>
 <statement name="INITIALIZATION">${init_xml}</statement>
-<statement name="SUBMARKET">${trade_options}</statement>
+<statement name="SUBMARKET">${is_accu ? accu_block : trade_options}</statement>
 </block>
 <block type="after_purchase" id="${id()}" x="760" y="0"><statement name="AFTERPURCHASE_STACK">${after_purchase_stack}</statement></block>
-<block type="before_purchase" id="${id()}" x="0" y="640"><statement name="BEFOREPURCHASE_STACK">${before_purchase_stack}</statement></block>`;
+<block type="before_purchase" id="${id()}" x="0" y="640"><statement name="BEFOREPURCHASE_STACK">${before_purchase_stack}</statement></block>${is_accu ? accu_extra : ''}`;
 
     const variables = Object.entries(vars)
         .map(([name, vid]) => `<variable type="" id="${vid}" islocal="false" iscloud="false">${esc(name)}</variable>`)
