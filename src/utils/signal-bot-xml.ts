@@ -9,7 +9,7 @@ export type TSignalBotOptions = {
     market: string;
     submarket: string;
     symbol: string;
-    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs';
+    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks';
     contract: string; // e.g. DIGITOVER, CALL, RUNHIGH
     ticks?: number; // duration in ticks (Rise/Fall and Only Ups/Downs)
     prediction: number | null; // barrier digit, null for even/odd
@@ -33,6 +33,8 @@ const CONTRACT_LABELS: Record<string, string> = {
     PUT: 'Fall',
     RUNHIGH: 'Only Ups',
     RUNLOW: 'Only Downs',
+    TICKHIGH: 'High Tick',
+    TICKLOW: 'Low Tick',
 };
 
 // Deriv's trade type category / trade type names for each kind of signal bot.
@@ -42,6 +44,7 @@ const TRADE_CATEGORY: Record<string, [string, string]> = {
     matchesdiffers: ['digits', 'matchesdiffers'],
     risefall: ['callput', 'callput'],
     runs: ['runs', 'runs'],
+    highlowticks: ['highlowticks', 'highlowticks'],
 };
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -71,9 +74,13 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
         blocks.reduceRight((next, make) => make(next), '');
 
     const has_prediction =
-        (o.tradetype === 'overunder' || o.tradetype === 'matchesdiffers') && o.prediction !== null;
-    const uses_ticks = o.tradetype === 'risefall' || o.tradetype === 'runs';
-    const ticks = Math.max(1, Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : 1));
+        (o.tradetype === 'overunder' || o.tradetype === 'matchesdiffers' || o.tradetype === 'highlowticks') &&
+        o.prediction !== null;
+    const uses_ticks = o.tradetype === 'risefall' || o.tradetype === 'runs' || o.tradetype === 'highlowticks';
+    const ticks = Math.max(
+        1,
+        Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : o.tradetype === 'highlowticks' ? 5 : 1)
+    );
     const triggers = Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 3);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
     const martingale = o.martingale && o.martingale > 0 ? o.martingale : 2;
