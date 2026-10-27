@@ -106,7 +106,7 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const offset = o.offset && o.offset > 0 ? o.offset : 1;
     const growth_rate = o.growth_rate && o.growth_rate > 0 ? o.growth_rate : 0.01;
     const tick_count = Math.max(1, Math.floor(Number(o.tick_count)) || 5);
-    const triggers = Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 3);
+    const triggers = Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 1);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
     const martingale = o.martingale && o.martingale >= 1 ? o.martingale : 2;
     // 0 means "off": use a limit far above anything a session can reach.
