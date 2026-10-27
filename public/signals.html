@@ -107,6 +107,14 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
 .btns{display:flex;gap:10px}
 .btns .btn{flex:1}
 .hint{font-size:13px;color:var(--muted)}
+.qs{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+.qs-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qs label{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:14px}
+.qs input{width:100%;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:16px}
+.bar-pick{display:flex;flex-wrap:wrap;gap:6px}
+.bar-pick button{min-width:40px;min-height:40px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--raise);font-weight:700;color:var(--fg)}
+.bar-pick button[aria-pressed=true]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.bar-pick button:disabled{opacity:.35;cursor:not-allowed}
 .hint a{color:var(--accent-ink)}
 .msg{font-size:13px;color:var(--muted)}
 .msg.err{color:var(--loss)}
@@ -237,6 +245,15 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
   <main>
     <!-- SIGNALS -->
     <section class="tab" id="tab-signals">
+      <div class="panel qs" id="qs-set">
+        <div class="qs-g">
+          <label>Stake<input id="q-stake" type="number" min="0.35" step="0.01" inputmode="decimal"></label>
+          <label>Martingale<input id="q-mult" type="number" min="1" step="0.1" inputmode="decimal"></label>
+          <label>Take profit<input id="q-tp" type="number" min="0" step="0.01" inputmode="decimal"></label>
+          <label>Stop loss<input id="q-sl" type="number" min="0" step="0.01" inputmode="decimal"></label>
+        </div>
+        <p class="hint" id="q-note"></p>
+      </div>
       <div class="seg" id="sig-tabs" role="group" aria-label="Signal type">
         <button type="button" data-t="ou" aria-pressed="true">Over / Under</button>
         <button type="button" data-t="eo" aria-pressed="false">Even / Odd</button>
@@ -246,6 +263,11 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
         <button type="button" data-v="all" aria-pressed="true">All markets</button>
         <button type="button" data-v="2" aria-pressed="false">2-second</button>
         <button type="button" data-v="1" aria-pressed="false">1-second</button>
+      </div>
+      <div class="panel qs" id="qs-bar" hidden>
+        <label id="q-bar-l">Barrier</label>
+        <div class="bar-pick" id="q-bar" role="group" aria-label="Barrier digit"></div>
+        <p class="hint" id="q-bar-note"></p>
       </div>
       <div class="sum" id="sumline"></div>
       <div id="cards"></div>
@@ -465,7 +487,7 @@ const MKT={};MARKETS.forEach(m=>{MKT[m.key]=m;});
 const DEF_SET={family:'all',sens:'normal',theme:'auto',forceDemo:false,sigTab:'ou'};
 const EMBEDDED=window.parent!==window;
 if(EMBEDDED)document.documentElement.classList.add('embedded');
-const DEF_BOT={volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper'};
+const DEF_BOT={volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper',pick:null};
 const set=Object.assign({},DEF_SET,store.get('tickdesk.set',{}));
 const cfg=Object.assign({},DEF_BOT,store.get('tickdesk.bot',{}));
 cfg.target='paper';
@@ -839,12 +861,17 @@ function openBot(key){
   if(run.active){toast('Stop the running bot before loading a new signal.');return;}
   cfg.volKey=key;cfg.ct=ev.ct;
   if(CT[ev.ct].needs)cfg.barrier=ev.b;
+  if((ev.ct==='OVER'||ev.ct==='UNDER')&&cfg.pick!=null){
+    const lo=ev.ct==='UNDER'?1:0,hi=ev.ct==='OVER'?8:9;
+    if(cfg.pick<lo||cfg.pick>hi){toast((ev.ct==='OVER'?'Over':'Under')+' can only use barriers '+lo+' to '+hi+'. Pick another barrier.');return;}
+    cfg.barrier=cfg.pick;
+  }
   cfg.useTrigger=true;cfg.trigger=ev.trigger.slice();cfg.runs=ev.runs;
   if(EMBEDDED){
     window.parent.postMessage({type:'tickdesk:signal',signal:{
       symbol:MKT[key].sym,name:MKT[key].name,contract:CT[ev.ct].api,kind:ev.ct,
-      barrier:CT[ev.ct].needs?ev.b:null,trigger:ev.trigger.slice(),runs:ev.runs,
-      stake:cfg.stake,tp:cfg.tp,sl:cfg.sl,rate:Math.round(ev.rate),base:Math.round(ev.base),at:Date.now()}},window.location.origin);
+      barrier:CT[ev.ct].needs?cfg.barrier:null,trigger:ev.trigger.slice(),runs:ev.runs,
+      stake:cfg.stake,mult:cfg.mult,tp:cfg.tp,sl:cfg.sl,rate:Math.round(ev.rate),base:Math.round(ev.base),at:Date.now()}},window.location.origin);
     toast('Opening Deriv bot builder…');
     return;
   }
@@ -945,12 +972,33 @@ function applyTheme(){
   if(set.theme==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',set.theme);
 }
 
+/* ---------- quick settings (stake, martingale, take profit, stop loss, barrier) ---------- */
+function renderQS(){
+  const f=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=v;};
+  f('#q-stake',cfg.stake);f('#q-mult',cfg.mult);f('#q-tp',cfg.tp);f('#q-sl',cfg.sl);
+  const m=Math.max(1,cfg.mult);
+  $('#q-note').textContent='A win returns the stake to '+cfg.stake+'. A loss multiplies it by '+m+(cfg.tp>0?'. Stops at +'+cfg.tp:'')+(cfg.sl>0?' or -'+cfg.sl:'')+'.';
+  const ou=sigTab==='ou';
+  $('#qs-bar').hidden=!ou;
+  if(ou){
+    $('#q-bar-l').textContent='Barrier';
+    $('#q-bar').innerHTML='<button type="button" data-p="" aria-pressed="'+(cfg.pick==null)+'">Scan</button>'+[0,1,2,3,4,5,6,7,8,9].map(d=>'<button type="button" data-p="'+d+'" aria-pressed="'+(cfg.pick===d)+'">'+d+'</button>').join('');
+    $('#q-bar-note').textContent=cfg.pick==null
+      ?'Scan uses the barrier the signal found. Pick a digit to use your own barrier instead.'
+      :'Signals load with barrier '+cfg.pick+' (Over 0 to 8, Under 1 to 9), even if the scan shows another digit.';
+  }
+}
 /* ---------- events ---------- */
 function bindAll(){
+  [['#q-stake','stake',1],['#q-mult','mult',1],['#q-tp','tp',0],['#q-sl','sl',0]].forEach(a=>$(a[0]).addEventListener('input',e=>{
+    let v=numOr(e.target.value,a[2]);if(a[1]==='mult')v=Math.max(1,v);if(a[1]==='stake')v=Math.max(0.35,v);if(v<0)v=0;
+    cfg[a[1]]=v;saveCfg();renderQS();syncForm();
+  }));
+  $('#q-bar').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cfg.pick=b.dataset.p===''?null:+b.dataset.p;saveCfg();renderQS();});
   $('.nav-in').addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTab(b.dataset.tab);});
   $('#sig-tabs').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
-    sigTab=b.dataset.t;set.sigTab=sigTab;saveSet();
+    sigTab=b.dataset.t;set.sigTab=sigTab;saveSet();renderQS();
     $$('#sig-tabs button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
     MARKETS.forEach(m=>updateCard(m.key));
   });
@@ -994,7 +1042,7 @@ function bindAll(){
 /* ---------- boot ---------- */
 buildCards();buildBotForm();bindAll();applyFilter();setSeg('#sig-fam','v',set.family);
 $$('#sig-tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===sigTab?'true':'false'));
-applyTheme();syncForm();renderAll();
+applyTheme();syncForm();renderAll();renderQS();
 connectPub();
 setInterval(()=>{
   if(feed==='live'&&!demo.on&&!set.forceDemo&&Date.now()-lastTickAt>10000){
