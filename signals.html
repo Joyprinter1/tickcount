@@ -265,8 +265,10 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
         <button type="button" data-v="1" aria-pressed="false">1-second</button>
       </div>
       <div class="panel qs" id="qs-bar" hidden>
-        <label id="q-bar-l">Barrier</label>
-        <div class="bar-pick" id="q-bar" role="group" aria-label="Barrier digit"></div>
+        <label>Over barrier</label>
+        <div class="bar-pick" id="q-bar-o" role="group" aria-label="Over barrier digit"></div>
+        <label>Under barrier</label>
+        <div class="bar-pick" id="q-bar-u" role="group" aria-label="Under barrier digit"></div>
         <p class="hint" id="q-bar-note"></p>
       </div>
       <div class="sum" id="sumline"></div>
@@ -443,6 +445,12 @@ function topLead(digits,b){
   }
   return [best<0?(b+1)%10:best];
 }
+/* Even/Odd: the search number is the most common digit of the same kind as the trade
+   (an even digit for Even, an odd digit for Odd), so it follows each market's own habit. */
+function topSame(digits,parity){
+  const f=freq(digits,100);
+  return [[0,1,2,3,4,5,6,7,8,9].filter(d=>d%2===parity).sort((x,y)=>f[y]-f[x]||x-y)[0]];
+}
 function topLoss(digits,ct,b,k){
   const f=freq(digits,100);
   return [0,1,2,3,4,5,6,7,8,9].filter(d=>!CT[ct].win(d,b)).sort((x,y)=>f[y]-f[x]||x-y).slice(0,k).sort((x,y)=>x-y);
@@ -460,7 +468,7 @@ function evaluate(tab,digits,sens,prevKey){
   let signal=best.edge>=minEdge-1e-9;
   const prev=prevKey?scored.find(s=>s.key===prevKey&&s.edge>=minEdge-5-1e-9):null;
   if(prev){best=prev;signal=true;}
-  const trigger=best.ct==='MATCH'?topLead(digits,best.b):topLoss(digits,best.ct,best.b,3);
+  const trigger=best.ct==='MATCH'?topLead(digits,best.b):best.ct==='EVEN'?topSame(digits,0):best.ct==='ODD'?topSame(digits,1):topLoss(digits,best.ct,best.b,1);
   return Object.assign({},best,{signal,trigger,minEdge,need:best.base+minEdge,n:T.win,runs:sizeRuns(best.edge)});
 }
 /* ==ENGINE END== */
@@ -487,7 +495,7 @@ const MKT={};MARKETS.forEach(m=>{MKT[m.key]=m;});
 const DEF_SET={family:'all',sens:'normal',theme:'auto',forceDemo:false,sigTab:'ou'};
 const EMBEDDED=window.parent!==window;
 if(EMBEDDED)document.documentElement.classList.add('embedded');
-const DEF_BOT={volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper',pick:null};
+const DEF_BOT={volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper',pickO:null,pickU:null};
 const set=Object.assign({},DEF_SET,store.get('tickdesk.set',{}));
 const cfg=Object.assign({},DEF_BOT,store.get('tickdesk.bot',{}));
 cfg.target='paper';
@@ -861,11 +869,8 @@ function openBot(key){
   if(run.active){toast('Stop the running bot before loading a new signal.');return;}
   cfg.volKey=key;cfg.ct=ev.ct;
   if(CT[ev.ct].needs)cfg.barrier=ev.b;
-  if((ev.ct==='OVER'||ev.ct==='UNDER')&&cfg.pick!=null){
-    const lo=ev.ct==='UNDER'?1:0,hi=ev.ct==='OVER'?8:9;
-    if(cfg.pick<lo||cfg.pick>hi){toast((ev.ct==='OVER'?'Over':'Under')+' can only use barriers '+lo+' to '+hi+'. Pick another barrier.');return;}
-    cfg.barrier=cfg.pick;
-  }
+  const pk=ev.ct==='OVER'?cfg.pickO:ev.ct==='UNDER'?cfg.pickU:null;
+  if(pk!=null)cfg.barrier=pk;
   cfg.useTrigger=true;cfg.trigger=ev.trigger.slice();cfg.runs=ev.runs;
   if(EMBEDDED){
     window.parent.postMessage({type:'tickdesk:signal',signal:{
@@ -981,11 +986,12 @@ function renderQS(){
   const ou=sigTab==='ou';
   $('#qs-bar').hidden=!ou;
   if(ou){
-    $('#q-bar-l').textContent='Barrier';
-    $('#q-bar').innerHTML='<button type="button" data-p="" aria-pressed="'+(cfg.pick==null)+'">Scan</button>'+[0,1,2,3,4,5,6,7,8,9].map(d=>'<button type="button" data-p="'+d+'" aria-pressed="'+(cfg.pick===d)+'">'+d+'</button>').join('');
-    $('#q-bar-note').textContent=cfg.pick==null
-      ?'Scan uses the barrier the signal found. Pick a digit to use your own barrier instead.'
-      :'Signals load with barrier '+cfg.pick+' (Over 0 to 8, Under 1 to 9), even if the scan shows another digit.';
+    const row=(id,key,lo,hi)=>{$(id).innerHTML='<button type="button" data-k="'+key+'" data-p="" aria-pressed="'+(cfg[key]==null)+'">Scan</button>'+Array.from({length:hi-lo+1},(_,i)=>lo+i).map(d=>'<button type="button" data-k="'+key+'" data-p="'+d+'" aria-pressed="'+(cfg[key]===d)+'">'+d+'</button>').join('');};
+    row('#q-bar-o','pickO',0,8);row('#q-bar-u','pickU',1,9);
+    const o=cfg.pickO,u=cfg.pickU;
+    $('#q-bar-note').textContent=(o==null&&u==null)
+      ?'Scan uses the barrier each signal found. Pick a lower Over or a higher Under barrier to load a safer bot.'
+      :'An Over signal loads '+(o==null?'with the scan barrier':'Over '+o)+', an Under signal loads '+(u==null?'with the scan barrier':'Under '+u)+', even if the scan shows another digit.';
   }
 }
 /* ---------- events ---------- */
@@ -994,7 +1000,7 @@ function bindAll(){
     let v=numOr(e.target.value,a[2]);if(a[1]==='mult')v=Math.max(1,v);if(a[1]==='stake')v=Math.max(0.35,v);if(v<0)v=0;
     cfg[a[1]]=v;saveCfg();renderQS();syncForm();
   }));
-  $('#q-bar').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;cfg.pick=b.dataset.p===''?null:+b.dataset.p;saveCfg();renderQS();});
+  $('#qs-bar').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;cfg[b.dataset.k]=b.dataset.p===''?null:+b.dataset.p;saveCfg();renderQS();});
   $('.nav-in').addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTab(b.dataset.tab);});
   $('#sig-tabs').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
