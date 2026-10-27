@@ -22,6 +22,7 @@ export type TTickdeskSignal = {
     growth_rate?: number;
     tick_count?: number;
     stake?: number;
+    mult?: number;
     tp?: number;
     sl?: number;
 };
@@ -315,7 +316,10 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     offset: signal.offset,
                     growth_rate: signal.growth_rate,
                     tick_count: signal.tick_count,
-                    stake: 1,
+                    stake: Number(signal.stake) > 0 ? Number(signal.stake) : 1,
+                    martingale: Number(signal.mult) >= 1 ? Number(signal.mult) : undefined,
+                    take_profit: Number.isFinite(Number(signal.tp)) ? Number(signal.tp) : undefined,
+                    stop_loss: Number.isFinite(Number(signal.sl)) ? Number(signal.sl) : undefined,
                 });
                 this.setFormVisibility(false);
                 const result = await load({

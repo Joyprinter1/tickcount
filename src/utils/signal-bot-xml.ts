@@ -108,9 +108,11 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const tick_count = Math.max(1, Math.floor(Number(o.tick_count)) || 5);
     const triggers = Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 3);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
-    const martingale = o.martingale && o.martingale > 0 ? o.martingale : 2;
-    const take_profit = o.take_profit && o.take_profit > 0 ? o.take_profit : 10;
-    const stop_loss = o.stop_loss && o.stop_loss > 0 ? o.stop_loss : 10;
+    const martingale = o.martingale && o.martingale >= 1 ? o.martingale : 2;
+    // 0 means "off": use a limit far above anything a session can reach.
+    const limit = (x: number | undefined) => (x === undefined ? 10 : x > 0 ? x : 1000000);
+    const take_profit = limit(o.take_profit);
+    const stop_loss = limit(o.stop_loss);
     const level = o.martingale_level && o.martingale_level > 0 ? o.martingale_level : 5;
     const runs = Math.max(1, Math.floor(Number(o.runs)) || 10);
     const search_names = triggers.map((_, i) => `Search Number ${i + 1}`);
