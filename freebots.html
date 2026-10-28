@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<script src="theme.js"></script>
+<title>Free bots</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F3;--surface:#FFFFFF;--raise:#F2F5F8;--line:#D9DFE6;--fg:#101C26;--muted:#5B6977;
+  --accent:#F0B03A;--on-accent:#1B1303;--win:#10915E;--loss:#D03A50;
+  --shadow:0 1px 2px rgba(16,28,38,.06),0 8px 20px rgba(16,28,38,.05);
+  --f-display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --f-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B1117;--surface:#131B23;--raise:#1A242E;--line:#26323E;--fg:#E7EDF2;--muted:#8997A6;--accent:#F2B544;--on-accent:#1A1303;--win:#37C98B;--loss:#F26A7E;--shadow:0 0 0 1px rgba(255,255,255,.02);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0B1117;--surface:#131B23;--raise:#1A242E;--line:#26323E;--fg:#E7EDF2;--muted:#8997A6;--accent:#F2B544;--on-accent:#1A1303;--win:#37C98B;--loss:#F26A7E;--shadow:0 0 0 1px rgba(255,255,255,.02);color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:900px;margin:0 auto;padding:14px max(12px,env(safe-area-inset-right,0px)) 40px max(12px,env(safe-area-inset-left,0px))}
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px 16px 14px}
+.hero h1{margin:0;font:800 26px/1.1 var(--f-display);letter-spacing:-.02em}
+.hero h1 b{color:var(--accent)}
+.hero p{margin:6px 0 0;color:var(--muted)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:12px 2px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:13.5px;color:var(--muted);min-height:38px}
+.chips button[aria-pressed=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+@media (min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:12px}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.art{position:relative;aspect-ratio:16/10;display:grid;place-items:center;overflow:hidden}
+.art svg{width:58%;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))}
+.tag{position:absolute;left:8px;top:8px;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 10px var(--f-body);letter-spacing:.07em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.88);color:#1B2733}
+.prem{position:absolute;right:8px;top:8px;display:inline-flex;align-items:center;gap:4px;font:800 10px var(--f-body);letter-spacing:.08em;padding:4px 8px;border-radius:999px;background:#1B1303;color:#F2B544;border:1px solid rgba(242,181,68,.6)}
+.body{padding:10px 10px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+.body b{font:700 15.5px/1.2 var(--f-display)}
+.body small{color:var(--muted);font-size:12.5px;line-height:1.35;min-height:2.7em}
+.btn{margin-top:auto;min-height:42px;border-radius:11px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn.on{background:var(--accent);color:var(--on-accent)}
+.btn.off{background:var(--raise);color:var(--muted);border:1px solid var(--line);cursor:not-allowed}
+.btn[disabled]{opacity:.7}
+.state{margin:40px 8px;text-align:center;color:var(--muted)}
+.retry{margin-top:12px;padding:10px 16px;border-radius:10px;background:var(--fg);color:var(--bg);font-weight:600}
+.skel{height:230px;border-radius:16px;background:linear-gradient(90deg,var(--raise),var(--surface),var(--raise));background-size:200% 100%;animation:sk 1.3s linear infinite;border:1px solid var(--line)}
+@keyframes sk{to{background-position:-200% 0}}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;max-width:90vw;z-index:9}
+.note{margin:16px 4px 0;font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="hero">
+    <h1>Free <b>bots</b></h1>
+    <p>Pick a bot, load it into Deriv&rsquo;s bot builder, check the settings and tap Run.</p>
+    <div class="chips" id="chips" role="group" aria-label="Bot type"></div>
+  </section>
+  <main id="grid" class="grid" aria-live="polite"></main>
+  <div class="state" id="state" hidden></div>
+  <p class="note">Premium bots are loaded only when the owner has unlocked them. Trading involves risk; no bot guarantees profit.</p>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+const EMBEDDED=window.parent!==window;
+const $=s=>document.querySelector(s);
+let bots=[],cats=[],cat='All';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function shade(hex,k){const n=parseInt(hex.slice(1),16);let r=n>>16,g=(n>>8)&255,b=n&255;const f=k<0?0:255,t=Math.abs(k);r=Math.round((f-r)*t+r);g=Math.round((f-g)*t+g);b=Math.round((f-b)*t+b);return'#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
+function art(b){
+  const a=/^#[0-9a-f]{6}$/i.test(b.accent)?b.accent:'#F2B544',d=shade(a,-.55),l=shade(a,.55);
+  return '<div class="art" style="background:linear-gradient(145deg,'+shade(a,-.35)+','+d+' 70%,#0B1117)">'+
+   '<svg viewBox="0 0 120 120" aria-hidden="true"><line x1="60" y1="8" x2="60" y2="24" stroke="'+l+'" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="8" r="6" fill="'+a+'"/>'+
+   '<rect x="22" y="24" width="76" height="62" rx="20" fill="'+l+'"/><rect x="30" y="34" width="60" height="38" rx="14" fill="'+d+'"/>'+
+   '<circle cx="47" cy="53" r="7.5" fill="'+a+'"/><circle cx="73" cy="53" r="7.5" fill="'+a+'"/>'+
+   '<rect x="36" y="92" width="48" height="16" rx="8" fill="'+l+'"/><path d="M8 66h10M102 66h10" stroke="'+l+'" stroke-width="6" stroke-linecap="round"/></svg>'+
+   '<span class="tag">'+esc(b.category)+'</span><span class="prem">&#9733; PREMIUM</span></div>';
+}
+function render(){
+  const list=bots.filter(b=>cat==='All'||b.category===cat);
+  $('#chips').innerHTML=['All'].concat(cats.filter(c=>bots.some(b=>b.category===c))).map(c=>'<button type="button" data-c="'+esc(c)+'" aria-pressed="'+(c===cat)+'">'+esc(c)+'</button>').join('');
+  const g=$('#grid');g.hidden=!list.length;
+  g.innerHTML=list.map(b=>'<article class="card">'+art(b)+'<div class="body"><b>'+esc(b.name)+'</b><small>'+esc(b.description||'Ready-made Deriv bot')+'</small>'+
+    (b.downloadable?'<button type="button" class="btn on" data-load="'+b.id+'">'+(EMBEDDED?'Load bot':'Download bot')+'</button>':'<button type="button" class="btn off" disabled>&#128274; Premium &middot; locked</button>')+'</div></article>').join('');
+  const st=$('#state');
+  st.hidden=!!list.length;
+  if(!list.length)st.innerHTML=bots.length?'No bots in this type yet.':'No bots yet. New bots will appear here soon.';
+}
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2800);}
+async function load(){
+  $('#grid').innerHTML=Array.from({length:6},()=>'<div class="skel"></div>').join('');
+  try{
+    const r=await fetch('/api/bots',{cache:'no-store'});if(!r.ok)throw 0;
+    const j=await r.json();bots=j.bots||[];cats=j.categories||[];render();
+  }catch(e){
+    $('#grid').innerHTML='';const st=$('#state');st.hidden=false;
+    st.innerHTML='Could not load the bots right now.<br><button type="button" class="retry" id="retry">Try again</button>';
+  }
+}
+document.addEventListener('click',async e=>{
+  const c=e.target.closest('[data-c]');if(c){cat=c.dataset.c;render();return;}
+  if(e.target.id==='retry'){load();return;}
+  const b=e.target.closest('[data-load]');if(!b)return;
+  const bot=bots.find(x=>x.id===b.dataset.load);if(!bot)return;
+  b.disabled=true;
+  try{
+    const r=await fetch('/api/bots/'+encodeURIComponent(bot.id)+'/xml',{cache:'no-store'});
+    if(r.status===403){toast('This premium bot is locked right now.');load();return;}
+    if(!r.ok)throw 0;
+    const xml=await r.text();
+    if(EMBEDDED){window.parent.postMessage({type:'tickdesk:loadbot',name:bot.name,xml:xml},window.location.origin);toast('Opening Deriv bot builder…');}
+    else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([xml],{type:'application/xml'}));a.download=bot.name.replace(/[^\w.-]+/g,'_')+'.xml';a.click();}
+  }catch(err){toast('Could not get that bot. Try again.');}
+  finally{b.disabled=false;}
+});
+load();
+</script>
+</body>
+</html>

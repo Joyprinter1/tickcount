@@ -39,9 +39,9 @@ function tdRobot(mood){const eye=mood==="go"?"#37C98B":mood==="watch"?"#F2B544":
   return`<svg class="td-robot ${mood}" viewBox="0 0 120 96" aria-hidden="true" focusable="false"><line x1="60" y1="9" x2="60" y2="22" stroke="#8FA3B5" stroke-width="3" stroke-linecap="round"/><circle class="td-ant" cx="60" cy="7" r="5" fill="${eye}"/><rect x="13" y="40" width="9" height="20" rx="4" fill="#3A4C5E"/><rect x="98" y="40" width="9" height="20" rx="4" fill="#3A4C5E"/><rect x="24" y="22" width="72" height="56" rx="16" fill="#C9D6E2" stroke="#8FA3B5" stroke-width="2"/><rect x="32" y="34" width="56" height="26" rx="10" fill="#0E1620"/><g class="td-eyes"><circle cx="46" cy="47" r="6.5" fill="${eye}"/><circle cx="74" cy="47" r="6.5" fill="${eye}"/><circle cx="48" cy="45" r="2" fill="#fff" opacity=".85"/><circle cx="76" cy="45" r="2" fill="#fff" opacity=".85"/></g><path d="M44 69h32" stroke="#6C7F92" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 4"/><rect x="40" y="80" width="40" height="12" rx="5" fill="#3A4C5E"/></svg>`}
 function tdBanner(key,sig){const R=TD_ROBOT[key];if(!R)return"";let t=null;try{t=tdInfo(key,sig)}catch(e){}
   const mood=t&&t.ok?"go":sig&&sig.strength>=55?"watch":"idle",txt=mood==="go"?"READY":mood==="watch"?"WATCHING":"SCANNING";
-  return`<div class="td-banner ${mood}" style="--c1:${R[1]};--c2:${R[2]}">${tdRobot(mood)}<div class="td-bot-txt"><strong>${R[0]}</strong><span class="td-chip">${txt}</span></div></div>`}
+  return`<div class="td-banner ${mood}" data-trade="${key}" role="button" tabindex="0" aria-label="${R[0]}: ${mood==="go"?"Trade now":"not ready yet"}" style="--c1:${R[1]};--c2:${R[2]}">${tdRobot(mood)}<div class="td-bot-txt"><strong>${R[0]}</strong><span class="td-chip">${mood==="go"?"TRADE NOW ›":txt}</span></div></div>`}
 function tdLab(title,line){const ks=TD_KEYS.filter(k=>TD_ROBOT[k]);
-  return`<section class="td-lab"><div class="td-lab-bots">${ks.map(k=>{let m="idle";try{const sg=j()[k],t=tdInfo(k,sg);m=t&&t.ok?"go":sg&&sg.strength>=55?"watch":"idle"}catch(e){}return`<div class="td-mini ${m}" title="${TD_ROBOT[k][0]}">${tdRobot(m)}<small>${TD_ROBOT[k][0]}</small></div>`}).join("")}</div><div class="td-lab-txt"><h2>${title}</h2><p>${line}</p></div></section>`}
+  return`<section class="td-lab"><div class="td-lab-bots">${ks.map(k=>{let m="idle";try{const sg=j()[k],t=tdInfo(k,sg);m=t&&t.ok?"go":sg&&sg.strength>=55?"watch":"idle"}catch(e){}return`<div class="td-mini ${m}" data-trade="${k}" role="button" tabindex="0" title="${TD_ROBOT[k][0]}">${tdRobot(m)}<small>${TD_ROBOT[k][0]}</small></div>`}).join("")}</div><div class="td-lab-txt"><h2>${title}</h2><p>${line}</p></div></section>`}
 function tdSd(a){if(a.length<3)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length)}
 function tdMoves(){const t=n.ticks.slice(-200),d=[];for(let i=1;i<t.length;i++)d.push(t[i]-t[i-1]);return d}
 function tdIO(){
@@ -108,6 +108,7 @@ function tdScanCta(pass,a){
   return`<button class="scanner-cta" type="button" data-trade="${key}">Open on Deriv bot · ${t.label} <span>↗</span></button>`
 }
 function tdTrade(key){
+  if(!TD_EMB){q("Trade now opens the Deriv bot builder, so it works inside the full site.");return}
   const sig=j()[key],t=tdInfo(key,sig);
   if(!t||!t.ok){q(t&&t.note||"No trade signal right now.");return}
   const m=k[n.market];
@@ -125,6 +126,7 @@ function tdSel(){
     s.addEventListener("blur",G);
   });
   document.querySelectorAll("[data-trade]").forEach(b=>b.addEventListener("click",()=>tdTrade(b.dataset.trade)));
+  document.querySelectorAll('.td-banner[data-trade],.td-mini[data-trade]').forEach(b=>b.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tdTrade(b.dataset.trade)}}));
   document.querySelectorAll("[data-pick]").forEach(b=>b.addEventListener("click",()=>{
     const k=b.dataset.pick;tdCfgSave(k,b.dataset.p===""?null:+b.dataset.p);
     document.querySelectorAll(`[data-pick="${k}"]`).forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));

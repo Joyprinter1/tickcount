@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<script src="theme.js"></script>
+<title>Copy trading</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF0F3;--surface:#FFFFFF;--raise:#F2F5F8;--line:#D9DFE6;--fg:#101C26;--muted:#5B6977;--accent:#F0B03A;--on-accent:#1B1303;--win:#10915E;--win-soft:#DDF3EA;--loss:#D03A50;--loss-soft:#FBE3E7;--amber-soft:#FBEBD5;--shadow:0 1px 2px rgba(16,28,38,.06),0 8px 20px rgba(16,28,38,.05);--f-display:'Bricolage Grotesque',system-ui,sans-serif;--f-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B1117;--surface:#131B23;--raise:#1A242E;--line:#26323E;--fg:#E7EDF2;--muted:#8997A6;--accent:#F2B544;--on-accent:#1A1303;--win:#37C98B;--win-soft:#12352A;--loss:#F26A7E;--loss-soft:#3A1C24;--amber-soft:#3A2A14;--shadow:0 0 0 1px rgba(255,255,255,.02);color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:560px;margin:0 auto;padding:14px 12px 50px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:16px;margin-top:10px}
+h1{margin:0;font:800 26px/1.1 var(--f-display);letter-spacing:-.02em}h1 b{color:var(--accent)}
+h2{margin:0 0 8px;font:700 17px var(--f-display)}
+p{margin:6px 0 0}.muted{color:var(--muted)}
+.steps{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.steps li{display:flex;gap:10px;align-items:flex-start}
+.steps i{flex:none;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--on-accent);font:700 13px var(--f-body);display:grid;place-items:center;font-style:normal;margin-top:1px}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 4px}
+input[type=text],input[type=password],select{width:100%;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:46px}
+.btn{width:100%;margin-top:14px;border:0;border-radius:12px;padding:12px 16px;font-weight:700;min-height:48px;background:var(--accent);color:var(--on-accent)}
+.btn.sec{background:var(--raise);color:var(--fg);border:1px solid var(--line)}
+.btn.bad{background:transparent;color:var(--loss);border:1px solid var(--loss)}
+.btn[disabled]{opacity:.6}
+.msg{margin:10px 0 0;min-height:1.3em;font-size:14px}.msg.err{color:var(--loss)}
+.lock{display:flex;gap:10px;align-items:flex-start;background:var(--raise);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13.5px}
+.status{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;font-weight:700;font-size:13px}
+.status i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.s-on{background:var(--win-soft);color:var(--win)}.s-wait{background:var(--amber-soft);color:#B26A0B}.s-off{background:var(--raise);color:var(--muted)}.s-bad{background:var(--loss-soft);color:var(--loss)}
+@media (prefers-color-scheme:dark){.s-wait{color:#F2A04A}}
+.kv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
+.kv div{background:var(--raise);border-radius:12px;padding:10px 6px;text-align:center}
+.kv b{display:block;font:700 18px var(--f-display)}.kv span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.acct{display:flex;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--raise);margin-top:8px;cursor:pointer;width:100%;text-align:left}
+.acct:hover{border-color:var(--accent)}
+.risk{font-size:12.5px;color:var(--muted);margin-top:14px}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="card" id="intro">
+    <h1>Copy <b>trading</b></h1>
+    <p class="muted">Add your Deriv token and the trades from the bot owner are placed on your Deriv account too.</p>
+    <ol class="steps">
+      <li><i>1</i><span>Create an API token on Deriv with only <b>Read</b> and <b>Trade</b> ticked (Settings &rarr; API token).</span></li>
+      <li><i>2</i><span>Paste it below and connect.</span></li>
+      <li><i>3</i><span>The owner switches you on, and the trades start copying. You can pause or remove yourself any time.</span></li>
+    </ol>
+    <div class="lock"><span>&#128274;</span><span>Your token is stored encrypted on our server. It is never shown to anyone, not to other clients and not to the owner.</span></div>
+  </section>
+
+  <section class="card" id="connect">
+    <h2>Connect your account</h2>
+    <label for="nm">Your name (optional)</label>
+    <input type="text" id="nm" maxlength="40" autocomplete="name">
+    <label for="tk">Deriv API token</label>
+    <input type="password" id="tk" autocomplete="off" spellcheck="false" placeholder="Paste your token">
+    <div id="pick" hidden></div>
+    <p class="msg" id="cm"></p>
+    <button class="btn" id="go">Connect</button>
+    <p class="risk">Copied trades can lose money, and your trade may start a second or two after the owner&rsquo;s. Try it on a demo account first.</p>
+  </section>
+
+  <section class="card" id="me" hidden>
+    <h2>Your copy trading</h2>
+    <div><span class="status" id="st"></span></div>
+    <p class="muted" id="who"></p>
+    <div class="kv"><div><b id="n-ok">0</b><span>Copied</span></div><div><b id="n-bad">0</b><span>Failed</span></div><div><b id="n-x">1x</b><span>Stake</span></div></div>
+    <p class="muted" id="last" style="font-size:13px"></p>
+    <label for="mult">Stake size compared with the owner</label>
+    <select id="mult"><option value="0.5">Half (0.5x)</option><option value="1">Same (1x)</option><option value="2">Double (2x)</option><option value="3">Triple (3x)</option></select>
+    <button class="btn sec" id="pause">Pause copying</button>
+    <button class="btn bad" id="rm">Remove my token and stop</button>
+    <p class="msg" id="mm"></p>
+  </section>
+</div>
+<script>
+const $=s=>document.querySelector(s);const K='tickdesk.copy.clientKey';
+let key='';try{key=localStorage.getItem(K)||''}catch(e){}
+let me=null,pending=null;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(m,p,b){const r=await fetch('/api/copy/'+p,{method:m,headers:{'content-type':'application/json',...(key?{'x-client-key':key}:{})},body:b?JSON.stringify(b):undefined});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw Object.assign(new Error(j.error||'Something went wrong.'),{status:r.status});return j;}
+function show(){
+  $('#connect').hidden=!!me;$('#intro').hidden=false;$('#me').hidden=!me;
+  if(!me)return;
+  const c=me;let cls='s-wait',t='Waiting for the owner to switch you on';
+  if(c.tokenOk===false){cls='s-bad';t='Token problem. Reconnect with a new token';}
+  else if(c.paused){cls='s-off';t='Paused by you';}
+  else if(c.active){cls='s-on';t='Copying';}
+  $('#st').className='status '+cls;$('#st').innerHTML='<i></i>'+t;
+  $('#who').textContent=(c.accountType==='demo'?'Demo':'Real')+' account '+c.accountId+' · '+c.currency;
+  $('#n-ok').textContent=c.copied;$('#n-bad').textContent=c.failed;$('#n-x').textContent=c.multiplier+'x';
+  $('#mult').value=String(c.multiplier);$('#pause').textContent=c.paused?'Resume copying':'Pause copying';
+  $('#last').textContent=c.lastAt?('Last trade: '+(c.lastResult==='copied'?'copied':c.lastResult)+' · '+new Date(c.lastAt).toLocaleString()):'No trades copied yet.';
+}
+async function load(){if(!key){show();return;}try{me=(await api('GET','me')).client;}catch(e){if(e.status===401){key='';try{localStorage.removeItem(K)}catch(x){}}me=null;}show();}
+$('#go').onclick=async()=>{
+  const m=$('#cm');m.textContent='';m.className='msg';$('#go').disabled=true;
+  try{
+    const body={token:$('#tk').value.trim(),name:$('#nm').value};if(pending)body.accountId=pending;
+    const j=await api('POST','connect',body);
+    if(j.choose){$('#pick').hidden=false;$('#pick').innerHTML='<label>Which account should copy?</label>'+j.choose.map(a=>'<button type="button" class="acct" data-a="'+esc(a.id)+'"><b>'+(a.type==='demo'?'Demo':'Real')+'</b><span class="muted">'+esc(a.id)+' · '+esc(a.currency)+' '+a.balance+'</span></button>').join('');return;}
+    key=j.clientKey;try{localStorage.setItem(K,key)}catch(e){}
+    $('#tk').value='';me=j.client;$('#pick').hidden=true;pending=null;show();
+  }catch(e){m.textContent=e.message;m.className='msg err';}finally{$('#go').disabled=false;}
+};
+$('#pick').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;pending=b.dataset.a;$('#go').click();});
+$('#pause').onclick=async()=>{try{me=(await api('POST','me',{paused:!me.paused})).client;show();}catch(e){$('#mm').textContent=e.message;$('#mm').className='msg err';}};
+$('#mult').onchange=async e=>{try{me=(await api('POST','me',{multiplier:+e.target.value})).client;show();}catch(err){$('#mm').textContent=err.message;$('#mm').className='msg err';}};
+$('#rm').onclick=async()=>{if(!confirm('Remove your token and stop copying?'))return;try{await api('DELETE','me');}catch(e){}key='';try{localStorage.removeItem(K)}catch(e){}me=null;show();};
+load();setInterval(()=>{if(key&&!document.hidden)load();},20000);
+</script>
+</body>
+</html>
