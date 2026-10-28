@@ -18,6 +18,9 @@
 .td-chips{display:flex;flex-wrap:wrap;gap:6px}
 .td-chips button{min-width:40px;min-height:40px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2,#1A242E);color:inherit;font:700 14px inherit;cursor:pointer}
 .td-chips button[aria-pressed=true]{background:var(--amber);color:#1A1303;border-color:var(--amber)}
+.td-banner[data-trade],.td-mini[data-trade]{cursor:pointer}
+.td-banner.go:hover{filter:brightness(1.12)}
+.td-banner:focus-visible,.td-mini:focus-visible{outline:2px solid #fff;outline-offset:2px}
 .td-banner{position:relative;display:flex;align-items:center;gap:14px;margin:0 0 12px;padding:10px 14px;border-radius:14px;background:linear-gradient(135deg,var(--c1),var(--c2));overflow:hidden}
 .td-banner::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px),repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0 1px,transparent 1px 22px);pointer-events:none}
 .td-banner>*{position:relative}
