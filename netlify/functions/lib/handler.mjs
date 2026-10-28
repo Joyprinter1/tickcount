@@ -38,6 +38,18 @@ export function normalizeSocial(kind, raw) {
         return null;
     }
 }
+export const THEME_SURFACES = ['slate', 'navy', 'charcoal', 'forest', 'plum', 'black'];
+// Returns a clean { accent, accent2, surface } or null when the input is not a valid theme.
+export function normalizeTheme(t) {
+    if (!t || typeof t !== 'object') return null;
+    const hex = v => (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim()) ? v.trim().toUpperCase() : null);
+    const accent = hex(t.accent);
+    const accent2 = hex(t.accent2);
+    if (!accent || !accent2 || !THEME_SURFACES.includes(t.surface)) return null;
+    const out = { accent, accent2, surface: t.surface };
+    if (typeof t.preset === 'string' && /^[a-z0-9-]{1,24}$/.test(t.preset)) out.preset = t.preset;
+    return out;
+}
 const DEFAULT_SITE = { socials: { whatsapp: '', telegram: '', youtube: '', tiktok: '' } };
 
 const json = (data, status = 200, extra = {}) =>
@@ -133,7 +145,7 @@ export async function handle(req, store, env = {}, deps = {}) {
 
     if (method === 'GET' && parts[0] === 'settings' && parts.length === 1) {
         const site = (await store.get('site', { type: 'json' })) ?? DEFAULT_SITE;
-        return json({ socials: { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) } }, 200, { 'cache-control': 'public, max-age=60' });
+        return json({ socials: { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) }, theme: normalizeTheme(site.theme) }, 200, { 'cache-control': 'public, max-age=60' });
     }
 
     // ---------- copy trading: client side + owner's trade signal ----------
@@ -177,7 +189,7 @@ export async function handle(req, store, env = {}, deps = {}) {
 
     if (sub === 'settings') {
         const site = (await store.get('site', { type: 'json' })) ?? DEFAULT_SITE;
-        if (method === 'GET') return json({ socials: { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) } });
+        if (method === 'GET') return json({ socials: { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) }, theme: normalizeTheme(site.theme) });
         if (method === 'POST') {
             const b = (await body()) ?? {};
             const next = { ...DEFAULT_SITE.socials, ...(site.socials ?? {}) };
@@ -188,8 +200,16 @@ export async function handle(req, store, env = {}, deps = {}) {
                     next[k] = n;
                 }
             }
-            await store.setJSON('site', { ...site, socials: next });
-            return json({ socials: next });
+            let theme = normalizeTheme(site.theme);
+            if ('theme' in b) {
+                if (b.theme === null) theme = null;
+                else {
+                    theme = normalizeTheme(b.theme);
+                    if (!theme) return json({ error: 'That colour theme is not valid. Use hex colours like #F2B544.' }, 400);
+                }
+            }
+            await store.setJSON('site', { ...site, socials: next, theme });
+            return json({ socials: next, theme });
         }
     }
 

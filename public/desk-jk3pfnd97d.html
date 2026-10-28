@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <meta name="color-scheme" content="light dark">
+<script src="/theme.js"></script>
 <title>Tickdesk admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
 <style>
@@ -54,6 +55,17 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
 .soc{display:flex;gap:10px;align-items:center}.soc svg{width:28px;height:28px;flex:none}
 .top-actions{display:flex;gap:8px}
 .muted{color:var(--muted)}
+
+.th-grid{display:flex;flex-wrap:wrap;gap:8px}
+.th-chip{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px;border-radius:12px;border:2px solid var(--line);background:var(--raise);font-weight:700;font-size:13px}
+.th-chip[aria-pressed=true]{border-color:var(--accent)}
+.th-chip i{display:inline-flex;width:26px;height:26px;border-radius:8px;overflow:hidden;border:1px solid rgba(128,128,128,.4)}
+.th-chip i b{flex:1}
+.th-color{width:100%;min-height:48px;padding:4px;border-radius:10px;border:1px solid var(--line);background:var(--raise)}
+.th-prev{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;padding:12px;border-radius:12px;background:var(--raise);border:1px solid var(--line)}
+.th-btn{background:var(--accent);color:var(--on-accent);font-weight:800;border-radius:10px;padding:10px 16px}
+.th-pill{background:var(--blue,var(--accent));color:#fff;font-weight:800;font-size:12px;letter-spacing:.06em;border-radius:99px;padding:5px 12px}
+.th-txt{font-size:12.5px;color:var(--muted);flex:1 1 160px}
 </style>
 </head>
 <body>
@@ -86,6 +98,22 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
     </div>
 
     <div data-pane="settings" hidden>
+      <section class="card" id="th-card">
+        <h2>Website colours</h2>
+        <p class="muted" style="margin:0 0 8px;font-size:13px">Pick a ready-made look or set your own. The colours change on every page of the site (opening screen, Dashboard, Bot Builder, Signals, DerivScope and the rest) as soon as you save, with no redeploy. Clients may need to refresh once.</p>
+        <label>Ready-made looks</label>
+        <div class="th-grid" id="th-presets"></div>
+        <label for="th-a">Main colour (buttons, highlights)</label>
+        <input type="color" id="th-a" class="th-color" value="#F2B544">
+        <label for="th-b">Second colour (tabs, accents)</label>
+        <input type="color" id="th-b" class="th-color" value="#17608F">
+        <label>Dark background style</label>
+        <div class="th-grid" id="th-surf"></div>
+        <div class="th-prev" aria-label="Preview"><span class="th-btn">Trade now</span><span class="th-pill">READY</span><span class="th-txt">This page shows your colours live. Save to publish them.</span></div>
+        <p class="msg" id="th-msg"></p>
+        <button class="btn" id="th-save">Save colours</button>
+        <button class="btn sec" id="th-reset">Back to default look</button>
+      </section>
       <section class="card">
         <h2>Social links</h2>
         <p class="muted" style="margin:0 0 4px;font-size:13px">These show on the opening screen so clients can reach you. Leave a box empty to hide that icon. You can paste a full link, an @name, or for WhatsApp a number with the country code (like +254712345678).</p>
@@ -276,8 +304,37 @@ async function refreshDash(){
   }catch(e){$('#d-now').textContent=e.message;}
 }
 $('#d-tiles').addEventListener('click',e=>{const t=e.target.closest('[data-go]');if(t)setTab(t.dataset.go);});
+const TH_PRESETS=[
+  {id:'gold',name:'Tickdesk Gold',accent:'#F2B544',accent2:'#17608F',surface:'slate'},
+  {id:'emerald',name:'Emerald',accent:'#37C98B',accent2:'#0F766E',surface:'forest'},
+  {id:'ocean',name:'Ocean',accent:'#38BDF8',accent2:'#1D4ED8',surface:'navy'},
+  {id:'violet',name:'Violet',accent:'#A78BFA',accent2:'#6D28D9',surface:'plum'},
+  {id:'rose',name:'Rose',accent:'#FB7185',accent2:'#BE123C',surface:'charcoal'},
+  {id:'graphite',name:'Graphite',accent:'#D1D5DB',accent2:'#475569',surface:'black'}
+];
+const TH_SURF=[['slate','Slate'],['navy','Navy'],['charcoal','Charcoal'],['forest','Forest'],['plum','Plum'],['black','Black']];
+let th={accent:'#F2B544',accent2:'#17608F',surface:'slate',preset:'gold'};
+function thRender(){
+  $('#th-presets').innerHTML=TH_PRESETS.map(p=>'<button type="button" class="th-chip" data-p="'+p.id+'" aria-pressed="'+(th.preset===p.id)+'"><i><b style="background:'+p.accent+'"></b><b style="background:'+p.accent2+'"></b></i>'+p.name+'</button>').join('');
+  $('#th-surf').innerHTML=TH_SURF.map(x=>{const c=window.tdTheme.surfaces[x[0]];return '<button type="button" class="th-chip" data-s="'+x[0]+'" aria-pressed="'+(th.surface===x[0])+'"><i><b style="background:'+c[0]+'"></b><b style="background:'+c[2]+'"></b></i>'+x[1]+'</button>';}).join('');
+  $('#th-a').value=th.accent;$('#th-b').value=th.accent2;
+  window.tdTheme.apply(th);
+}
+$('#th-presets').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const p=TH_PRESETS.find(x=>x.id===b.dataset.p);th={accent:p.accent,accent2:p.accent2,surface:p.surface,preset:p.id};thRender();});
+$('#th-surf').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;th.surface=b.dataset.s;th.preset='custom';thRender();});
+$('#th-a').addEventListener('input',e=>{th.accent=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
+$('#th-b').addEventListener('input',e=>{th.accent2=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
+$('#th-a').addEventListener('change',thRender);$('#th-b').addEventListener('change',thRender);
+$('#th-save').onclick=async()=>{
+  try{const j=await api('POST','settings',{theme:th});th=j.theme;try{localStorage.setItem('td.theme',JSON.stringify(th));}catch(e){}thRender();msg($('#th-msg'),'Saved. Every page of the site now uses these colours.',true);}catch(e){msg($('#th-msg'),e.message);}
+};
+$('#th-reset').onclick=async()=>{
+  try{await api('POST','settings',{theme:null});try{localStorage.removeItem('td.theme');}catch(e){}th={accent:'#F2B544',accent2:'#17608F',surface:'slate',preset:'gold'};window.tdTheme.apply(null);thRender();window.tdTheme.apply(null);msg($('#th-msg'),'Back to the default look.',true);}catch(e){msg($('#th-msg'),e.message);}
+};
 async function loadSettings(){
-  try{const j=await api('GET','settings');for(const k of Object.keys(ICONS))$('#s-'+k).value=j.socials[k]||'';}catch(e){msg($('#s-msg'),e.message);}
+  try{const j=await api('GET','settings');for(const k of Object.keys(ICONS))$('#s-'+k).value=j.socials[k]||'';
+    if(j.theme)th=Object.assign({preset:'custom'},j.theme);thRender();if(!j.theme)window.tdTheme.apply(null);
+  }catch(e){msg($('#s-msg'),e.message);}
 }
 $('#s-save').onclick=async()=>{
   const socials={};for(const k of Object.keys(ICONS))socials[k]=$('#s-'+k).value;
