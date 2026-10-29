@@ -108,6 +108,11 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
 .btns{display:flex;gap:10px}
 .btns .btn{flex:1}
 .hint{font-size:13px;color:var(--muted)}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chiprow:empty{display:none}
+.xc,.dchip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font:700 12px var(--f-mono);background:var(--raise);border:1px solid var(--line);color:var(--fg);white-space:nowrap}
+.xc.warn{color:var(--loss);border-color:var(--loss)}
+.dchip.t{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .qs{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
 .qs-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .qs label{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:14px}
@@ -796,16 +801,36 @@ function buildCards(){
     const el=document.createElement('article');el.className='card';el.dataset.key=m.key;
     el.innerHTML='<div class="ch"><h3>'+m.name+'<span class="code"></span></h3></div>'+
       '<div class="cb"><div class="ring"><svg viewBox="0 0 84 84" aria-hidden="true"><circle class="trk" cx="42" cy="42" r="36" fill="none" stroke-width="7"/><circle class="arc" cx="42" cy="42" r="36" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+RING+'" stroke-dashoffset="'+RING+'"/></svg><span class="rd">–</span></div>'+
-      '<div class="info"><div class="state">COLLECTING TICKS</div><div class="sigline"></div><div class="sub"></div><div class="clock"></div></div></div>'+
+      '<div class="info"><div class="state">COLLECTING TICKS</div><div class="sigline"></div><div class="sub"></div><div class="clock"></div><div class="chiprow"></div></div></div>'+
       '<div class="meta" hidden></div>'+
       '<button type="button" class="go" disabled>Trade now</button>'+
       '<div class="tape"></div>';
     box.appendChild(el);
-    cards[m.key]={el,code:$('.code',el),arc:$('.arc',el),rd:$('.rd',el),state:$('.state',el),sigline:$('.sigline',el),sub:$('.sub',el),clock:$('.clock',el),meta:$('.meta',el),go:$('.go',el),tape:$('.tape',el)};
+    cards[m.key]={el,code:$('.code',el),arc:$('.arc',el),rd:$('.rd',el),state:$('.state',el),sigline:$('.sigline',el),sub:$('.sub',el),clock:$('.clock',el),chips:$('.chiprow',el),meta:$('.meta',el),go:$('.go',el),tape:$('.tape',el)};
   });
 }
 const chips=(d,ev)=>d.map(x=>'<span class="dg'+(ev?(CT[ev.ct].win(x,ev.b)?' w':' l'):'')+'">'+x+'</span>').join('');
-function updateCard(key){paintCard(key);stampClock(key);renderSum();}
+function fmtClock(sec){return sec<60?sec+'s':Math.floor(sec/60)+':'+pad(sec%60);}
+/* Seconds left before the signal is re-checked: one scan window long (ticks in the window x seconds per tick
+   for that market), counted from when the signal opened, and restarting each window while it still holds. */
+function expRemain(key,ev){
+  if(!ev||!ev.signal)return null;
+  const W=Math.max(1,Math.round(ev.n*MKT[key].sec)),start=sigSince[sigTab+key]||Date.now();
+  return W-(Math.floor((Date.now()-start)/1000)%W);
+}
+function paintChips(key){
+  const c=cards[key];if(!c)return;
+  const ev=evs[key],d=mk[key].digits;let h='';
+  const rem=expRemain(key,ev);
+  if(rem!==null)h+='<span class="xc'+(rem<=5?' warn':'')+'" title="Seconds until this signal is re-checked">⏱ '+fmtClock(rem)+'</span>';
+  if(ev&&ev.ct==='MATCH'&&d.length){
+    const w=d.slice(-50),f=freq(w,50),n=w.length||1;
+    const order=[0,1,2,3,4,5,6,7,8,9].filter(x=>x!==ev.b).sort((x,y)=>f[y]-f[x]||x-y).slice(0,2);
+    h+=[ev.b].concat(order).map((x,i)=>'<span class="dchip'+(i===0?' t':'')+'">'+x+':'+Math.round(f[x]/n*100)+'%</span>').join('');
+  }
+  c.chips.innerHTML=h;
+}
+function updateCard(key){paintCard(key);stampClock(key);paintChips(key);renderSum();}
 function fmtSpan(ms){const s=Math.max(0,Math.floor(ms/1000));return s<60?s+'s':Math.floor(s/60)+'m '+pad(s%60)+'s';}
 function clockText(key){
   const e=evs[key],k=sigTab+key,T=TABS[sigTab];
@@ -823,7 +848,7 @@ function stampClock(key){
   c.clock.textContent=clockText(key);
 }
 function tickClocks(){
-  MARKETS.forEach(m=>{const c=cards[m.key];if(c&&!c.el.hidden)c.clock.textContent=clockText(m.key);});
+  MARKETS.forEach(m=>{const c=cards[m.key];if(c&&!c.el.hidden){c.clock.textContent=clockText(m.key);paintChips(m.key);}});
 }
 function paintCard(key){
   const c=cards[key];if(!c)return;

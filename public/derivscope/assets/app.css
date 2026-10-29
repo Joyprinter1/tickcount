@@ -27,6 +27,12 @@
 .td-robot{width:76px;height:auto;flex:none;display:block}
 .td-bot-txt{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
 .td-bot-txt strong{font-size:16px;letter-spacing:.02em;color:#fff}
+.td-chips2{display:flex;flex-wrap:wrap;gap:6px}
+.td-exp{font:700 11px var(--mono,ui-monospace,monospace);padding:3px 9px;border-radius:99px;background:rgba(0,0,0,.4);color:#fff;border:1px solid rgba(255,255,255,.2);white-space:nowrap}
+.td-exp.warn{color:#F26A7E;border-color:#F26A7E}
+.td-dch{display:flex;flex-wrap:wrap;gap:6px}
+.td-dc{font:700 11px ui-monospace,monospace;padding:3px 9px;border-radius:99px;background:rgba(0,0,0,.4);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.td-dc.t{background:var(--amber);color:#1A1303;border-color:var(--amber)}
 .td-chip{font-size:11px;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:99px;background:rgba(0,0,0,.35);color:#cfd8e1}
 .td-banner.go .td-chip{background:#37C98B;color:#06281B}
 .td-banner.watch .td-chip{background:#F2B544;color:#2A1B00}
