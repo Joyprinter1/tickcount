@@ -37,9 +37,20 @@ function tdSearch(c,b){
 const TD_ROBOT={matchesDiffers:["Match-bot","#2B4C7E","#1B2F52"],evenOdd:["Pair-bot","#1F6B55","#12392F"],overUnder:["Barrier-bot","#7A5A14","#3E2E0A"],riseFall:["Trend-bot","#1D6477","#0F3440"],continuation:["Streak-bot","#7A2E45","#3E1724"],highLow:["Peak-bot","#8A4A16","#442508"],reset:["Reset-bot","#1E5E7A","#0E2F3E"],endsInOut:["Range-bot","#40407E","#202046"],accumulator:["Calm-bot","#2F6B3A","#173620"]};
 function tdRobot(mood){const eye=mood==="go"?"#37C98B":mood==="watch"?"#F2B544":"#7C8A99";
   return`<svg class="td-robot ${mood}" viewBox="0 0 120 96" aria-hidden="true" focusable="false"><line x1="60" y1="9" x2="60" y2="22" stroke="#8FA3B5" stroke-width="3" stroke-linecap="round"/><circle class="td-ant" cx="60" cy="7" r="5" fill="${eye}"/><rect x="13" y="40" width="9" height="20" rx="4" fill="#3A4C5E"/><rect x="98" y="40" width="9" height="20" rx="4" fill="#3A4C5E"/><rect x="24" y="22" width="72" height="56" rx="16" fill="#C9D6E2" stroke="#8FA3B5" stroke-width="2"/><rect x="32" y="34" width="56" height="26" rx="10" fill="#0E1620"/><g class="td-eyes"><circle cx="46" cy="47" r="6.5" fill="${eye}"/><circle cx="74" cy="47" r="6.5" fill="${eye}"/><circle cx="48" cy="45" r="2" fill="#fff" opacity=".85"/><circle cx="76" cy="45" r="2" fill="#fff" opacity=".85"/></g><path d="M44 69h32" stroke="#6C7F92" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 4"/><rect x="40" y="80" width="40" height="12" rx="5" fill="#3A4C5E"/></svg>`}
+const tdSince={};
+function tdIv(){let iv=n.times.length>1?(n.times.at(-1)-n.times[0])/(n.times.length-1):1;if(iv>1e6)iv/=1e3;return iv>0?Math.max(1,Math.round(iv)):1}
+function tdWin(key){const iv=tdIv();return key==="matchesDiffers"?Math.max(1,n.scanWindowSeconds):key==="evenOdd"||key==="overUnder"?100*iv:key==="highLow"?300*iv:25*iv}
+function tdClock(sec){return sec<60?sec+"s":Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0")}
+function tdRem(start,w){return w-(Math.floor((Date.now()-start)/1000)%w)}
+function tdTick(){document.querySelectorAll(".td-exp[data-s]").forEach(e=>{const r=tdRem(+e.dataset.s,+e.dataset.w);e.textContent="⏱ "+tdClock(r);e.classList.toggle("warn",r<=5)})}
+function tdDigits(){const a=se(),d=ie(a);if(d===null||!a.ready)return"";const cnt=a.counts,tot=a.sampleCount||1;
+  const order=[0,1,2,3,4,5,6,7,8,9].filter(x=>x!==d).sort((x,y)=>(cnt[y]||0)-(cnt[x]||0)||x-y).slice(0,2);
+  return`<div class="td-dch">`+[d].concat(order).map((x,i)=>`<span class="td-dc${i===0?" t":""}">${x}:${Math.round((cnt[x]||0)/tot*100)}%</span>`).join("")+`</div>`}
 function tdBanner(key,sig){const R=TD_ROBOT[key];if(!R)return"";let t=null;try{t=tdInfo(key,sig)}catch(e){}
   const mood=t&&t.ok?"go":sig&&sig.strength>=55?"watch":"idle",txt=mood==="go"?"READY":mood==="watch"?"WATCHING":"SCANNING";
-  return`<div class="td-banner ${mood}" data-trade="${key}" role="button" tabindex="0" aria-label="${R[0]}: ${mood==="go"?"Trade now":"not ready yet"}" style="--c1:${R[1]};--c2:${R[2]}">${tdRobot(mood)}<div class="td-bot-txt"><strong>${R[0]}</strong><span class="td-chip">${mood==="go"?"TRADE NOW ›":txt}</span></div></div>`}
+  if(mood==="go"){if(!tdSince[key])tdSince[key]=Date.now()}else delete tdSince[key];
+  const w=Math.round(tdWin(key)),exp=mood==="go"?`<span class="td-exp" title="Seconds until this signal is re-checked" data-s="${tdSince[key]}" data-w="${w}">⏱ ${tdClock(tdRem(tdSince[key],w))}</span>`:"";
+  return`<div class="td-banner ${mood}" data-trade="${key}" role="button" tabindex="0" aria-label="${R[0]}: ${mood==="go"?"Trade now":"not ready yet"}" style="--c1:${R[1]};--c2:${R[2]}">${tdRobot(mood)}<div class="td-bot-txt"><strong>${R[0]}</strong><span class="td-chips2"><span class="td-chip">${mood==="go"?"TRADE NOW ›":txt}</span>${exp}</span>${key==="matchesDiffers"?tdDigits():""}</div></div>`}
 function tdLab(title,line){const ks=TD_KEYS.filter(k=>TD_ROBOT[k]);
   return`<section class="td-lab"><div class="td-lab-bots">${ks.map(k=>{let m="idle";try{const sg=j()[k],t=tdInfo(k,sg);m=t&&t.ok?"go":sg&&sg.strength>=55?"watch":"idle"}catch(e){}return`<div class="td-mini ${m}" data-trade="${k}" role="button" tabindex="0" title="${TD_ROBOT[k][0]}">${tdRobot(m)}<small>${TD_ROBOT[k][0]}</small></div>`}).join("")}</div><div class="td-lab-txt"><h2>${title}</h2><p>${line}</p></div></section>`}
 function tdSd(a){if(a.length<3)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length)}
@@ -127,6 +138,7 @@ function tdSel(){
   });
   document.querySelectorAll("[data-trade]").forEach(b=>b.addEventListener("click",()=>tdTrade(b.dataset.trade)));
   document.querySelectorAll('.td-banner[data-trade],.td-mini[data-trade]').forEach(b=>b.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tdTrade(b.dataset.trade)}}));
+  if(!window.__tdExp){window.__tdExp=setInterval(tdTick,1000)}
   document.querySelectorAll("[data-pick]").forEach(b=>b.addEventListener("click",()=>{
     const k=b.dataset.pick;tdCfgSave(k,b.dataset.p===""?null:+b.dataset.p);
     document.querySelectorAll(`[data-pick="${k}"]`).forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
