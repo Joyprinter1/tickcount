@@ -19,6 +19,9 @@ export type TTickdeskSignal = {
     ticks?: number;
     minutes?: number;
     offset?: number;
+    side?: '+' | '-';
+    hedge?: string;
+    multiplier_value?: number;
     growth_rate?: number;
     tick_count?: number;
     stake?: number;
@@ -45,6 +48,12 @@ const SIGNAL_TRADE_TYPES: Record<string, string> = {
     EXPIRYRANGE: 'endsinout',
     EXPIRYMISS: 'endsinout',
     ACCU: 'accumulator',
+    ASIANU: 'asian',
+    ASIAND: 'asian',
+    ONETOUCH: 'touchnotouch',
+    NOTOUCH: 'touchnotouch',
+    MULTUP: 'multiplier',
+    MULTDOWN: 'multiplier',
 };
 
 export type TActiveSymbol = {
@@ -294,7 +303,11 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
         const tradetype = SIGNAL_TRADE_TYPES[signal.contract];
         if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
         const has_prediction = tradetype === 'overunder' || tradetype === 'matchesdiffers';
-        const is_directional = tradetype === 'risefall' || tradetype === 'runs' || tradetype === 'highlowticks' || tradetype === 'reset' || tradetype === 'endsinout' || tradetype === 'accumulator';
+        const is_directional = tradetype === 'risefall' || tradetype === 'runs' || tradetype === 'highlowticks' || tradetype === 'reset' || tradetype === 'endsinout' ||
+            tradetype === 'accumulator' ||
+            tradetype === 'asian' ||
+            tradetype === 'touchnotouch' ||
+            tradetype === 'multiplier';
 
         // 1. Preferred: the full signal bot (every setting is a variable the user can edit).
         try {
@@ -314,6 +327,9 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     ticks: signal.ticks,
                     minutes: signal.minutes,
                     offset: signal.offset,
+                    side: signal.side,
+                    hedge: signal.hedge,
+                    multiplier_value: signal.multiplier_value,
                     growth_rate: signal.growth_rate,
                     tick_count: signal.tick_count,
                     stake: Number(signal.stake) > 0 ? Number(signal.stake) : 1,
