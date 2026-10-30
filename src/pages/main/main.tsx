@@ -77,9 +77,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, MORE_SIGNALS, FREE_BOTS, COPY_TRADING } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, MORE_SIGNALS, FREE_BOTS, COPY_TRADING, HEDGING } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'more_signals', 'free_bots', 'copy_trading', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'more_signals', 'free_bots', 'copy_trading', 'chart', 'tutorial', 'hedging'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -145,7 +145,7 @@ const AppWrapper = observer(() => {
 
     React.useEffect(() => {
         const el_dashboard = document.getElementById('id-dbot-dashboard');
-        const el_tutorial = document.getElementById('id-tutorials');
+        const el_tutorial = document.getElementById('id-hedging');
 
         const observer_dashboard = new window.IntersectionObserver(
             ([entry]) => {
@@ -643,6 +643,25 @@ const AppWrapper = observer(() => {
                                     >
                                         <Tutorial handleTabChange={handleTabChange} />
                                     </Suspense>
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='Hedging' />
+                                    </>
+                                }
+                                id='id-hedging'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === HEDGING && (
+                                        <iframe className='signals-frame' src='/hedging.html' title='Hedging' />
+                                    )}
                                 </div>
                             </div>
                         </Tabs>

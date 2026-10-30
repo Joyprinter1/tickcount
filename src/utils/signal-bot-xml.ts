@@ -9,11 +9,13 @@ export type TSignalBotOptions = {
     market: string;
     submarket: string;
     symbol: string;
-    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks' | 'reset' | 'endsinout' | 'accumulator';
+    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks' | 'reset' | 'endsinout' | 'accumulator' | 'asian' | 'touchnotouch' | 'multiplier';
     contract: string; // e.g. DIGITOVER, CALL, RUNHIGH
     ticks?: number; // duration in ticks (Rise/Fall, Only Ups/Downs, High/Low Tick, Reset)
     minutes?: number; // duration in minutes (Ends Between/Outside)
-    offset?: number; // barrier distance for Ends Between/Outside (high = +offset, low = -offset)
+    offset?: number; // barrier distance for Ends Between/Outside (high = +offset, low = -offset) and Touch/No Touch
+    side?: '+' | '-'; // Touch/No Touch: barrier above (+) or below (-) the entry price
+    multiplier_value?: number; // multiplier, e.g. 100 (falls back to Deriv's first allowed value)
     growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
@@ -24,6 +26,7 @@ export type TSignalBotOptions = {
     take_profit?: number;
     stop_loss?: number;
     martingale_level?: number;
+    hedge?: string; // 'HEDGE|TYPE|digit|barrier|barrier2': second contract bought with every trade (see Purchase.js)
 };
 
 const CONTRACT_LABELS: Record<string, string> = {
@@ -44,6 +47,12 @@ const CONTRACT_LABELS: Record<string, string> = {
     EXPIRYRANGE: 'Ends Between',
     EXPIRYMISS: 'Ends Outside',
     ACCU: 'Accumulator',
+    ASIANU: 'Asian Up',
+    ASIAND: 'Asian Down',
+    ONETOUCH: 'Touch',
+    NOTOUCH: 'No Touch',
+    MULTUP: 'Multiplier Up',
+    MULTDOWN: 'Multiplier Down',
 };
 
 // Deriv's trade type category / trade type names for each kind of signal bot.
@@ -57,6 +66,9 @@ const TRADE_CATEGORY: Record<string, [string, string]> = {
     reset: ['reset', 'reset'],
     endsinout: ['inout', 'endsinout'],
     accumulator: ['accumulator', 'accumulator'],
+    asian: ['asian', 'asians'],
+    touchnotouch: ['touchnotouch', 'touchnotouch'],
+    multiplier: ['multiplier', 'multiplier'],
 };
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -90,16 +102,21 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
         o.prediction !== null;
     const is_inout = o.tradetype === 'endsinout';
     const is_accu = o.tradetype === 'accumulator';
+    const is_touch = o.tradetype === 'touchnotouch';
+    const is_mult = o.tradetype === 'multiplier';
+    const has_barrier = is_inout || is_touch;
     const uses_ticks =
         o.tradetype === 'risefall' ||
         o.tradetype === 'runs' ||
         o.tradetype === 'highlowticks' ||
-        o.tradetype === 'reset';
+        o.tradetype === 'reset' ||
+        o.tradetype === 'asian' ||
+        o.tradetype === 'touchnotouch';
     const uses_duration = uses_ticks || is_inout;
     const dur_name = is_inout ? 'Minutes' : 'Ticks';
     const ticks = Math.max(
         1,
-        Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : o.tradetype === 'highlowticks' || o.tradetype === 'reset' ? 5 : 1)
+        Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : o.tradetype === 'highlowticks' || o.tradetype === 'reset' || o.tradetype === 'asian' || o.tradetype === 'touchnotouch' ? 5 : 1)
     );
     const minutes = Math.max(2, Math.floor(Number(o.minutes)) || 2);
     const duration = is_inout ? minutes : ticks;
@@ -130,7 +147,7 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
               ] as [string, number][])
             : []),
         ...(uses_duration ? ([[dur_name, duration]] as [string, number][]) : []),
-        ...(is_inout ? ([['Barrier Offset', offset]] as [string, number][]) : []),
+        ...(has_barrier ? ([['Barrier Offset', offset]] as [string, number][]) : []),
         ...(is_accu ? ([['Tick Count', tick_count]] as [string, number][]) : []),
         ['Martingale', martingale],
         ['Take Profit', take_profit],
@@ -145,11 +162,11 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
 
     // ---- Trade options ----
     const trade_options = `<block type="trade_definition_tradeoptions" id="${id()}">
-<mutation has_first_barrier="${is_inout}" has_second_barrier="${is_inout}" has_prediction="${has_prediction}"></mutation>
-${field('DURATIONTYPE_LIST', is_inout ? 'm' : 't')}${field('CURRENCY_LIST', 'USD')}${is_inout ? field('BARRIEROFFSETTYPE_LIST', '+') + field('SECONDBARRIEROFFSETTYPE_LIST', '-') : ''}
+<mutation has_first_barrier="${has_barrier}" has_second_barrier="${is_inout}" has_prediction="${has_prediction}"></mutation>
+${field('DURATIONTYPE_LIST', is_inout ? 'm' : 't')}${field('CURRENCY_LIST', 'USD')}${is_inout ? field('BARRIEROFFSETTYPE_LIST', '+') + field('SECONDBARRIEROFFSETTYPE_LIST', '-') : is_touch ? field('BARRIEROFFSETTYPE_LIST', o.side === '-' ? '-' : '+') : ''}
 <value name="DURATION"><shadow type="math_number" id="${id()}">${field('NUM', uses_duration ? duration : 1)}</shadow>${uses_duration ? get(dur_name) : ''}</value>
 <value name="AMOUNT"><shadow type="math_number" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
-${is_inout ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value><value name="SECONDBARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}
+${is_touch ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}${is_inout ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value><value name="SECONDBARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}
 ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow>${get('Prediction')}</value>` : ''}
 </block>`;
 
@@ -179,6 +196,11 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
         next => set('Is Bought', `<block type="logic_boolean" id="${id()}">${field('BOOL', 'FALSE')}</block>`, next),
         () => purchase,
     ]);
+    const mult_tp = o.take_profit && o.take_profit > 0 && o.take_profit < 1000000 ? o.take_profit : stake * 2;
+    const mult_sl = Math.min(stake, o.stop_loss && o.stop_loss > 0 && o.stop_loss < 1000000 ? o.stop_loss : stake);
+    const mult_block = `<block type="trade_definition_multiplier" id="${id()}">${field('MULTIPLIERTYPE_LIST', o.multiplier_value && o.multiplier_value > 0 ? o.multiplier_value : 100)}
+<value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
+<statement name="MULTIPLIER_PARAMS"><block type="multiplier_take_profit" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_tp)}</shadow></value><next><block type="multiplier_stop_loss" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_sl)}</shadow></value></block></next></block></statement></block>`;
     const before_purchase_stack = is_accu
         ? accu_reset
         : trigger_condition
@@ -251,11 +273,12 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 </block></next></block></next></block></next></block></next></block>
 </statement>
 <statement name="INITIALIZATION">${init_xml}</statement>
-<statement name="SUBMARKET">${is_accu ? accu_block : trade_options}</statement>
+<statement name="SUBMARKET">${is_accu ? accu_block : is_mult ? mult_block : trade_options}</statement>
 </block>
 <block type="after_purchase" id="${id()}" x="760" y="0"><statement name="AFTERPURCHASE_STACK">${after_purchase_stack}</statement></block>
 <block type="before_purchase" id="${id()}" x="0" y="640"><statement name="BEFOREPURCHASE_STACK">${before_purchase_stack}</statement></block>${is_accu ? accu_extra : ''}`;
 
+    if (o.hedge) v(o.hedge);
     const variables = Object.entries(vars)
         .map(([name, vid]) => `<variable type="" id="${vid}" islocal="false" iscloud="false">${esc(name)}</variable>`)
         .join('');

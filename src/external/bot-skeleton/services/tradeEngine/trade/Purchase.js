@@ -16,6 +16,10 @@ export default Engine =>
                 return Promise.resolve();
             }
 
+            this.hedgeContractId = '';
+            this.hedgeData = null;
+            this.hedgeWaiting = null;
+
             const onSuccess = response => {
                 // Don't unnecessarily send a forget request for a purchased contract.
                 const { buy } = response;
@@ -47,6 +51,7 @@ export default Engine =>
                 }
 
                 delayIndex = 0;
+                this.buyHedgeLeg();
                 log(LogTypes.PURCHASE, { transaction_id: buy.transaction_id });
                 info({
                     accountID: this.accountInfo.loginid,
@@ -127,6 +132,55 @@ export default Engine =>
                 delayIndex++
             ).then(onSuccess);
         }
+        // Tickdesk hedging: a bot variable named "HEDGE|TYPE|digit|barrier|barrier2" asks for a second contract
+        // of the same market and duration to be bought together with the main one.
+        getHedgeSpec() {
+            try {
+                const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
+                const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
+                for (const v of vars) {
+                    const name = String(v.name ?? (v.getName ? v.getName() : ''));
+                    if (!name.startsWith('HEDGE|')) continue;
+                    const [, type, digit, b1, b2] = name.split('|');
+                    if (!/^[A-Z]+$/.test(type || '')) return null;
+                    return {
+                        type,
+                        prediction: digit !== undefined && digit !== '' ? Number(digit) : undefined,
+                        b1: b1 || undefined,
+                        b2: b2 || undefined,
+                    };
+                }
+            } catch (e) {
+                // ignore
+            }
+            return null;
+        }
+
+        buyHedgeLeg() {
+            const spec = this.getHedgeSpec();
+            if (!spec) return;
+            this.hedgeContractId = 'pending';
+            const options = { ...this.tradeOptions };
+            if (spec.prediction !== undefined) options.prediction = spec.prediction;
+            if (spec.b1) options.barrierOffset = spec.b1;
+            if (spec.b2) options.secondBarrierOffset = spec.b2;
+            const request = tradeOptionToBuy(spec.type, options);
+            doUntilDone(() => api_base.api.send(request))
+                .then(response => {
+                    const id = response?.buy?.contract_id;
+                    this.hedgeContractId = id || '';
+                    if (id) {
+                        api_base.api.send({ proposal_open_contract: 1, contract_id: id });
+                    } else {
+                        this.flushHedge();
+                    }
+                })
+                .catch(() => {
+                    this.hedgeContractId = '';
+                    this.flushHedge();
+                });
+        }
+
         getPurchaseReference = () => purchase_reference;
         regeneratePurchaseReference = () => {
             purchase_reference = getUUID();
