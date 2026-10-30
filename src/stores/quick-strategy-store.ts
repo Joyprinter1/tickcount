@@ -21,6 +21,7 @@ export type TTickdeskSignal = {
     offset?: number;
     side?: '+' | '-';
     hedge?: string;
+    tradetype?: string;
     multiplier_value?: number;
     growth_rate?: number;
     tick_count?: number;
@@ -54,6 +55,8 @@ const SIGNAL_TRADE_TYPES: Record<string, string> = {
     NOTOUCH: 'touchnotouch',
     MULTUP: 'multiplier',
     MULTDOWN: 'multiplier',
+    CALLE: 'callputequal',
+    PUTE: 'callputequal',
 };
 
 export type TActiveSymbol = {
@@ -300,13 +303,15 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
     };
 
     loadSignal = async (signal: TTickdeskSignal) => {
-        const tradetype = SIGNAL_TRADE_TYPES[signal.contract];
+        const tradetype = signal.tradetype === 'higherlower' ? 'higherlower' : SIGNAL_TRADE_TYPES[signal.contract];
         if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
         const has_prediction = tradetype === 'overunder' || tradetype === 'matchesdiffers';
         const is_directional = tradetype === 'risefall' || tradetype === 'runs' || tradetype === 'highlowticks' || tradetype === 'reset' || tradetype === 'endsinout' ||
             tradetype === 'accumulator' ||
             tradetype === 'asian' ||
             tradetype === 'touchnotouch' ||
+            tradetype === 'callputequal' ||
+            tradetype === 'higherlower' ||
             tradetype === 'multiplier';
 
         // 1. Preferred: the full signal bot (every setting is a variable the user can edit).

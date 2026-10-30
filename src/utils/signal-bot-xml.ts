@@ -9,7 +9,7 @@ export type TSignalBotOptions = {
     market: string;
     submarket: string;
     symbol: string;
-    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks' | 'reset' | 'endsinout' | 'accumulator' | 'asian' | 'touchnotouch' | 'multiplier';
+    tradetype: 'overunder' | 'evenodd' | 'matchesdiffers' | 'risefall' | 'runs' | 'highlowticks' | 'reset' | 'endsinout' | 'accumulator' | 'asian' | 'touchnotouch' | 'multiplier' | 'callputequal' | 'higherlower';
     contract: string; // e.g. DIGITOVER, CALL, RUNHIGH
     ticks?: number; // duration in ticks (Rise/Fall, Only Ups/Downs, High/Low Tick, Reset)
     minutes?: number; // duration in minutes (Ends Between/Outside)
@@ -53,6 +53,8 @@ const CONTRACT_LABELS: Record<string, string> = {
     NOTOUCH: 'No Touch',
     MULTUP: 'Multiplier Up',
     MULTDOWN: 'Multiplier Down',
+    CALLE: 'Rise Equals',
+    PUTE: 'Fall Equals',
 };
 
 // Deriv's trade type category / trade type names for each kind of signal bot.
@@ -69,6 +71,8 @@ const TRADE_CATEGORY: Record<string, [string, string]> = {
     asian: ['asian', 'asians'],
     touchnotouch: ['touchnotouch', 'touchnotouch'],
     multiplier: ['multiplier', 'multiplier'],
+    callputequal: ['callput', 'callputequal'],
+    higherlower: ['callput', 'higherlower'],
 };
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -104,19 +108,22 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const is_accu = o.tradetype === 'accumulator';
     const is_touch = o.tradetype === 'touchnotouch';
     const is_mult = o.tradetype === 'multiplier';
-    const has_barrier = is_inout || is_touch;
+    const is_hl = o.tradetype === 'higherlower';
+    const has_barrier = is_inout || is_touch || is_hl;
     const uses_ticks =
         o.tradetype === 'risefall' ||
         o.tradetype === 'runs' ||
         o.tradetype === 'highlowticks' ||
         o.tradetype === 'reset' ||
         o.tradetype === 'asian' ||
+        o.tradetype === 'callputequal' ||
+        o.tradetype === 'higherlower' ||
         o.tradetype === 'touchnotouch';
     const uses_duration = uses_ticks || is_inout;
     const dur_name = is_inout ? 'Minutes' : 'Ticks';
     const ticks = Math.max(
         1,
-        Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : o.tradetype === 'highlowticks' || o.tradetype === 'reset' || o.tradetype === 'asian' || o.tradetype === 'touchnotouch' ? 5 : 1)
+        Math.floor(Number(o.ticks)) || (o.tradetype === 'runs' ? 2 : o.tradetype === 'highlowticks' || o.tradetype === 'reset' || o.tradetype === 'asian' || o.tradetype === 'touchnotouch' || o.tradetype === 'higherlower' ? 5 : 1)
     );
     const minutes = Math.max(2, Math.floor(Number(o.minutes)) || 2);
     const duration = is_inout ? minutes : ticks;
@@ -163,10 +170,10 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     // ---- Trade options ----
     const trade_options = `<block type="trade_definition_tradeoptions" id="${id()}">
 <mutation has_first_barrier="${has_barrier}" has_second_barrier="${is_inout}" has_prediction="${has_prediction}"></mutation>
-${field('DURATIONTYPE_LIST', is_inout ? 'm' : 't')}${field('CURRENCY_LIST', 'USD')}${is_inout ? field('BARRIEROFFSETTYPE_LIST', '+') + field('SECONDBARRIEROFFSETTYPE_LIST', '-') : is_touch ? field('BARRIEROFFSETTYPE_LIST', o.side === '-' ? '-' : '+') : ''}
+${field('DURATIONTYPE_LIST', is_inout ? 'm' : 't')}${field('CURRENCY_LIST', 'USD')}${is_inout ? field('BARRIEROFFSETTYPE_LIST', '+') + field('SECONDBARRIEROFFSETTYPE_LIST', '-') : is_touch || is_hl ? field('BARRIEROFFSETTYPE_LIST', o.side === '-' ? '-' : '+') : ''}
 <value name="DURATION"><shadow type="math_number" id="${id()}">${field('NUM', uses_duration ? duration : 1)}</shadow>${uses_duration ? get(dur_name) : ''}</value>
 <value name="AMOUNT"><shadow type="math_number" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
-${is_touch ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}${is_inout ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value><value name="SECONDBARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}
+${is_touch || is_hl ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}${is_inout ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value><value name="SECONDBARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}
 ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow>${get('Prediction')}</value>` : ''}
 </block>`;
 
