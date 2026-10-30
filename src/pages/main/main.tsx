@@ -46,7 +46,6 @@ import RunStrategy from '../dashboard/run-strategy';
 import './main.scss';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
-const Tutorial = lazy(() => import('../tutorials'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -77,9 +76,9 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, MORE_SIGNALS, FREE_BOTS, COPY_TRADING, HEDGING } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS, COPY_TRADING, HEDGING } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'more_signals', 'free_bots', 'hedging', 'copy_trading', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'free_bots', 'hedging', 'copy_trading', 'chart'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -145,7 +144,7 @@ const AppWrapper = observer(() => {
 
     React.useEffect(() => {
         const el_dashboard = document.getElementById('id-dbot-dashboard');
-        const el_tutorial = document.getElementById('id-tutorials');
+        const el_tutorial = document.getElementById('id-charts') ?? document.getElementById('id-copy-trading');
 
         const observer_dashboard = new window.IntersectionObserver(
             ([entry]) => {
@@ -280,8 +279,8 @@ const AppWrapper = observer(() => {
             setTourDialogVisibility(false);
         }
         if (init_render.current) {
-            setActiveTab(Number(active_hash_tab));
-            if (!isDesktop) handleTabChange(Number(active_hash_tab));
+            setActiveTab(Math.max(0, Number(active_hash_tab)));
+            if (!isDesktop) handleTabChange(Math.max(0, Number(active_hash_tab)));
             init_render.current = false;
         } else {
             // Preserve URL parameters when navigating
@@ -292,19 +291,8 @@ const AppWrapper = observer(() => {
             setActiveTour('');
         }
 
-        // Prevent scrolling when tutorial tab is active (only on mobile)
-        const mainElement = document.querySelector('.main__container');
-        if (active_tab === DBOT_TABS.TUTORIAL && !isDesktop) {
-            document.body.style.overflow = 'hidden';
-            if (mainElement instanceof HTMLElement) {
-                mainElement.classList.add('no-scroll');
-            }
-        } else {
-            document.body.style.overflow = '';
-            if (mainElement instanceof HTMLElement) {
-                mainElement.classList.remove('no-scroll');
-            }
-        }
+        document.body.style.overflow = '';
+        document.querySelector('.main__container')?.classList.remove('no-scroll');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active_tab]);
 
@@ -537,29 +525,6 @@ const AppWrapper = observer(() => {
                                             width='24px'
                                             fill='var(--text-general)'
                                         />
-                                        <Localize i18n_default_text='More Signals' />
-                                    </>
-                                }
-                                id='id-more-signals'
-                            >
-                                <div className='signals-wrapper'>
-                                    {active_tab === MORE_SIGNALS && (
-                                        <iframe
-                                            className='signals-frame'
-                                            src='/moresignals/index.html'
-                                            title='More signals'
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                            <div
-                                label={
-                                    <>
-                                        <LabelPairedChartLineCaptionRegularIcon
-                                            height='24px'
-                                            width='24px'
-                                            fill='var(--text-general)'
-                                        />
                                         <Localize i18n_default_text='Free Bots' />
                                     </>
                                 }
@@ -639,30 +604,6 @@ const AppWrapper = observer(() => {
                                 >
                                     <ChartWrapper show_digits_stats={false} />
                                 </Suspense>
-                            </div>
-                            <div
-                                label={
-                                    <>
-                                        <LegacyGuide1pxIcon
-                                            height='16px'
-                                            width='16px'
-                                            fill='var(--text-general)'
-                                            className='icon-general-fill-g-path'
-                                        />
-                                        <Localize i18n_default_text='Tutorials' />
-                                    </>
-                                }
-                                id='id-tutorials'
-                            >
-                                <div className='tutorials-wrapper'>
-                                    <Suspense
-                                        fallback={
-                                            <ChunkLoader message={localize('Please wait, loading tutorials...')} />
-                                        }
-                                    >
-                                        <Tutorial handleTabChange={handleTabChange} />
-                                    </Suspense>
-                                </div>
                             </div>
                         </Tabs>
                         {!isDesktop && right_tab_shadow && <span className='tabs-shadow tabs-shadow--right' />}{' '}
