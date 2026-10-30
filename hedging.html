@@ -14,7 +14,7 @@
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
 button,input,select{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none;padding:0}
 .app{max-width:560px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:14px}
-h1{margin:0;font-size:24px;line-height:1.15}h2{margin:0;font-size:17px}p{margin:0}
+h1{margin:0;font-size:24px;line-height:1.15}h2{margin:0;font-size:15px}p{margin:0}
 .muted{color:var(--muted)}.small{font-size:12.5px}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -23,19 +23,19 @@ input,select{width:100%;min-height:44px;padding:8px 12px;border-radius:10px;bord
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{min-height:40px;min-width:48px;padding:6px 12px;border-radius:10px;border:1px solid var(--line);background:var(--raise);font-weight:700}
 .chips button[aria-pressed=true]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
 .card.go{border-color:var(--win)}
 .head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.tag{font-size:12px;color:var(--muted)}
-.chip{font-size:11px;font-weight:800;letter-spacing:.06em;padding:3px 9px;border-radius:99px;background:var(--raise);border:1px solid var(--line);white-space:nowrap}
+.tag{font-size:11.5px;color:var(--muted)}
+.chip{font-size:10px;font-weight:800;letter-spacing:.06em;padding:3px 9px;border-radius:99px;background:var(--raise);border:1px solid var(--line);white-space:nowrap}
 .chip.go{background:var(--win);color:#04170F;border-color:var(--win)}
 .chip.watch{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .chip.t{font-family:ui-monospace,monospace}.chip.t.warn{color:var(--loss);border-color:var(--loss)}
-.legs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.leg{background:var(--raise);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:2px}
-.leg b{font-size:14px}.leg span{font-size:12px;color:var(--muted)}
-.mets{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px}.mets span{color:var(--muted)}.mets b{color:var(--fg)}
-.trade{min-height:46px;border-radius:12px;background:var(--accent);color:var(--on-accent);font-weight:800}
+.legs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.leg{background:var(--raise);border-radius:10px;padding:6px 9px;display:flex;flex-direction:column;gap:0}
+.leg b{font-size:13px}.leg span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.mets{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:11.5px}.mets span{color:var(--muted)}.mets b{color:var(--fg)}
+.trade{min-height:40px;font-size:13.5px;border-radius:10px;background:var(--accent);color:var(--on-accent);font-weight:800}
 .trade:disabled{background:var(--raise);color:var(--muted);border:1px solid var(--line);cursor:not-allowed}
 .risk{border:1px solid var(--accent);border-radius:12px;padding:10px 12px;font-size:12.5px}
 </style>
@@ -44,7 +44,7 @@ input,select{width:100%;min-height:44px;padding:8px 12px;border-radius:10px;bord
 <div class="app">
   <header>
     <h1>Hedging</h1>
-    <p class="muted">Two trades opened together on the same market. One is placed as the main trade and its partner is placed with it, then both are counted as one result. Pick your settings, wait for READY, then tap Trade now to load the hedge bot.</p>
+    <p class="muted">Two trades opened together on the same market and counted as one result. Set your numbers, wait for READY, then tap Trade now.</p>
   </header>
 
   <section class="panel" id="set">
@@ -66,9 +66,9 @@ input,select{width:100%;min-height:44px;padding:8px 12px;border-radius:10px;bord
     </div>
   </section>
 
-  <div id="cards" style="display:flex;flex-direction:column;gap:14px"></div>
+  <div id="cards" style="display:flex;flex-direction:column;gap:9px"></div>
 
-  <p class="risk"><b>Please read:</b> a hedge covers part of the market, it does not remove risk. Every pair still has a built-in cost, and the signal only describes recent ticks. Test on a demo account first and keep stake, stop loss and take profit small.</p>
+  <p class="risk"><b>Please read:</b> a hedge covers part of the market, it does not remove risk. Every pair still has a built-in cost (Even/Odd and Rise/Fall always cost a little, because one side must lose), and the signal only describes recent ticks. Test on a demo account first and keep stake, stop loss and take profit small.</p>
 </div>
 
 <script>
@@ -139,7 +139,27 @@ function readTN(key){
   const strength=clamp(Math.round(85-Math.abs(st.ratio-1)*150+(Math.abs(sh-.5)>.1?5:0)),50,85);
   return{key,family:'tn',strength,T,F,side,ratio:st.ratio,pip:d.pip};
 }
+function readEO(key){
+  const d=D[key];if(d.p.length<100)return null;
+  const ds=d.p.slice(-200).map(q=>digitOf(q,d.pip)),ev=ds.filter(x=>x%2===0).length/ds.length;
+  return{key,family:'eo',strength:clamp(Math.round(85-Math.abs(ev-.5)*300),50,85),ev};
+}
+function readRF(key){
+  const d=D[key];if(d.p.length<60)return null;
+  const df=diffs(d.p).slice(-30),u=df.filter(x=>x>0).length,dn=df.filter(x=>x<0).length,sh=u+dn?u/(u+dn):.5,flat=1-(u+dn)/Math.max(1,df.length);
+  return{key,family:'rf',strength:clamp(Math.round(85-Math.abs(sh-.5)*200-flat*100),50,85),sh,flat};
+}
+function readRU(key){
+  const d=D[key];if(d.p.length<100)return null;
+  const df=diffs(d.p).slice(-200);let uu=0,dd=0,n=0;
+  for(let i=1;i<df.length;i++){n++;if(df[i-1]>0&&df[i]>0)uu++;else if(df[i-1]<0&&df[i]<0)dd++}
+  const edge=((uu/n)/.25+(dd/n)/.25)/2-1;
+  return{key,family:'ru',strength:clamp(Math.round(50+edge*250),50,85),uu:uu/n,dd:dd/n,edge};
+}
 const FAM={
+  eo:{read:readEO,min:60,win:key=>100*MARKETS.find(m=>m[0]===key)[2]},
+  rf:{read:readRF,min:60,win:key=>25*MARKETS.find(m=>m[0]===key)[2]},
+  ru:{read:readRU,min:60,win:key=>10*MARKETS.find(m=>m[0]===key)[2]},
   ou:{read:readOU,min:60,win:key=>100*MARKETS.find(m=>m[0]===key)[2]},
   io:{read:readIO,min:60,win:()=>120},
   tn:{read:readTN,min:60,win:key=>25*MARKETS.find(m=>m[0]===key)[2]}
@@ -154,6 +174,9 @@ const mname=k=>MARKETS.find(m=>m[0]===k)[1];
 /* ---------- trade payload ---------- */
 function tradeOf(r){
   if(!r)return null;
+  if(r.family==='eo')return{contract:'DIGITEVEN',barrier:null,hedge:'HEDGE|DIGITODD',legA:'Even',legB:'Odd',extra:{ticks:1}};
+  if(r.family==='rf')return{contract:'CALL',barrier:null,hedge:'HEDGE|PUT',legA:'Rise',legB:'Fall',extra:{ticks:5}};
+  if(r.family==='ru')return{contract:'RUNHIGH',barrier:null,hedge:'HEDGE|RUNLOW',legA:'Only Ups',legB:'Only Downs',extra:{ticks:2}};
   if(r.family==='ou')return{contract:'DIGITOVER',barrier:r.a,hedge:`HEDGE|DIGITUNDER|${r.b}`,legA:`Over ${r.a}`,legB:`Under ${r.b}`,extra:{ticks:1}};
   if(r.family==='io'){const N=r.N.toFixed(r.pip),W=r.W.toFixed(r.pip);return{contract:'EXPIRYRANGE',barrier:null,hedge:`HEDGE|EXPIRYMISS||+${N}|-${N}`,legA:`Ends Between ±${W}`,legB:`Ends Outside ±${N}`,extra:{minutes:2,offset:+W}}}
   const T=r.T.toFixed(r.pip),F=r.F.toFixed(r.pip);
@@ -170,6 +193,9 @@ function cardHtml(f,title,tag,r){
   if(r&&t){
     legs=`<div class="legs"><div class="leg"><span>Trade 1</span><b>${t.legA}</b></div><div class="leg"><span>Trade 2</span><b>${t.legB}</b></div></div>`;
     if(f==='ou')mets=`<span>Both win on <b>${r.mid.length?r.mid.join(', '):'no digit'}</b></span><span>Seen <b>${Math.round(r.midShare*100)}%</b> vs normal ${Math.round(r.midExp*100)}%</span><span>Win rate vs normal <b>${r.edge>=0?'+':''}${(r.edge*100).toFixed(1)}%</b></span>`;
+    else if(f==='eo')mets=`<span>Even <b>${Math.round(r.ev*100)}%</b> / Odd <b>${Math.round((1-r.ev)*100)}%</b> lately</span><span>One side always wins</span>`;
+    else if(f==='rf')mets=`<span>Up moves <b>${Math.round(r.sh*100)}%</b></span><span>Flat ticks <b>${Math.round(r.flat*100)}%</b></span><span>One side wins unless flat</span>`;
+    else if(f==='ru')mets=`<span>Up-up <b>${Math.round(r.uu*100)}%</b> \u00b7 down-down <b>${Math.round(r.dd*100)}%</b></span><span>vs normal 25%</span>`;
     else mets=`<span>Swings now <b>${r.ratio.toFixed(2)}x</b> normal</span><span>Both win when the move lands in the middle band</span>`;
     note=ok?'':`Needs ${FAM[f].min}%+ strength (now ${r.strength}%)`;
   }
@@ -178,11 +204,14 @@ function cardHtml(f,title,tag,r){
 }
 let cur={};
 function render(){
-  cur={ou:best('ou'),io:best('io'),tn:best('tn')};
+  cur={ou:best('ou'),io:best('io'),tn:best('tn'),eo:best('eo'),rf:best('rf'),ru:best('ru')};
   $('#cards').innerHTML=
     cardHtml('ou','Over / Under hedge','Digit pair · 1 tick',cur.ou)+
     cardHtml('io','In/Out hedge','Ends Between + Ends Outside · 2 min',cur.io)+
-    cardHtml('tn','Touch / No Touch hedge','Touch near + No Touch far · 5 ticks',cur.tn);
+    cardHtml('tn','Touch / No Touch hedge','Touch near + No Touch far \u00b7 5 ticks',cur.tn)+
+    cardHtml('eo','Even / Odd hedge','Both sides \u00b7 1 tick',cur.eo)+
+    cardHtml('rf','Rise / Fall hedge','Both sides \u00b7 5 ticks',cur.rf)+
+    cardHtml('ru','Only Ups / Only Downs hedge','Both streaks \u00b7 2 ticks',cur.ru);
   $('#pairnote').textContent=hs.pair==='auto'?'Auto picks the pair whose win rate is furthest above normal.':hs.pair==='4-5'?'4/5 always has one winner and a small fixed cost; there is no digit where both win.':'Both trades win on the digits between the two numbers.';
 }
 /* ---------- send ---------- */
