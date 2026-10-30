@@ -12,6 +12,7 @@ import LoadModal from '../../components/load-modal';
 import SaveModal from '../dashboard/bot-list/save-modal';
 import BotBuilderTourHandler from '../tutorials/dbot-tours/bot-builder-tour';
 import QuickStrategy1 from './quick-strategy';
+import MarketStrip from './market-strip';
 import WorkspaceWrapper from './workspace-wrapper';
 
 const BotBuilder = observer(() => {
@@ -119,6 +120,7 @@ const BotBuilder = observer(() => {
                     'bot-builder--tour-active': active_tour,
                 })}
             >
+                <MarketStrip visible={active_tab === 1} />
                 <div id='scratch_div' ref={el_ref}>
                     <WorkspaceWrapper />
                 </div>
