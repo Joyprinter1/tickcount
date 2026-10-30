@@ -356,7 +356,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             console.warn('Signal bot could not be built, loading the simple bot instead.', e);
         }
 
-        if (is_directional) throw new Error('This signal bot could not be loaded.');
+        if (is_directional || signal.hedge) throw new Error('This signal bot could not be loaded.');
 
         // 2. Fallback: Deriv's Martingale bot with the signal's settings (known to load).
         this.selected_strategy = 'MARTINGALE';
