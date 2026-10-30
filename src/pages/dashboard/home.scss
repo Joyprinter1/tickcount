@@ -1,0 +1,170 @@
+.td-home {
+    --td-card: #0e1a30;
+    --td-line: #1e2e4a;
+    --td-muted: #9db0c8;
+    margin: 0 -1.6rem;
+    padding: 2rem 1.6rem 3rem;
+    min-height: 100%;
+    color: #e8eef7;
+    background: radial-gradient(120% 60% at 50% 0%, rgba(35, 90, 190, 0.25), transparent 70%),
+        linear-gradient(180deg, #050b1a 0%, #08142b 100%);
+}
+
+.td-home__hello {
+    text-align: center;
+    padding: 1.6rem 0 0.4rem;
+}
+
+.td-home__hello h2 {
+    margin: 0;
+    font-size: 3.2rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #5be3d0, #6cb6ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.td-home__hello p {
+    margin: 1rem 0 0;
+    font-size: 1.6rem;
+    font-style: italic;
+    color: var(--td-muted);
+}
+
+.td-home__divider {
+    display: flex;
+    align-items: center;
+    gap: 1.6rem;
+    margin: 3.2rem 0 2rem;
+}
+
+.td-home__divider::before,
+.td-home__divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--td-line);
+}
+
+.td-home__divider span {
+    font-size: 1.2rem;
+    letter-spacing: 0.3em;
+    font-weight: 700;
+    color: #7f94b3;
+}
+
+.td-home__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
+    max-width: 110rem;
+    margin: 0 auto;
+}
+
+.td-home__list {
+    max-width: 110rem;
+    margin: 2.4rem auto 0;
+}
+
+.td-tile {
+    --tone: #f2b544;
+    --tone-bg: rgba(242, 181, 68, 0.16);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.8rem;
+    text-align: start;
+    padding: 1.6rem;
+    border-radius: 2.2rem;
+    border: 1px solid var(--td-line);
+    background: linear-gradient(160deg, #101e38, #0b152a);
+    color: #e8eef7;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.15s, border-color 0.15s;
+}
+
+.td-tile:hover,
+.td-tile:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--tone);
+    outline: none;
+}
+
+.td-tile__icon {
+    display: grid;
+    place-items: center;
+    width: 5.2rem;
+    height: 5.2rem;
+    border-radius: 1.4rem;
+    background: var(--tone-bg);
+    color: var(--tone);
+    margin-bottom: 0.6rem;
+}
+
+.td-tile strong {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+.td-tile__text {
+    font-size: 1.3rem;
+    line-height: 1.45;
+    color: var(--td-muted);
+    flex: 1;
+}
+
+.td-tile__cta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 0.8rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--td-line);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--tone);
+}
+
+.td-tile__cta b {
+    font-size: 1.8rem;
+}
+
+.td-tile--gold {
+    --tone: #f2b544;
+    --tone-bg: rgba(242, 181, 68, 0.16);
+}
+
+.td-tile--blue {
+    --tone: #5cc8ff;
+    --tone-bg: rgba(92, 200, 255, 0.14);
+}
+
+.td-tile--green {
+    --tone: #4fe0a4;
+    --tone-bg: rgba(79, 224, 164, 0.14);
+}
+
+.td-tile--purple {
+    --tone: #b79cff;
+    --tone-bg: rgba(183, 156, 255, 0.15);
+}
+
+.td-tile--cyan {
+    --tone: #4fd8e0;
+    --tone-bg: rgba(79, 216, 224, 0.14);
+}
+
+.td-tile--rose {
+    --tone: #ff8fa3;
+    --tone-bg: rgba(255, 143, 163, 0.15);
+}
+
+@media (min-width: 900px) {
+    .td-home__grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
