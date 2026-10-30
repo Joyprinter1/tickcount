@@ -76,11 +76,14 @@ input,select{width:100%;min-height:44px;padding:8px 12px;border-radius:10px;bord
 'use strict';
 const EMB=window.parent!==window;
 const MARKETS=[['R_10','Volatility 10',2],['R_25','Volatility 25',2],['R_50','Volatility 50',2],['R_75','Volatility 75',2],['R_100','Volatility 100',2],['1HZ10V','Volatility 10 (1s)',1],['1HZ15V','Volatility 15 (1s)',1],['1HZ25V','Volatility 25 (1s)',1],['1HZ30V','Volatility 30 (1s)',1],['1HZ50V','Volatility 50 (1s)',1],['1HZ75V','Volatility 75 (1s)',1],['1HZ90V','Volatility 90 (1s)',1],['1HZ100V','Volatility 100 (1s)',1]];
+const STEP=[['stpRNG','Step Index 100',1],['stpRNG2','Step Index 200',1],['stpRNG3','Step Index 300',1],['stpRNG4','Step Index 400',1],['stpRNG5','Step Index 500',1]];
+const STEPKEYS=STEP.map(m=>m[0]),SF=['srf','seq','shl'];
 const PAIRS=[[4,5],[3,6],[2,7],[1,8]];
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const cfg=Object.assign({stake:1,mult:2,tp:10,sl:10},store.get('tickdesk.bot',{}));
-const hs=Object.assign({pair:'auto',mkt:'auto'},store.get('tickdesk.hedge',{}));
-const D={};MARKETS.forEach(m=>{D[m[0]]={p:[],pip:2}});
+const hs=Object.assign({pair:'auto',mkt:'auto',step:'auto'},store.get('tickdesk.hedge',{}));
+const D={};MARKETS.concat(STEP).forEach(m=>{D[m[0]]={p:[],pip:2}});
+const ALL=MARKETS.concat(STEP),info=k=>ALL.find(m=>m[0]===k);
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const $=s=>document.querySelector(s);
 
@@ -91,7 +94,7 @@ function connect(){
   let opened=false;
   try{ws=new WebSocket(EPS[epI%EPS.length])}catch(e){epI++;setTimeout(connect,2000);return}
   const w=ws,guard=setTimeout(()=>{if(!opened){try{w.close()}catch(e){}}},7000);
-  w.addEventListener('open',()=>{opened=true;live=true;clearTimeout(guard);MARKETS.forEach((m,i)=>w.send(JSON.stringify({ticks_history:m[0],count:700,end:'latest',style:'ticks',subscribe:1,req_id:i+1})))});
+  w.addEventListener('open',()=>{opened=true;live=true;clearTimeout(guard);ALL.forEach((m,i)=>w.send(JSON.stringify({ticks_history:m[0],count:700,end:'latest',style:'ticks',subscribe:1,req_id:i+1})))});
   w.addEventListener('message',e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
     if(m.msg_type==='history'&&m.history){const s=m.echo_req&&m.echo_req.ticks_history;if(D[s]){D[s].p=m.history.prices.map(Number);D[s].pip=m.pip_size||2}}
     else if(m.msg_type==='tick'&&m.tick&&D[m.tick.symbol]){const d=D[m.tick.symbol];d.pip=m.tick.pip_size||d.pip;d.p.push(Number(m.tick.quote));if(d.p.length>900)d.p.shift()}});
@@ -156,7 +159,34 @@ function readRU(key){
   const edge=((uu/n)/.25+(dd/n)/.25)/2-1;
   return{key,family:'ru',strength:clamp(Math.round(50+edge*250),50,85),uu:uu/n,dd:dd/n,edge};
 }
+function readRS(key){const r=readRF(key);return r&&Object.assign(r,{family:'rs'})}
+function readHL(key){
+  const d=D[key];if(d.p.length<150)return null;
+  const p=d.p.slice(-600),H=[0,0,0,0,0],L=[0,0,0,0,0];let n=0;
+  for(let i=0;i+5<p.length;i++){const w=p.slice(i+1,i+6);let hi=0,lo=0;for(let j=1;j<5;j++){if(w[j]>w[hi])hi=j;if(w[j]<w[lo])lo=j}H[hi]++;L[lo]++;n++}
+  const ph=H.indexOf(Math.max(...H)),pl=L.indexOf(Math.max(...L)),rh=H[ph]/n,rl=L[pl]/n,rate=(rh+rl)/2;
+  return{key,family:'hl',strength:clamp(Math.round(50+(rate-.2)*167),50,85),ph:ph+1,pl:pl+1,rh,rl};
+}
+function readSRF(key){const r=readRF(key);return r&&Object.assign(r,{family:'srf'})}
+function readSEQ(key){
+  const d=D[key];if(d.p.length<120)return null;
+  const p=d.p.slice(-400),tol=Math.pow(10,-d.pip)/2;let n=0,tie=0;
+  for(let i=0;i+4<p.length;i++){n++;if(Math.abs(p[i+4]-p[i])<tol)tie++}
+  const t=tie/n;return{key,family:'seq',strength:clamp(Math.round(50+(t/.375-1)*150),50,85),tie:t};
+}
+function readSHL(key){
+  const d=D[key],st=swingStable(key);if(!st)return null;
+  const p=d.p,ex=[];for(let i=0;i+5<p.length;i++)ex.push(Math.abs(p[i+5]-p[i]));
+  const mn=Math.pow(10,-d.pip),N=Math.max(mn,+quant(ex,.5).toFixed(d.pip));
+  const inband=ex.filter(x=>x<N).length/ex.length;
+  return{key,family:'shl',strength:clamp(Math.round(85-Math.abs(st.ratio-1)*150),50,85),N,ratio:st.ratio,pip:d.pip,inband};
+}
 const FAM={
+  rs:{read:readRS,min:60,win:key=>25*info(key)[2]},
+  hl:{read:readHL,min:60,win:key=>25*info(key)[2]},
+  srf:{read:readSRF,min:60,win:()=>25},
+  seq:{read:readSEQ,min:60,win:()=>20},
+  shl:{read:readSHL,min:60,win:()=>25},
   eo:{read:readEO,min:60,win:key=>100*MARKETS.find(m=>m[0]===key)[2]},
   rf:{read:readRF,min:60,win:key=>25*MARKETS.find(m=>m[0]===key)[2]},
   ru:{read:readRU,min:60,win:key=>10*MARKETS.find(m=>m[0]===key)[2]},
@@ -165,15 +195,21 @@ const FAM={
   tn:{read:readTN,min:60,win:key=>25*MARKETS.find(m=>m[0]===key)[2]}
 };
 function best(f){
-  const keys=hs.mkt==='auto'?MARKETS.map(m=>m[0]):[hs.mkt];let b=null;
+  const isStep=SF.includes(f);
+  const keys=isStep?(hs.step==='auto'?STEPKEYS:[hs.step]):(hs.mkt==='auto'||STEPKEYS.includes(hs.mkt)?MARKETS.map(m=>m[0]):[hs.mkt]);let b=null;
   keys.forEach(k=>{let r=null;try{r=FAM[f].read(k)}catch(e){console.error("hedge read",f,k,e.message)}if(r&&(!b||r.strength>b.strength))b=r});
   return b;
 }
-const mname=k=>MARKETS.find(m=>m[0]===k)[1];
+const mname=k=>info(k)[1];
 
 /* ---------- trade payload ---------- */
 function tradeOf(r){
   if(!r)return null;
+  if(r.family==='rs')return{contract:'RESETCALL',barrier:null,hedge:'HEDGE|RESETPUT',legA:'Reset Call',legB:'Reset Put',extra:{ticks:5}};
+  if(r.family==='hl')return{contract:'TICKHIGH',barrier:r.ph,hedge:`HEDGE|TICKLOW|${r.pl}`,legA:`High Tick ${r.ph}`,legB:`Low Tick ${r.pl}`,extra:{ticks:5}};
+  if(r.family==='srf')return{contract:'CALL',barrier:null,hedge:'HEDGE|PUT',legA:'Rise',legB:'Fall',extra:{ticks:5}};
+  if(r.family==='seq')return{contract:'CALLE',barrier:null,hedge:'HEDGE|PUTE',legA:'Rise Equals',legB:'Fall Equals',extra:{ticks:4}};
+  if(r.family==='shl'){const N=r.N.toFixed(r.pip);return{contract:'CALL',barrier:null,hedge:`HEDGE|PUT||+${N}`,legA:`Higher -${N}`,legB:`Lower +${N}`,extra:{ticks:5,tradetype:'higherlower',offset:+N,side:'-'}}}
   if(r.family==='eo')return{contract:'DIGITEVEN',barrier:null,hedge:'HEDGE|DIGITODD',legA:'Even',legB:'Odd',extra:{ticks:1}};
   if(r.family==='rf')return{contract:'CALL',barrier:null,hedge:'HEDGE|PUT',legA:'Rise',legB:'Fall',extra:{ticks:5}};
   if(r.family==='ru')return{contract:'RUNHIGH',barrier:null,hedge:'HEDGE|RUNLOW',legA:'Only Ups',legB:'Only Downs',extra:{ticks:2}};
@@ -193,6 +229,11 @@ function cardHtml(f,title,tag,r){
   if(r&&t){
     legs=`<div class="legs"><div class="leg"><span>Trade 1</span><b>${t.legA}</b></div><div class="leg"><span>Trade 2</span><b>${t.legB}</b></div></div>`;
     if(f==='ou')mets=`<span>Both win on <b>${r.mid.length?r.mid.join(', '):'no digit'}</b></span><span>Seen <b>${Math.round(r.midShare*100)}%</b> vs normal ${Math.round(r.midExp*100)}%</span><span>Win rate vs normal <b>${r.edge>=0?'+':''}${(r.edge*100).toFixed(1)}%</b></span>`;
+    else if(f==='rs')mets=`<span>Up moves <b>${Math.round(r.sh*100)}%</b></span><span>Flat ticks <b>${Math.round(r.flat*100)}%</b></span><span>Reset re-centres the barrier part-way</span>`;
+    else if(f==='srf')mets=`<span>Up moves <b>${Math.round(r.sh*100)}%</b></span><span>Steps never stay flat</span>`;
+    else if(f==='hl')mets=`<span>Best high spot <b>${r.ph}</b> (${Math.round(r.rh*100)}%)</span><span>Best low spot <b>${r.pl}</b> (${Math.round(r.rl*100)}%)</span><span>vs normal 20%</span>`;
+    else if(f==='seq')mets=`<span>Back to start after 4 ticks <b>${Math.round(r.tie*100)}%</b></span><span>Normal 37%. On those ticks both legs win</span>`;
+    else if(f==='shl')mets=`<span>Swings now <b>${r.ratio.toFixed(2)}x</b> normal</span><span>Both win when the move stays within \u00b1${r.N.toFixed(r.pip)} (${Math.round(r.inband*100)}% lately)</span>`;
     else if(f==='eo')mets=`<span>Even <b>${Math.round(r.ev*100)}%</b> / Odd <b>${Math.round((1-r.ev)*100)}%</b> lately</span><span>One side always wins</span>`;
     else if(f==='rf')mets=`<span>Up moves <b>${Math.round(r.sh*100)}%</b></span><span>Flat ticks <b>${Math.round(r.flat*100)}%</b></span><span>One side wins unless flat</span>`;
     else if(f==='ru')mets=`<span>Up-up <b>${Math.round(r.uu*100)}%</b> \u00b7 down-down <b>${Math.round(r.dd*100)}%</b></span><span>vs normal 25%</span>`;
@@ -204,20 +245,27 @@ function cardHtml(f,title,tag,r){
 }
 let cur={};
 function render(){
-  cur={ou:best('ou'),io:best('io'),tn:best('tn'),eo:best('eo'),rf:best('rf'),ru:best('ru')};
+  cur={};['ou','io','tn','eo','rf','ru','rs','hl','srf','seq','shl'].forEach(f=>{cur[f]=best(f)});
   $('#cards').innerHTML=
     cardHtml('ou','Over / Under hedge','Digit pair · 1 tick',cur.ou)+
     cardHtml('io','In/Out hedge','Ends Between + Ends Outside · 2 min',cur.io)+
     cardHtml('tn','Touch / No Touch hedge','Touch near + No Touch far \u00b7 5 ticks',cur.tn)+
     cardHtml('eo','Even / Odd hedge','Both sides \u00b7 1 tick',cur.eo)+
     cardHtml('rf','Rise / Fall hedge','Both sides \u00b7 5 ticks',cur.rf)+
-    cardHtml('ru','Only Ups / Only Downs hedge','Both streaks \u00b7 2 ticks',cur.ru);
+    cardHtml('ru','Only Ups / Only Downs hedge','Both streaks \u00b7 2 ticks',cur.ru)+
+    cardHtml('rs','Reset Call / Put hedge','Both sides \u00b7 5 ticks',cur.rs)+
+    cardHtml('hl','High / Low Tick hedge','Highest + lowest tick \u00b7 5 ticks',cur.hl)+
+    '<h2 style="margin-top:6px">Step Index hedges</h2><label style="font-weight:600">Step market<select id="f-step"></select></label>'+
+    cardHtml('srf','Rise / Fall hedge','Step Index \u00b7 5 ticks',cur.srf)+
+    cardHtml('seq','Rise Equals / Fall Equals hedge','Step Index \u00b7 4 ticks',cur.seq)+
+    cardHtml('shl','Higher / Lower hedge','Step Index \u00b7 5 ticks',cur.shl);
+  const fs=$('#f-step');if(fs){fs.innerHTML='<option value="auto">Best step market (auto)</option>'+STEP.map(m=>`<option value="${m[0]}">${m[1]}</option>`).join('');fs.value=hs.step}
   $('#pairnote').textContent=hs.pair==='auto'?'Auto picks the pair whose win rate is furthest above normal.':hs.pair==='4-5'?'4/5 always has one winner and a small fixed cost; there is no digit where both win.':'Both trades win on the digits between the two numbers.';
 }
 /* ---------- send ---------- */
 function send(f){
   const r=cur[f],t=tradeOf(r);if(!r||!t||r.strength<FAM[f].min)return;
-  const m=MARKETS.find(x=>x[0]===r.key);
+  const m=info(r.key);
   window.parent.postMessage({type:'tickdesk:signal',signal:Object.assign({symbol:r.key,name:m[1],contract:t.contract,kind:'hedge-'+f,barrier:t.barrier,trigger:[],runs:10,stake:cfg.stake,mult:cfg.mult,tp:cfg.tp,sl:cfg.sl,hedge:t.hedge,rate:r.strength,base:0,at:Date.now()},t.extra)},window.location.origin);
 }
 /* ---------- settings ---------- */
@@ -233,6 +281,7 @@ function init(){
   $('#f-mkt').addEventListener('change',e=>{hs.mkt=e.target.value;store.set('tickdesk.hedge',hs);render()});
   const pc=$('#pairs');pc.innerHTML=[['auto','Auto']].concat(PAIRS.map(p=>[p[0]+'-'+p[1],p[0]+' / '+p[1]])).map(([v,l])=>`<button type="button" data-p="${v}" aria-pressed="${hs.pair===v}">${l}</button>`).join('');
   pc.addEventListener('click',e=>{const b=e.target.closest('button[data-p]');if(!b)return;hs.pair=b.dataset.p;store.set('tickdesk.hedge',hs);pc.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()});
+  $('#cards').addEventListener('change',e=>{if(e.target.id==='f-step'){hs.step=e.target.value;store.set('tickdesk.hedge',hs);render()}});
   $('#cards').addEventListener('click',e=>{const b=e.target.closest('button[data-f]');if(b&&!b.disabled)send(b.dataset.f)});
 }
 init();connect();render();
