@@ -79,7 +79,7 @@ const AppWrapper = observer(() => {
     const { clear } = summary_card;
     const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, MORE_SIGNALS, FREE_BOTS, COPY_TRADING, HEDGING } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'more_signals', 'free_bots', 'copy_trading', 'hedging', 'chart', 'tutorial'];
+    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'more_signals', 'free_bots', 'hedging', 'copy_trading', 'chart', 'tutorial'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -583,6 +583,25 @@ const AppWrapper = observer(() => {
                                             width='24px'
                                             fill='var(--text-general)'
                                         />
+                                        <Localize i18n_default_text='Hedging' />
+                                    </>
+                                }
+                                id='id-hedging'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === HEDGING && (
+                                        <iframe className='signals-frame' src='/hedging.html' title='Hedging' />
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
                                         <Localize i18n_default_text='Copy Trading' />
                                     </>
                                 }
@@ -595,25 +614,6 @@ const AppWrapper = observer(() => {
                                             src='/copytrading.html'
                                             title='Copy trading'
                                         />
-                                    )}
-                                </div>
-                            </div>
-                            <div
-                                label={
-                                    <>
-                                        <LabelPairedChartLineCaptionRegularIcon
-                                            height='24px'
-                                            width='24px'
-                                            fill='var(--text-general)'
-                                        />
-                                        <Localize i18n_default_text='Hedging' />
-                                    </>
-                                }
-                                id='id-hedging'
-                            >
-                                <div className='signals-wrapper'>
-                                    {active_tab === HEDGING && (
-                                        <iframe className='signals-frame' src='/hedging.html' title='Hedging' />
                                     )}
                                 </div>
                             </div>
