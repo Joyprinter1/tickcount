@@ -4,6 +4,7 @@ import { observer } from 'mobx-react-lite';
 import { DBOT_TABS } from '@/constants/bot-contents';
 import { useStore } from '@/hooks/useStore';
 import { useDevice } from '@deriv-com/ui';
+import ResultsCard from './results-card';
 import DashboardBotList from './bot-list/dashboard-bot-list';
 import './home.scss';
 
@@ -163,6 +164,7 @@ const HomeCards = observer(() => {
                     </button>
                 ))}
             </div>
+            <ResultsCard />
             <div className='td-home__list'>
                 <DashboardBotList />
             </div>
