@@ -140,6 +140,7 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
       <label for="desc">Short description (optional)</label><textarea id="desc" maxlength="160" placeholder="One line that appears on the card"></textarea>
       <div class="row" style="margin-top:10px"><div><label style="margin-top:0">Card colour</label><input type="color" id="accent" value="#f2b544"></div>
         <div style="display:flex;align-items:center;gap:10px"><div class="lbl" style="text-align:right">Allow people to load it<br>right after upload</div><div class="sw"><input type="checkbox" id="dl"><span></span></div></div></div>
+      <div class="row" style="margin-top:10px"><div class="lbl">Keep it in my bot store as a draft<br>(hidden from the site until you publish it)</div><div class="sw"><input type="checkbox" id="draft"><span></span></div></div>
       <p class="msg" id="umsg"></p>
       <button class="btn" id="up">Upload bot</button>
     </section>
@@ -166,6 +167,7 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
       <p class="msg" id="c-msg"></p>
       <div class="row" style="margin-top:6px"><b>Clients</b><span><button class="btn sec sm" id="c-res">Update results</button> <button class="btn sec sm" id="c-check">Check connections</button></span></div>
       <div id="c-list"></div>
+      <div id="c-earn" style="margin-top:10px"></div>
       <div id="c-pl" style="font-size:13px;margin-top:10px"></div>
       <div id="c-trades" class="muted" style="font-size:13px;margin-top:10px"></div>
       <div id="c-log" class="muted" style="font-size:13px;margin-top:10px"></div>
@@ -208,9 +210,9 @@ async function refresh(){
     const j=await api('GET','bots');cats=j.categories;
     if(!$('#cat').options.length)$('#cat').innerHTML=cats.map(c=>'<option>'+esc(c)+'</option>').join('');
     $('#count').textContent='('+j.bots.length+')';
-    $('#list').innerHTML=j.bots.length?j.bots.map(b=>'<div class="bot" data-id="'+b.id+'"><span class="dot" style="background:'+esc(b.accent)+'"></span><div class="info"><b>'+esc(b.name)+'</b><small>'+esc(b.category)+' &middot; '+Math.round((b.size||0)/1024)+' KB</small></div>'+
+    $('#list').innerHTML=j.bots.length?j.bots.map(b=>'<div class="bot" data-id="'+b.id+'"><span class="dot" style="background:'+esc(b.accent)+'"></span><div class="info"><b>'+esc(b.name)+(b.published===false?' <span class="pill">Draft</span>':'')+'</b><small>'+esc(b.category)+' &middot; '+Math.round((b.size||0)/1024)+' KB</small></div>'+
       '<div><label class="sw" style="margin:0"><input type="checkbox" data-t="'+b.id+'" '+(b.downloadable?'checked':'')+' aria-label="Allow loading '+esc(b.name)+'"><span></span></label><div class="lbl">'+(b.downloadable?'Open':'Locked')+'</div></div>'+
-      '<button class="btn bad sm" data-d="'+b.id+'">Delete</button></div>').join(''):'<p class="muted">No bots yet. Upload your first one above.</p>';
+      '<button class="btn sec sm" data-pub="'+b.id+'" data-to="'+(b.published===false?'1':'0')+'">'+(b.published===false?'Publish':'Hide')+'</button> <button class="btn bad sm" data-d="'+b.id+'">Delete</button></div>').join(''):'<p class="muted">No bots yet. Upload your first one above.</p>';
   }catch(e){msg($('#lmsg'),e.message);}
 }
 $('#go').onclick=async()=>{
@@ -233,7 +235,7 @@ $('#up').onclick=async()=>{
   $('#up').disabled=true;
   try{
     const xml=await f.text();
-    await api('POST','bots',{name:$('#name').value,category:$('#cat').value,description:$('#desc').value,accent:$('#accent').value,downloadable:$('#dl').checked,xml});
+    await api('POST','bots',{name:$('#name').value,category:$('#cat').value,description:$('#desc').value,accent:$('#accent').value,downloadable:$('#dl').checked,published:!$('#draft').checked,xml});
     msg($('#umsg'),'Uploaded. It now shows on the Free bots page.',true);
     $('#file').value='';$('#name').value='';$('#desc').value='';await refresh();
   }catch(e){msg($('#umsg'),e.message);}finally{$('#up').disabled=false;}
@@ -243,6 +245,7 @@ $('#list').addEventListener('change',async e=>{
   try{await api('PATCH','bots/'+id,{downloadable:e.target.checked});await refresh();}catch(err){msg($('#lmsg'),err.message);e.target.checked=!e.target.checked;}
 });
 $('#list').addEventListener('click',async e=>{
+  const pid=e.target.dataset.pub;if(pid){try{await api('PATCH','bots/'+pid,{published:e.target.dataset.to==='1'});await refresh();}catch(err){msg($('#lmsg'),err.message);}return;}
   const id=e.target.dataset.d;if(!id)return;
   if(!confirm('Delete this bot for good?'))return;
   try{await api('DELETE','bots/'+id);await refresh();}catch(err){msg($('#lmsg'),err.message);}
@@ -270,6 +273,16 @@ async function refreshCopy(){
       return '<div class="bot"><div class="info"><b>'+esc(c.name)+' '+st+'</b><small>'+(c.accountType==='demo'?'Demo':'Real')+' '+esc(c.accountId)+' &middot; '+esc(c.currency)+' '+c.balance+' &middot; '+c.multiplier+'x &middot; '+c.copied+' copied, '+c.failed+' failed &middot; '+plTxt(c.results)+(c.lastResult&&c.lastResult!=='copied'?' &middot; '+esc(c.lastResult):'')+'</small></div>'+
        '<div><label class="sw" style="margin:0"><input type="checkbox" data-ca="'+c.id+'" '+(c.active?'checked':'')+' aria-label="Switch on '+esc(c.name)+'"><span></span></label><div class="lbl">'+(c.active?'On':'Off')+'</div></div>'+
        '<button class="btn bad sm" data-cd="'+c.id+'">Remove</button></div>';}).join(''):'<p class="muted">No clients yet. They appear here after they add their token on the Copy Trading page.</p>';
+    (function(){
+      const now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),dow=(now.getDay()+6)%7;
+      const per=[['Today',d0],['This week',d0-dow*864e5],['This month',new Date(now.getFullYear(),now.getMonth(),1).getTime()]];
+      const cur=[...new Set((j.earn||[]).map(x=>x.currency))];
+      $('#c-earn').innerHTML='<div class="tiles">'+per.map(([lab,from])=>{
+        const t=(j.earn||[]).filter(x=>x.at>=from);
+        const com={},pl={};t.forEach(x=>{com[x.currency]=(com[x.currency]||0)+x.stake*x.markup/100;if(x.status==='won'||x.status==='lost')pl[x.currency]=(pl[x.currency]||0)+x.profit;});
+        const f=o=>Object.entries(o).map(([c,v])=>(Math.round(v*100)/100).toFixed(2)+' '+esc(c)).join(', ')||'0.00';
+        return '<div class="tile" style="cursor:default"><b>'+f(com)+'</b><span>Your commission &middot; '+lab+'</span><em>'+t.length+' trades &middot; clients '+f(pl)+'</em></div>';}).join('')+'</div><p class="muted" style="font-size:12px;margin:6px 0 0">Commission is an estimate (markup % of each copied stake). Deriv\'s own app report is the final figure.</p>';
+    })();
     $('#c-pl').innerHTML='<b>Results of copied trades</b><br>'+plTxt(j.totals)+' <span class="muted">(all clients)</span>';
     $('#c-trades').innerHTML=j.trades.length?'<b>Copied trades</b><br>'+j.trades.slice(0,15).map(t=>new Date(t.at).toLocaleString()+' &middot; '+esc(t.name)+' &middot; '+esc(t.symbol)+' '+esc(t.type)+' &middot; stake '+t.stake+' &middot; '+(t.status==='open'?'open':t.status==='removed'?'client removed':(t.status==='won'?'<span style="color:var(--win,#16a34a)">won ':'<span style="color:var(--loss)">lost ')+(t.profit>0?'+':'')+t.profit+' '+esc(t.currency)+'</span>')).join('<br>'):'';
     $('#c-log').innerHTML=j.log.length?'<b>Latest trades</b><br>'+j.log.slice(0,6).map(l=>new Date(l.at).toLocaleTimeString()+' &middot; '+esc(l.trade)+' &middot; '+l.ok+'/'+l.tried+' copied').join('<br>'):'';

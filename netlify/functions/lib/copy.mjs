@@ -351,6 +351,7 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                             symbol: t.parameters.underlying_symbol,
                             type: t.parameters.contract_type,
                             stake: r.value.stake,
+                            markup: settings.markup > 0 ? settings.markup : 0,
                             status: 'open',
                             profit: 0,
                         });
@@ -397,6 +398,9 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                     .map(c => ({ ...publicClient(c), accountId: c.accountId, results: summarize(trades, x => x.clientId === c.id) }))
                     .sort((a, b) => b.createdAt - a.createdAt),
                 totals: summarize(trades, () => true),
+                earn: trades
+                    .filter(x => x.at > Date.now() - 32 * 86400000)
+                    .map(x => ({ at: x.at, stake: x.stake, markup: x.markup || 0, profit: x.profit || 0, status: x.status, currency: x.currency })),
                 trades: trades.slice(0, 40).map(x => ({ at: x.at, name: x.name, symbol: x.symbol, type: x.type, stake: x.stake, status: x.status, profit: x.profit, currency: x.currency })),
                 log: log.slice(0, 20),
             });
