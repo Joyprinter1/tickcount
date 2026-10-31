@@ -78,7 +78,7 @@ const AppWrapper = observer(() => {
     const { clear } = summary_card;
     const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS, COPY_TRADING, HEDGING } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'analysis', 'signals', 'derivscope', 'free_bots', 'hedging', 'copy_trading', 'chart'];
+    const hash = ['dashboard', 'bot_builder', 'free_bots', 'analysis', 'signals', 'derivscope', 'hedging', 'copy_trading', 'chart'];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
@@ -456,6 +456,29 @@ const AppWrapper = observer(() => {
                                             width='24px'
                                             fill='var(--text-general)'
                                         />
+                                        <Localize i18n_default_text='Free Bots' />
+                                    </>
+                                }
+                                id='id-free-bots'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === FREE_BOTS && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/freebots.html'
+                                            title='Free bots'
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
                                         <Localize i18n_default_text='Analysis tool' />
                                     </>
                                 }
@@ -513,29 +536,6 @@ const AppWrapper = observer(() => {
                                             className='signals-frame'
                                             src='/derivscope/index.html'
                                             title='DerivScope analysis desk'
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                            <div
-                                label={
-                                    <>
-                                        <LabelPairedChartLineCaptionRegularIcon
-                                            height='24px'
-                                            width='24px'
-                                            fill='var(--text-general)'
-                                        />
-                                        <Localize i18n_default_text='Free Bots' />
-                                    </>
-                                }
-                                id='id-free-bots'
-                            >
-                                <div className='signals-wrapper'>
-                                    {active_tab === FREE_BOTS && (
-                                        <iframe
-                                            className='signals-frame'
-                                            src='/freebots.html'
-                                            title='Free bots'
                                         />
                                     )}
                                 </div>
