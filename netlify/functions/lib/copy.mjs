@@ -6,6 +6,8 @@ const API_BASE = 'https://api.derivws.com/trading/v1/options';
 const MAX_CLIENTS = 300;
 const PER_CLIENT_MS = 7000;
 const LOG_MAX = 100;
+const TRADES_MAX = 600;
+const BATCH_MS = 20000;
 
 const json = (data, status = 200) =>
     new Response(JSON.stringify(data), {
@@ -108,7 +110,48 @@ export function makeDeriv({ fetchFn = fetch, WS = globalThis.WebSocket, appId })
         );
     }
 
-    return { accounts, buy: (token, accountId, request) => send(token, accountId, request) };
+    // One session, several requests (used to check how copied trades finished).
+    async function sendBatch(token, accountId, requests) {
+        const url = await otpUrl(token, accountId);
+        return withTimeout(
+            new Promise((resolve, reject) => {
+                let ws;
+                try {
+                    ws = new WS(url);
+                } catch (e) {
+                    reject(new Error('Could not open a Deriv session.'));
+                    return;
+                }
+                const out = Array(requests.length).fill(null);
+                let got = 0;
+                const done = (fn, v) => {
+                    try {
+                        ws.close();
+                    } catch {}
+                    fn(v);
+                };
+                ws.addEventListener('open', () => requests.forEach((r, i) => ws.send(JSON.stringify({ ...r, req_id: i + 1 }))));
+                ws.addEventListener('message', ev => {
+                    let m;
+                    try {
+                        m = JSON.parse(typeof ev.data === 'string' ? ev.data : String(ev.data));
+                    } catch {
+                        return;
+                    }
+                    if (!(m.req_id >= 1 && m.req_id <= requests.length) || out[m.req_id - 1]) return;
+                    out[m.req_id - 1] = m.error ? { error: m.error.message || 'failed' } : m;
+                    got += 1;
+                    if (got >= requests.length) done(resolve, out);
+                });
+                ws.addEventListener('error', () => done(reject, new Error('Connection to Deriv failed.')));
+                ws.addEventListener('close', () => reject(new Error('Deriv closed the session.')));
+            }),
+            BATCH_MS,
+            'Deriv took too long to answer.'
+        );
+    }
+
+    return { accounts, buy: (token, accountId, request) => send(token, accountId, request), batch: sendBatch };
 }
 
 // ---------- helpers ----------
@@ -159,6 +202,16 @@ const mask = id => (id.length > 4 ? id.slice(0, 3) + '•••' + id.slice(-2) 
 export async function handleCopy({ req, parts, method, store, env, body, isAdmin, deps = {} }) {
     const getClients = async () => (await store.get('copy/clients', { type: 'json' })) ?? [];
     const putClients = l => store.setJSON('copy/clients', l);
+    const getTrades = async () => (await store.get('copy/trades', { type: 'json' })) ?? [];
+    const round2 = x => Math.round(x * 100) / 100;
+    const summarize = (trades, pick) => {
+        const t = trades.filter(pick);
+        const profit = {};
+        t.forEach(x => {
+            profit[x.currency] = round2((profit[x.currency] ?? 0) + (x.profit || 0));
+        });
+        return { wins: t.filter(x => x.status === 'won').length, losses: t.filter(x => x.status === 'lost').length, open: t.filter(x => x.status === 'open').length, profit };
+    };
     const settings = await getSettings(store);
     const key = keyFor(settings, env);
     const appId = env.DERIV_APP_ID || '34Js8QGWunUAzd4jUbOTD';
@@ -275,11 +328,12 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                     if (!(params.amount > 0)) throw new Error('Stake too small.');
                     if (settings.markup > 0) params.app_markup_percentage = settings.markup;
                     const m = await deriv.buy(token, c.accountId, { buy: '1', price: params.amount, parameters: params });
-                    return m?.buy?.contract_id ?? null;
+                    return { id: m?.buy?.contract_id ?? null, stake: params.amount };
                 })
             );
             const now = Date.now();
             let ok = 0;
+            const newTrades = [];
             const fresh = await getClients();
             results.forEach((r, n) => {
                 const c = fresh.find(x => x.id === targets[n].id);
@@ -287,6 +341,20 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                 c.lastAt = now;
                 if (r.status === 'fulfilled') {
                     ok += 1;
+                    if (r.value?.id) {
+                        newTrades.push({
+                            cid: String(r.value.id),
+                            clientId: c.id,
+                            name: c.name,
+                            currency: c.currency,
+                            at: now,
+                            symbol: t.parameters.underlying_symbol,
+                            type: t.parameters.contract_type,
+                            stake: r.value.stake,
+                            status: 'open',
+                            profit: 0,
+                        });
+                    }
                     c.copied = (c.copied ?? 0) + 1;
                     c.lastResult = 'copied';
                 } else {
@@ -296,6 +364,7 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                 }
             });
             await putClients(fresh);
+            if (newTrades.length) await store.setJSON('copy/trades', [...newTrades, ...(await getTrades())].slice(0, TRADES_MAX));
             const log = (await store.get('copy/log', { type: 'json' })) ?? [];
             log.unshift({
                 at: now,
@@ -316,6 +385,7 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
         if (method === 'GET' && !sub) {
             const list = await getClients();
             const log = (await store.get('copy/log', { type: 'json' })) ?? [];
+            const trades = await getTrades();
             return json({
                 settings: { enabled: !!settings.enabled, markup: settings.markup ?? 0 },
                 counts: {
@@ -323,7 +393,11 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                     active: list.filter(c => c.active && !c.paused && c.tokenOk !== false).length,
                     pending: list.filter(c => !c.active).length,
                 },
-                clients: list.map(c => ({ ...publicClient(c), accountId: c.accountId })).sort((a, b) => b.createdAt - a.createdAt),
+                clients: list
+                    .map(c => ({ ...publicClient(c), accountId: c.accountId, results: summarize(trades, x => x.clientId === c.id) }))
+                    .sort((a, b) => b.createdAt - a.createdAt),
+                totals: summarize(trades, () => true),
+                trades: trades.slice(0, 40).map(x => ({ at: x.at, name: x.name, symbol: x.symbol, type: x.type, stake: x.stake, status: x.status, profit: x.profit, currency: x.currency })),
                 log: log.slice(0, 20),
             });
         }
@@ -337,6 +411,40 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
             }
             await store.setJSON('copy/settings', settings);
             return json({ settings: { enabled: !!settings.enabled, markup: settings.markup } });
+        }
+        if (method === 'POST' && sub === 'results') {
+            const trades = await getTrades();
+            const clients = await getClients();
+            const open = trades.filter(t => t.status === 'open').slice(0, 200);
+            const by = {};
+            open.forEach(t => (by[t.clientId] ??= []).push(t));
+            let updated = 0;
+            await Promise.allSettled(
+                Object.entries(by).map(async ([clientId, list]) => {
+                    const c = clients.find(x => x.id === clientId);
+                    if (!c) {
+                        list.forEach(t => (t.status = 'removed'));
+                        updated += list.length;
+                        return;
+                    }
+                    const out = await deriv.batch(
+                        unseal(c.tokenBox, key),
+                        c.accountId,
+                        list.map(t => ({ proposal_open_contract: 1, contract_id: Number(t.cid) }))
+                    );
+                    out.forEach((m, i) => {
+                        const k = m?.proposal_open_contract;
+                        if (!k || !k.is_sold) return;
+                        const profit = round2(Number(k.profit));
+                        if (!Number.isFinite(profit)) return;
+                        list[i].profit = profit;
+                        list[i].status = profit > 0 ? 'won' : 'lost';
+                        updated += 1;
+                    });
+                })
+            );
+            if (updated) await store.setJSON('copy/trades', trades);
+            return json({ ok: true, updated, stillOpen: trades.filter(t => t.status === 'open').length });
         }
         if (method === 'POST' && sub === 'check') {
             const list = await getClients();
