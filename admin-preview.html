@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="light dark">
+<script src="theme.js"></script>
+<script>
+/* PREVIEW ONLY: pretend server with sample data. Nothing is saved or sent anywhere. */
+(function(){
+var T=Date.now(),st={enabled:true,markup:2};
+var clients=[
+ {id:'a',name:'Amina',accountType:'real',accountId:'CR1234567',currency:'USD',balance:250.4,multiplier:1,copied:14,failed:1,active:true,tokenOk:true,createdAt:T-9e8,lastResult:'copied',results:{wins:9,losses:4,open:1,profit:{USD:6.35}}},
+ {id:'b',name:'Brian',accountType:'demo',accountId:'VRTC7654321',currency:'USD',balance:9800,multiplier:2,copied:14,failed:0,active:true,tokenOk:true,createdAt:T-8e8,lastResult:'copied',results:{wins:6,losses:8,open:0,profit:{USD:-11.2}}},
+ {id:'c',name:'Cynthia',accountType:'real',accountId:'CR7771110',currency:'USD',balance:40,multiplier:1,copied:0,failed:0,active:false,tokenOk:true,createdAt:T-7e8,results:{wins:0,losses:0,open:0,profit:{}}}];
+var sy=['R_100','R_50','1HZ100V','R_75'],ty=['DIGITOVER','DIGITUNDER','CALL','PUT','DIGITEVEN'];
+var trades=[];for(var i=0;i<12;i++){var w=i%3!==0;trades.push({at:T-i*6e5,name:i%2?'Amina':'Brian',symbol:sy[i%4],type:ty[i%5],stake:i%2?1:2,status:i===0?'open':(w?'won':'lost'),profit:i===0?0:(w?(i%2?0.95:1.9):(i%2?-1:-2)),currency:'USD'});}
+var tot={wins:15,losses:12,open:1,profit:{USD:-4.85}};
+var log=[{at:T-6e5,trade:'DIGITOVER R_100',ok:2,tried:2},{at:T-12e5,trade:'CALL R_50',ok:2,tried:2}];
+var bots=[{id:'1',name:'Sample bot',downloadable:true,size:1200,createdAt:T-5e8,category:'Digits'}];
+var map={status:{setup:true},login:{token:'preview'},bots:{bots:bots,categories:['Digits']},settings:{socials:{},theme:null,downloads:true},
+ copy:function(){return{settings:{enabled:st.enabled,markup:st.markup},counts:{total:3,active:2,pending:1},clients:clients,totals:tot,trades:trades,log:log};},
+ 'copy/results':{ok:true,updated:1,stillOpen:0},'copy/check':{ok:true},'copy/settings':{ok:true}};
+var real=window.fetch;
+window.fetch=function(u,o){u=String(u);var m=u.match(/\/api\/(admin\/)?(.*)$/);if(!m)return real.apply(this,arguments);
+ var k=m[2],v=map[k];if(v===undefined)v={ok:true};if(typeof v==='function')v=v();
+ return Promise.resolve(new Response(JSON.stringify(v),{status:200,headers:{'content-type':'application/json'}}));};
+})();
+</script>
+
+<title>PREVIEW - Tickdesk admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF0F3;--surface:#FFFFFF;--raise:#F2F5F8;--line:#D9DFE6;--fg:#101C26;--muted:#5B6977;--accent:#F0B03A;--on-accent:#1B1303;--win:#10915E;--loss:#D03A50;--shadow:0 1px 2px rgba(16,28,38,.06),0 8px 20px rgba(16,28,38,.05);--f-display:'Bricolage Grotesque',system-ui,sans-serif;--f-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0B1117;--surface:#131B23;--raise:#1A242E;--line:#26323E;--fg:#E7EDF2;--muted:#8997A6;--accent:#F2B544;--on-accent:#1A1303;--win:#37C98B;--loss:#F26A7E;--shadow:0 0 0 1px rgba(255,255,255,.02);color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+h1{font:800 24px var(--f-display);margin:0;letter-spacing:-.02em}h1 b{color:var(--accent)}
+h2{font:700 17px var(--f-display);margin:0 0 10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:14px;margin-top:12px}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=password],select,textarea{width:100%;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px}
+textarea{min-height:70px;resize:vertical}
+input[type=color]{width:56px;height:44px;border:1px solid var(--line);border-radius:10px;background:var(--raise);padding:3px}
+input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-radius:10px;background:var(--raise)}
+.btn{border:0;border-radius:11px;padding:11px 16px;font-weight:700;min-height:44px;background:var(--accent);color:var(--on-accent)}
+.btn.sec{background:var(--raise);color:var(--fg);border:1px solid var(--line)}
+.btn.bad{background:transparent;color:var(--loss);border:1px solid var(--loss)}
+.btn.sm{min-height:38px;padding:7px 12px;font-size:13.5px}
+.msg{margin:10px 0 0;font-size:14px;min-height:1.3em}.msg.err{color:var(--loss)}.msg.ok{color:var(--win)}
+.bot{display:flex;gap:10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.bot:first-of-type{border-top:0}
+.dot{width:34px;height:34px;border-radius:10px;flex:none}
+.bot .info{flex:1;min-width:0}.bot .info b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bot .info small{color:var(--muted)}
+.sw{position:relative;width:52px;height:30px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:.2s}
+.sw span::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+span{background:var(--win)}.sw input:checked+span::after{transform:translateX(22px)}
+.sw input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.lbl{font-size:11.5px;color:var(--muted);text-align:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stats div{background:var(--raise);border-radius:12px;padding:10px 6px;text-align:center}.stats b{display:block;font:700 22px var(--f-display)}.stats span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pill{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--raise);color:var(--muted)}.pill.on{background:rgba(55,201,139,.16);color:var(--win)}.pill.bad{background:rgba(242,106,126,.16);color:var(--loss)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 16px;font-weight:700;font-size:14px;min-height:42px;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+@media(min-width:560px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:12px;text-align:left;cursor:pointer}
+.tile b{display:block;font:800 26px var(--f-display);letter-spacing:-.02em}.tile span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.tile em{display:block;font-style:normal;font-size:12.5px;color:var(--muted);margin-top:2px}
+.soc{display:flex;gap:10px;align-items:center}.soc svg{width:28px;height:28px;flex:none}
+.top-actions{display:flex;gap:8px}
+.muted{color:var(--muted)}
+
+.th-grid{display:flex;flex-wrap:wrap;gap:8px}
+.th-chip{display:flex;align-items:center;gap:8px;min-height:44px;padding:6px 12px;border-radius:12px;border:2px solid var(--line);background:var(--raise);font-weight:700;font-size:13px}
+.th-chip[aria-pressed=true]{border-color:var(--accent)}
+.th-chip i{display:inline-flex;width:26px;height:26px;border-radius:8px;overflow:hidden;border:1px solid rgba(128,128,128,.4)}
+.th-chip i b{flex:1}
+.th-color{width:100%;min-height:48px;padding:4px;border-radius:10px;border:1px solid var(--line);background:var(--raise)}
+.th-prev{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px;padding:12px;border-radius:12px;background:var(--raise);border:1px solid var(--line)}
+.th-btn{background:var(--accent);color:var(--on-accent);font-weight:800;border-radius:10px;padding:10px 16px}
+.th-pill{background:var(--blue,var(--accent));color:#fff;font-weight:800;font-size:12px;letter-spacing:.06em;border-radius:99px;padding:5px 12px}
+.th-txt{font-size:12.5px;color:var(--muted);flex:1 1 160px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="row"><h1>tick<b>desk</b> admin</h1><div class="top-actions" id="topbtns" hidden><button class="btn sec sm" id="pw">Change password</button><button class="btn sec sm" id="out">Log out</button></div></div>
+
+  <section class="card" id="gate" hidden>
+    <h2 id="gate-title">Log in</h2>
+    <p class="muted" id="gate-note"></p>
+    <label for="pass">Password</label>
+    <input type="password" id="pass" autocomplete="current-password">
+    <label for="pass2" id="pass2l" hidden>Repeat password</label>
+    <input type="password" id="pass2" autocomplete="new-password" hidden>
+    <p class="msg" id="gmsg"></p>
+    <button class="btn" id="go">Continue</button>
+  </section>
+
+  <div id="panel" hidden>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Admin sections">
+      <button role="tab" data-tab="dash" aria-selected="true">Dashboard</button>
+      <button role="tab" data-tab="bots" aria-selected="false">Bots</button>
+      <button role="tab" data-tab="copy" aria-selected="false">Copy trading</button>
+      <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    </nav>
+
+    <div data-pane="dash">
+      <div class="tiles" id="d-tiles"></div>
+      <section class="card"><h2>Right now</h2><div id="d-now" class="muted"></div></section>
+      <section class="card"><h2>Latest copied trades</h2><div id="d-log" class="muted">Nothing yet.</div></section>
+    </div>
+
+    <div data-pane="settings" hidden>
+      <section class="card" id="th-card">
+        <h2>Website colours</h2>
+        <p class="muted" style="margin:0 0 8px;font-size:13px">Pick a ready-made look or set your own. The colours change on every page of the site (opening screen, Dashboard, Bot Builder, Signals, DerivScope and the rest) as soon as you save, with no redeploy. Clients may need to refresh once.</p>
+        <label>Ready-made looks</label>
+        <div class="th-grid" id="th-presets"></div>
+        <label for="th-a">Main colour (buttons, highlights)</label>
+        <input type="color" id="th-a" class="th-color" value="#F2B544">
+        <label for="th-b">Second colour (tabs, accents)</label>
+        <input type="color" id="th-b" class="th-color" value="#17608F">
+        <label>Dark background style</label>
+        <div class="th-grid" id="th-surf"></div>
+        <div class="th-prev" aria-label="Preview"><span class="th-btn">Trade now</span><span class="th-pill">READY</span><span class="th-txt">This page shows your colours live. Save to publish them.</span></div>
+        <p class="msg" id="th-msg"></p>
+        <button class="btn" id="th-save">Save colours</button>
+        <button class="btn sec" id="th-reset">Back to default look</button>
+      </section>
+      <section class="card">
+        <h2>Social links</h2>
+        <p class="muted" style="margin:0 0 4px;font-size:13px">These show on the opening screen so clients can reach you. Leave a box empty to hide that icon. You can paste a full link, an @name, or for WhatsApp a number with the country code (like +254712345678).</p>
+        <label for="s-whatsapp">WhatsApp</label><input type="text" id="s-whatsapp" placeholder="+254712345678 or https://wa.me/...">
+        <label for="s-telegram">Telegram</label><input type="text" id="s-telegram" placeholder="@yourname or https://t.me/yourname">
+        <label for="s-youtube">YouTube</label><input type="text" id="s-youtube" placeholder="@yourchannel or https://youtube.com/@yourchannel">
+        <label for="s-tiktok">TikTok</label><input type="text" id="s-tiktok" placeholder="@yourname or https://tiktok.com/@yourname">
+        <p class="msg" id="s-msg"></p>
+        <button class="btn" id="s-save">Save links</button>
+      </section>
+      <section class="card">
+        <h2>Account</h2>
+        <p class="muted" style="margin:0 0 10px;font-size:13px">Change your admin password. You will be logged out afterwards.</p>
+        <button class="btn sec sm" id="pw2">Change password</button>
+      </section>
+    </div>
+    <div data-pane="bots" hidden>
+    <section class="card">
+      <h2>Upload a bot</h2>
+      <label for="file">Bot file (.xml from Deriv Bot)</label>
+      <input type="file" id="file" accept=".xml,text/xml,application/xml">
+      <label for="name">Name</label><input type="text" id="name" maxlength="60" placeholder="e.g. Nexus Speedbot V5">
+      <label for="cat">Type</label><select id="cat"></select>
+      <label for="desc">Short description (optional)</label><textarea id="desc" maxlength="160" placeholder="One line that appears on the card"></textarea>
+      <div class="row" style="margin-top:10px"><div><label style="margin-top:0">Card colour</label><input type="color" id="accent" value="#f2b544"></div>
+        <div style="display:flex;align-items:center;gap:10px"><div class="lbl" style="text-align:right">Allow people to load it<br>right after upload</div><div class="sw"><input type="checkbox" id="dl"><span></span></div></div></div>
+      <p class="msg" id="umsg"></p>
+      <button class="btn" id="up">Upload bot</button>
+    </section>
+
+
+    <section class="card">
+      <div class="row"><h2 style="margin:0">Your bots <span class="muted" id="count"></span></h2>
+        <div class="top-actions"><button class="btn sec sm" id="all-on">Enable all</button><button class="btn sec sm" id="all-off">Disable all</button></div></div>
+      <p class="muted" style="margin:6px 0 0;font-size:13px">Switch on = visitors can load the bot. Switch off = the card still shows Premium but the file stays locked.</p>
+      <div id="list"></div>
+      <p class="msg" id="lmsg"></p>
+    </section>
+    </div>
+
+    <div data-pane="copy" hidden>
+    <section class="card" id="copy">
+      <div class="row"><h2 style="margin:0">Copy trading</h2><label class="sw" style="margin:0" title="Live copying on/off"><input type="checkbox" id="c-live" aria-label="Live copying"><span></span></label></div>
+      <p class="muted" style="margin:6px 0 0;font-size:13px">Live copying is <b id="c-state">off</b>. When it is on, every trade you place from your bot is copied to the clients below that you have switched on.</p>
+      <div class="stats" id="c-stats"></div>
+      <div class="row" style="margin-top:12px"><div style="flex:1;min-width:150px"><label style="margin-top:0" for="c-markup">App markup % on copied trades (0 to 3)</label><input type="text" id="c-markup" inputmode="decimal" placeholder="0"></div>
+        <button class="btn sec sm" id="c-save">Save</button></div>
+      <div class="row" style="margin-top:12px"><div><div style="font-weight:700">Send my trades from this browser</div><div class="muted" style="font-size:13px">Turn on while you run your bot. Stays on this device only.</div></div>
+        <label class="sw" style="margin:0"><input type="checkbox" id="c-send" aria-label="Send my trades"><span></span></label></div>
+      <p class="msg" id="c-msg"></p>
+      <div class="row" style="margin-top:6px"><b>Clients</b><span><button class="btn sec sm" id="c-res">Update results</button> <button class="btn sec sm" id="c-check">Check connections</button></span></div>
+      <div id="c-list"></div>
+      <div id="c-pl" style="font-size:13px;margin-top:10px"></div>
+      <div id="c-trades" class="muted" style="font-size:13px;margin-top:10px"></div>
+      <div id="c-log" class="muted" style="font-size:13px;margin-top:10px"></div>
+    </section>
+
+    </div>
+
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const K='tickdesk.admin.token';
+let token='',cats=[],mode='login';
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+try{token=sessionStorage.getItem(K)||''}catch(e){}
+async function api(method,path,body){
+  const r=await fetch('/api/admin/'+path,{method,headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:body?JSON.stringify(body):undefined});
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401&&token&&path!=='login'&&path!=='password'){setToken('');showGate();}
+  if(!r.ok)throw new Error(j.error||'Something went wrong.');
+  return j;
+}
+function setToken(t){token=t;try{t?sessionStorage.setItem(K,t):sessionStorage.removeItem(K)}catch(e){}}
+function msg(el,t,ok){el.textContent=t||'';el.className='msg'+(t?(ok?' ok':' err'):'');}
+async function showGate(){
+  $('#panel').hidden=true;$('#topbtns').hidden=true;$('#gate').hidden=false;
+  try{const s=await api('GET','status');mode=s.setup?'login':'setup';}catch(e){mode='login';msg($('#gmsg'),'Could not reach the server.');}
+  $('#gate-title').textContent=mode==='setup'?'Create your admin password':'Log in';
+  $('#gate-note').textContent=mode==='setup'?'First time here. Choose a password of at least 8 characters. Only you will know it.':'Enter your admin password.';
+  $('#pass2').hidden=$('#pass2l').hidden=mode!=='setup';
+  $('#pass').autocomplete=mode==='setup'?'new-password':'current-password';
+}
+async function showPanel(){
+  $('#gate').hidden=true;$('#panel').hidden=false;$('#topbtns').hidden=false;
+  await refresh();
+  setTab('dash');
+}
+async function refresh(){
+  try{
+    const j=await api('GET','bots');cats=j.categories;
+    if(!$('#cat').options.length)$('#cat').innerHTML=cats.map(c=>'<option>'+esc(c)+'</option>').join('');
+    $('#count').textContent='('+j.bots.length+')';
+    $('#list').innerHTML=j.bots.length?j.bots.map(b=>'<div class="bot" data-id="'+b.id+'"><span class="dot" style="background:'+esc(b.accent)+'"></span><div class="info"><b>'+esc(b.name)+'</b><small>'+esc(b.category)+' &middot; '+Math.round((b.size||0)/1024)+' KB</small></div>'+
+      '<div><label class="sw" style="margin:0"><input type="checkbox" data-t="'+b.id+'" '+(b.downloadable?'checked':'')+' aria-label="Allow loading '+esc(b.name)+'"><span></span></label><div class="lbl">'+(b.downloadable?'Open':'Locked')+'</div></div>'+
+      '<button class="btn bad sm" data-d="'+b.id+'">Delete</button></div>').join(''):'<p class="muted">No bots yet. Upload your first one above.</p>';
+  }catch(e){msg($('#lmsg'),e.message);}
+}
+$('#go').onclick=async()=>{
+  const p=$('#pass').value;msg($('#gmsg'),'');
+  if(mode==='setup'&&p!==$('#pass2').value){msg($('#gmsg'),'The two passwords do not match.');return;}
+  try{const j=await api('POST',mode,{password:p});setToken(j.token);$('#pass').value=$('#pass2').value='';await showPanel();}
+  catch(e){msg($('#gmsg'),e.message);}
+};
+$('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('#go').click();});
+$('#out').onclick=()=>{setToken('');try{localStorage.removeItem('tickdesk.copy.owner')}catch(e){}showGate();};
+$('#pw').onclick=async()=>{
+  const cur=prompt('Current password');if(cur===null)return;const nx=prompt('New password (8+ characters)');if(nx===null)return;
+  try{await api('POST','password',{current:cur,next:nx});alert('Password changed. Please log in again.');setToken('');showGate();}catch(e){alert(e.message);}
+};
+$('#file').onchange=e=>{const f=e.target.files[0];if(f&&!$('#name').value)$('#name').value=f.name.replace(/\.xml$/i,'').replace(/[_-]+/g,' ').slice(0,60);};
+$('#up').onclick=async()=>{
+  const f=$('#file').files[0];msg($('#umsg'),'');
+  if(!f){msg($('#umsg'),'Choose the bot .xml file first.');return;}
+  if(f.size>1.5e6){msg($('#umsg'),'That file is too big (max 1.5 MB).');return;}
+  $('#up').disabled=true;
+  try{
+    const xml=await f.text();
+    await api('POST','bots',{name:$('#name').value,category:$('#cat').value,description:$('#desc').value,accent:$('#accent').value,downloadable:$('#dl').checked,xml});
+    msg($('#umsg'),'Uploaded. It now shows on the Free bots page.',true);
+    $('#file').value='';$('#name').value='';$('#desc').value='';await refresh();
+  }catch(e){msg($('#umsg'),e.message);}finally{$('#up').disabled=false;}
+};
+$('#list').addEventListener('change',async e=>{
+  const id=e.target.dataset.t;if(!id)return;
+  try{await api('PATCH','bots/'+id,{downloadable:e.target.checked});await refresh();}catch(err){msg($('#lmsg'),err.message);e.target.checked=!e.target.checked;}
+});
+$('#list').addEventListener('click',async e=>{
+  const id=e.target.dataset.d;if(!id)return;
+  if(!confirm('Delete this bot for good?'))return;
+  try{await api('DELETE','bots/'+id);await refresh();}catch(err){msg($('#lmsg'),err.message);}
+});
+$('#all-on').onclick=()=>api('POST','downloads',{downloadable:true}).then(refresh).catch(e=>msg($('#lmsg'),e.message));
+$('#all-off').onclick=()=>api('POST','downloads',{downloadable:false}).then(refresh).catch(e=>msg($('#lmsg'),e.message));
+
+// ---------- copy trading ----------
+const OWNER_KEY='tickdesk.copy.owner';
+function ownerOn(){try{return !!localStorage.getItem(OWNER_KEY)}catch(e){return false}}
+function plTxt(r){
+  if(!r)return '';
+  const p=Object.entries(r.profit||{}).map(([cur,v])=>'<b style="color:'+(v>0?'var(--win,#16a34a)':v<0?'var(--loss)':'inherit')+'">'+(v>0?'+':'')+v+' '+esc(cur)+'</b>').join(', ')||'<b>0</b>';
+  return r.wins+' won, '+r.losses+' lost'+(r.open?', '+r.open+' open':'')+' &middot; profit/loss '+p;
+}
+$('#c-res').onclick=async()=>{$('#c-res').disabled=true;try{const j=await api('POST','copy/results');msg($('#c-msg'),j.updated?j.updated+' trade'+(j.updated>1?'s':'')+' updated.':'Nothing new to update.',true);}catch(e){msg($('#c-msg'),e.message);}$('#c-res').disabled=false;refreshCopy();};
+async function refreshCopy(){
+  try{
+    const j=await api('GET','copy');
+    $('#c-live').checked=j.settings.enabled;$('#c-state').textContent=j.settings.enabled?'on':'off';
+    $('#c-markup').value=j.settings.markup||'';$('#c-send').checked=ownerOn()&&!!token;
+    $('#c-stats').innerHTML='<div><b>'+j.counts.active+'</b><span>Copying now</span></div><div><b>'+j.counts.pending+'</b><span>Waiting</span></div><div><b>'+j.counts.total+'</b><span>Total</span></div>';
+    $('#c-list').innerHTML=j.clients.length?j.clients.map(c=>{
+      const st=c.tokenOk===false?'<span class="pill bad">Token problem</span>':c.paused?'<span class="pill">Paused by client</span>':c.active?'<span class="pill on">Copying</span>':'<span class="pill">Waiting for you</span>';
+      return '<div class="bot"><div class="info"><b>'+esc(c.name)+' '+st+'</b><small>'+(c.accountType==='demo'?'Demo':'Real')+' '+esc(c.accountId)+' &middot; '+esc(c.currency)+' '+c.balance+' &middot; '+c.multiplier+'x &middot; '+c.copied+' copied, '+c.failed+' failed &middot; '+plTxt(c.results)+(c.lastResult&&c.lastResult!=='copied'?' &middot; '+esc(c.lastResult):'')+'</small></div>'+
+       '<div><label class="sw" style="margin:0"><input type="checkbox" data-ca="'+c.id+'" '+(c.active?'checked':'')+' aria-label="Switch on '+esc(c.name)+'"><span></span></label><div class="lbl">'+(c.active?'On':'Off')+'</div></div>'+
+       '<button class="btn bad sm" data-cd="'+c.id+'">Remove</button></div>';}).join(''):'<p class="muted">No clients yet. They appear here after they add their token on the Copy Trading page.</p>';
+    $('#c-pl').innerHTML='<b>Results of copied trades</b><br>'+plTxt(j.totals)+' <span class="muted">(all clients)</span>';
+    $('#c-trades').innerHTML=j.trades.length?'<b>Copied trades</b><br>'+j.trades.slice(0,15).map(t=>new Date(t.at).toLocaleString()+' &middot; '+esc(t.name)+' &middot; '+esc(t.symbol)+' '+esc(t.type)+' &middot; stake '+t.stake+' &middot; '+(t.status==='open'?'open':t.status==='removed'?'client removed':(t.status==='won'?'<span style="color:var(--win,#16a34a)">won ':'<span style="color:var(--loss)">lost ')+(t.profit>0?'+':'')+t.profit+' '+esc(t.currency)+'</span>')).join('<br>'):'';
+    $('#c-log').innerHTML=j.log.length?'<b>Latest trades</b><br>'+j.log.slice(0,6).map(l=>new Date(l.at).toLocaleTimeString()+' &middot; '+esc(l.trade)+' &middot; '+l.ok+'/'+l.tried+' copied').join('<br>'):'';
+  }catch(e){msg($('#c-msg'),e.message);}
+}
+$('#c-live').onchange=async e=>{try{await api('POST','copy/settings',{enabled:e.target.checked});}catch(err){msg($('#c-msg'),err.message);}refreshCopy();};
+$('#c-save').onclick=async()=>{try{await api('POST','copy/settings',{markup:Number($('#c-markup').value||0)});msg($('#c-msg'),'Saved.',true);}catch(e){msg($('#c-msg'),e.message);}};
+$('#c-send').onchange=e=>{try{e.target.checked?localStorage.setItem(OWNER_KEY,JSON.stringify({token,at:Date.now()})):localStorage.removeItem(OWNER_KEY);}catch(err){}msg($('#c-msg'),e.target.checked?'Your trades from this browser will now be sent to copiers (while live copying is on).':'Stopped sending trades from this browser.',e.target.checked);};
+$('#c-check').onclick=async()=>{$('#c-check').disabled=true;try{await api('POST','copy/check');}catch(e){msg($('#c-msg'),e.message);}$('#c-check').disabled=false;refreshCopy();};
+$('#c-list').addEventListener('change',async e=>{const id=e.target.dataset.ca;if(!id)return;try{await api('PATCH','copy/clients/'+id,{active:e.target.checked});}catch(err){msg($('#c-msg'),err.message);}refreshCopy();});
+$('#c-list').addEventListener('click',async e=>{const id=e.target.dataset.cd;if(!id||!confirm('Remove this client and delete their token?'))return;try{await api('DELETE','copy/clients/'+id);}catch(err){msg($('#c-msg'),err.message);}refreshCopy();});
+
+// ---------- tabs, dashboard, settings ----------
+const ICONS={
+  whatsapp:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#25D366"/><path fill="#fff" d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.7.1l-.9 1.1c-.2.2-.3.2-.6.1-1.6-.8-2.6-1.4-3.6-3.2-.3-.5.3-.5.8-1.6.1-.2 0-.4 0-.5l-.9-2.1c-.2-.5-.4-.4-.7-.4h-.6c-.2 0-.5.1-.8.4-.9.9-1.2 2-1.2 3.2.1 1.4.7 2.7 1.6 3.8 1.7 2.1 3.800 3.300 6.200 4 .9.3 1.700.2 2.300-.1.700-.4 1.100-1.100 1.300-1.900.1-.2.1-.4 0-.5-.1-.1-.3-.2-.6-.4z"/></svg>',
+  telegram:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#229ED9"/><path fill="#fff" d="M5.4 11.700l11.100-4.300c.5-.2 1 .1.8.9l-1.900 8.900c-.1.600-.5.800-1 .5l-2.800-2.100-1.400 1.300c-.1.100-.3.300-.6.300l.2-2.900 5.200-4.700c.2-.2 0-.3-.3-.1l-6.400 4-2.800-.9c-.6-.2-.6-.6.1-.9z"/></svg>',
+  youtube:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#FF0000"/><path fill="#fff" d="M18.600 8.600c-.2-.7-.7-1.100-1.400-1.300C16 7 12 7 12 7s-4 0-5.200.3c-.7.2-1.200.6-1.400 1.300C5 9.800 5 12 5 12s0 2.200.4 3.400c.2.700.7 1.100 1.400 1.300C8 17 12 17 12 17s4 0 5.200-.3c.7-.2 1.200-.6 1.400-1.300.4-1.200.4-3.400.4-3.400s0-2.200-.4-3.400zM10.500 14.200V9.800l3.600 2.200-3.600 2.200z"/></svg>',
+  tiktok:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#111"/><path fill="#fff" d="M16.500 8.300c-.7-.5-1.200-1.300-1.300-2.200h-1.900v8.200c0 1-.8 1.700-1.700 1.700s-1.700-.8-1.700-1.700c0-1 .8-1.700 1.700-1.700.2 0 .4 0 .5.100v-1.900c-.2 0-.3-.1-.5-.1-2 0-3.600 1.600-3.600 3.600s1.600 3.600 3.600 3.600 3.600-1.600 3.600-3.600V10c.7.5 1.500.8 2.400.8V8.900c-.4 0-.8-.2-1.100-.6z"/></svg>'};
+function setTab(t){
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  document.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==t);
+  if(t==='dash')refreshDash();if(t==='settings')loadSettings();if(t==='copy')refreshCopy();if(t==='bots')refresh();
+  window.scrollTo(0,0);
+}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab);});
+async function refreshDash(){
+  try{
+    const [b,c]=await Promise.all([api('GET','bots'),api('GET','copy')]);
+    const open=b.bots.filter(x=>x.downloadable).length;
+    $('#d-tiles').innerHTML=
+      '<button class="tile" data-go="bots"><b>'+b.bots.length+'</b><span>Bots</span><em>'+open+' open &middot; '+(b.bots.length-open)+' locked</em></button>'+
+      '<button class="tile" data-go="copy"><b>'+c.counts.active+'</b><span>Copying now</span><em>of '+c.counts.total+' clients</em></button>'+
+      '<button class="tile" data-go="copy"><b>'+c.counts.pending+'</b><span>Waiting for you</span><em>'+(c.counts.pending?'tap to review':'all caught up')+'</em></button>'+
+      '<button class="tile" data-go="copy"><b>'+(c.settings.enabled?'On':'Off')+'</b><span>Live copying</span><em>'+(ownerOn()?'sending from this browser':'not sending from this browser')+'</em></button>';
+    const bad=c.clients.filter(x=>x.tokenOk===false).length;
+    $('#d-now').innerHTML=[
+      c.counts.pending?'<p style="margin:0 0 6px"><b>'+c.counts.pending+'</b> client'+(c.counts.pending>1?'s are':' is')+' waiting for you to switch them on.</p>':'',
+      bad?'<p style="margin:0 0 6px;color:var(--loss)"><b>'+bad+'</b> client'+(bad>1?'s have':' has')+' a token problem. Use Check connections in Copy trading.</p>':'',
+      !c.settings.enabled?'<p style="margin:0 0 6px">Live copying is off, so nothing is being copied.</p>':'',
+      (!b.bots.length)?'<p style="margin:0">No bots uploaded yet.</p>':''].join('')||'Everything looks fine.';
+    $('#d-log').innerHTML=c.log.length?c.log.slice(0,8).map(l=>new Date(l.at).toLocaleString()+' &middot; '+esc(l.trade)+' &middot; '+l.ok+'/'+l.tried+' copied').join('<br>'):'Nothing yet.';
+  }catch(e){$('#d-now').textContent=e.message;}
+}
+$('#d-tiles').addEventListener('click',e=>{const t=e.target.closest('[data-go]');if(t)setTab(t.dataset.go);});
+const TH_PRESETS=[
+  {id:'gold',name:'Tickdesk Gold',accent:'#F2B544',accent2:'#17608F',surface:'slate'},
+  {id:'emerald',name:'Emerald',accent:'#37C98B',accent2:'#0F766E',surface:'forest'},
+  {id:'ocean',name:'Ocean',accent:'#38BDF8',accent2:'#1D4ED8',surface:'navy'},
+  {id:'violet',name:'Violet',accent:'#A78BFA',accent2:'#6D28D9',surface:'plum'},
+  {id:'rose',name:'Rose',accent:'#FB7185',accent2:'#BE123C',surface:'charcoal'},
+  {id:'graphite',name:'Graphite',accent:'#D1D5DB',accent2:'#475569',surface:'black'}
+];
+const TH_SURF=[['slate','Slate'],['navy','Navy'],['charcoal','Charcoal'],['forest','Forest'],['plum','Plum'],['black','Black']];
+let th={accent:'#F2B544',accent2:'#17608F',surface:'slate',preset:'gold'};
+function thRender(){
+  $('#th-presets').innerHTML=TH_PRESETS.map(p=>'<button type="button" class="th-chip" data-p="'+p.id+'" aria-pressed="'+(th.preset===p.id)+'"><i><b style="background:'+p.accent+'"></b><b style="background:'+p.accent2+'"></b></i>'+p.name+'</button>').join('');
+  $('#th-surf').innerHTML=TH_SURF.map(x=>{const c=window.tdTheme.surfaces[x[0]];return '<button type="button" class="th-chip" data-s="'+x[0]+'" aria-pressed="'+(th.surface===x[0])+'"><i><b style="background:'+c[0]+'"></b><b style="background:'+c[2]+'"></b></i>'+x[1]+'</button>';}).join('');
+  $('#th-a').value=th.accent;$('#th-b').value=th.accent2;
+  window.tdTheme.apply(th);
+}
+$('#th-presets').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const p=TH_PRESETS.find(x=>x.id===b.dataset.p);th={accent:p.accent,accent2:p.accent2,surface:p.surface,preset:p.id};thRender();});
+$('#th-surf').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;th.surface=b.dataset.s;th.preset='custom';thRender();});
+$('#th-a').addEventListener('input',e=>{th.accent=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
+$('#th-b').addEventListener('input',e=>{th.accent2=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
+$('#th-a').addEventListener('change',thRender);$('#th-b').addEventListener('change',thRender);
+$('#th-save').onclick=async()=>{
+  try{const j=await api('POST','settings',{theme:th});th=j.theme;try{localStorage.setItem('td.theme',JSON.stringify(th));}catch(e){}thRender();msg($('#th-msg'),'Saved. Every page of the site now uses these colours.',true);}catch(e){msg($('#th-msg'),e.message);}
+};
+$('#th-reset').onclick=async()=>{
+  try{await api('POST','settings',{theme:null});try{localStorage.removeItem('td.theme');}catch(e){}th={accent:'#F2B544',accent2:'#17608F',surface:'slate',preset:'gold'};window.tdTheme.apply(null);thRender();window.tdTheme.apply(null);msg($('#th-msg'),'Back to the default look.',true);}catch(e){msg($('#th-msg'),e.message);}
+};
+async function loadSettings(){
+  try{const j=await api('GET','settings');for(const k of Object.keys(ICONS))$('#s-'+k).value=j.socials[k]||'';
+    if(j.theme)th=Object.assign({preset:'custom'},j.theme);thRender();if(!j.theme)window.tdTheme.apply(null);
+  }catch(e){msg($('#s-msg'),e.message);}
+}
+$('#s-save').onclick=async()=>{
+  const socials={};for(const k of Object.keys(ICONS))socials[k]=$('#s-'+k).value;
+  try{const j=await api('POST','settings',{socials});for(const k of Object.keys(ICONS))$('#s-'+k).value=j.socials[k]||'';msg($('#s-msg'),'Saved. The opening screen will show these links.',true);}catch(e){msg($('#s-msg'),e.message);}
+};
+$('#pw2').onclick=()=>$('#pw').click();
+(async()=>{if(token){try{await showPanel();return;}catch(e){}}showGate();})();
+</script>
+</body>
+</html>
