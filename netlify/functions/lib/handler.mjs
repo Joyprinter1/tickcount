@@ -67,6 +67,7 @@ const publicBot = b => ({
     description: b.description,
     accent: b.accent,
     downloadable: !!b.downloadable,
+    published: b.published !== false,
     createdAt: b.createdAt,
 });
 
@@ -132,10 +133,10 @@ export async function handle(req, store, env = {}, deps = {}) {
     // ---------- public ----------
     if (method === 'GET' && parts[0] === 'bots' && parts.length === 1) {
         const list = await getIndex();
-        return json({ bots: list.map(publicBot), categories: CATEGORIES });
+        return json({ bots: list.filter(b => b.published !== false).map(publicBot), categories: CATEGORIES });
     }
     if (method === 'GET' && parts[0] === 'bots' && parts[2] === 'xml') {
-        const bot = (await getIndex()).find(b => b.id === parts[1]);
+        const bot = (await getIndex()).find(b => b.id === parts[1] && b.published !== false);
         if (!bot) return json({ error: 'Bot not found.' }, 404);
         if (!bot.downloadable) return json({ error: 'This premium bot is locked right now.' }, 403);
         const xml = await store.get(`xml/${bot.id}`, { type: 'text' });
@@ -239,6 +240,7 @@ export async function handle(req, store, env = {}, deps = {}) {
             description: clean(b.description, 160),
             accent: /^#[0-9a-fA-F]{6}$/.test(b.accent || '') ? b.accent : '#F2B544',
             downloadable: b.downloadable === true,
+            published: b.published !== false,
             createdAt: Date.now(),
             size: xml.length,
         };
@@ -287,6 +289,7 @@ export async function handle(req, store, env = {}, deps = {}) {
             if (b.category !== undefined && CATEGORIES.includes(b.category)) bot.category = b.category;
             if (/^#[0-9a-fA-F]{6}$/.test(b.accent || '')) bot.accent = b.accent;
             if (typeof b.downloadable === 'boolean') bot.downloadable = b.downloadable;
+            if (typeof b.published === 'boolean') bot.published = b.published;
             await putIndex(list);
             return json({ bot: publicBot(bot) });
         }
