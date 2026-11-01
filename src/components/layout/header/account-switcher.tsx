@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
+import { useKes } from './kes';
 import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
 import Text from '@/components/shared_ui/text';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
@@ -13,6 +14,7 @@ import AccountInfoWrapper from './account-info-wrapper';
 import './account-switcher.scss';
 
 const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
+    const kes = useKes();
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const { accountList, activeLoginid } = useApiBase();
@@ -134,6 +136,9 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                         `${balance} ${getCurrencyDisplayCode(currency)}`
                                     )}
                                 </p>
+                                {!!kes(balance, currency) && (
+                                    <p style={{ margin: 0, fontSize: 10, opacity: 0.75, lineHeight: 1.2 }}>{kes(balance, currency)}</p>
+                                )}
                             </div>
                         )}
                     </div>
@@ -173,7 +178,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                             </Text>
                             <Text size='xs' weight='bold' className='acc-dropdown__balance'>
                                 {account.currency ? (
-                                    `${account.balance} ${getCurrencyDisplayCode(account.currency)}`
+                                    `${account.balance} ${getCurrencyDisplayCode(account.currency)}${kes(account.balance, account.currency) ? `  ${kes(account.balance, account.currency)}` : ''}`
                                 ) : (
                                     <Localize i18n_default_text='No currency assigned' />
                                 )}
