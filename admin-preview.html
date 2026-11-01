@@ -279,9 +279,14 @@ $('#all-off').onclick=()=>api('POST','downloads',{downloadable:false}).then(refr
 // ---------- copy trading ----------
 const OWNER_KEY='tickdesk.copy.owner';
 function ownerOn(){try{return !!localStorage.getItem(OWNER_KEY)}catch(e){return false}}
+
+let KES=129;
+(function(){try{const c=JSON.parse(localStorage.getItem('td.kes')||'null');if(c&&c.r>50&&c.r<400){KES=c.r;if(Date.now()-c.at<432e5)return;}}catch(e){}
+  fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()).then(j=>{const r=j&&j.rates&&j.rates.KES;if(r>50&&r<400){KES=r;try{localStorage.setItem('td.kes',JSON.stringify({r,at:Date.now()}));}catch(e){}}}).catch(()=>{});})();
+function kes(v,cur){return cur==='USD'?' (&asymp; KSh '+Math.round(v*KES).toLocaleString('en-KE')+')':'';}
 function plTxt(r){
   if(!r)return '';
-  const p=Object.entries(r.profit||{}).map(([cur,v])=>'<b style="color:'+(v>0?'var(--win,#16a34a)':v<0?'var(--loss)':'inherit')+'">'+(v>0?'+':'')+v+' '+esc(cur)+'</b>').join(', ')||'<b>0</b>';
+  const p=Object.entries(r.profit||{}).map(([cur,v])=>'<b style="color:'+(v>0?'var(--win,#16a34a)':v<0?'var(--loss)':'inherit')+'">'+(v>0?'+':'')+v+' '+esc(cur)+'</b>'+kes(v,cur)).join(', ')||'<b>0</b>';
   return r.wins+' won, '+r.losses+' lost'+(r.open?', '+r.open+' open':'')+' &middot; profit/loss '+p;
 }
 $('#c-res').onclick=async()=>{$('#c-res').disabled=true;try{const j=await api('POST','copy/results');msg($('#c-msg'),j.updated?j.updated+' trade'+(j.updated>1?'s':'')+' updated.':'Nothing new to update.',true);}catch(e){msg($('#c-msg'),e.message);}$('#c-res').disabled=false;refreshCopy();};
@@ -293,7 +298,7 @@ async function refreshCopy(){
     $('#c-stats').innerHTML='<div><b>'+j.counts.active+'</b><span>Copying now</span></div><div><b>'+j.counts.pending+'</b><span>Waiting</span></div><div><b>'+j.counts.total+'</b><span>Total</span></div>';
     $('#c-list').innerHTML=j.clients.length?j.clients.map(c=>{
       const st=c.tokenOk===false?'<span class="pill bad">Token problem</span>':c.paused?'<span class="pill">Paused by client</span>':c.active?'<span class="pill on">Copying</span>':'<span class="pill">Waiting for you</span>';
-      return '<div class="bot"><div class="info"><b>'+esc(c.name)+' '+st+'</b><small>'+(c.accountType==='demo'?'Demo':'Real')+' '+esc(c.accountId)+' &middot; '+esc(c.currency)+' '+c.balance+' &middot; '+c.multiplier+'x &middot; '+c.copied+' copied, '+c.failed+' failed &middot; '+plTxt(c.results)+(c.lastResult&&c.lastResult!=='copied'?' &middot; '+esc(c.lastResult):'')+'</small></div>'+
+      return '<div class="bot"><div class="info"><b>'+esc(c.name)+' '+st+'</b><small>'+(c.accountType==='demo'?'Demo':'Real')+' '+esc(c.accountId)+' &middot; '+esc(c.currency)+' '+c.balance+kes(c.balance,c.currency)+' &middot; '+c.multiplier+'x &middot; '+c.copied+' copied, '+c.failed+' failed &middot; '+plTxt(c.results)+(c.lastResult&&c.lastResult!=='copied'?' &middot; '+esc(c.lastResult):'')+'</small></div>'+
        '<div><label class="sw" style="margin:0"><input type="checkbox" data-ca="'+c.id+'" '+(c.active?'checked':'')+' aria-label="Switch on '+esc(c.name)+'"><span></span></label><div class="lbl">'+(c.active?'On':'Off')+'</div></div>'+
        '<button class="btn bad sm" data-cd="'+c.id+'">Remove</button></div>';}).join(''):'<p class="muted">No clients yet. They appear here after they add their token on the Copy Trading page.</p>';
     (function(){
@@ -303,8 +308,8 @@ async function refreshCopy(){
       $('#c-earn').innerHTML='<div class="tiles">'+per.map(([lab,from])=>{
         const t=(j.earn||[]).filter(x=>x.at>=from);
         const com={},pl={};t.forEach(x=>{com[x.currency]=(com[x.currency]||0)+x.stake*x.markup/100;if(x.status==='won'||x.status==='lost')pl[x.currency]=(pl[x.currency]||0)+x.profit;});
-        const f=o=>Object.entries(o).map(([c,v])=>(Math.round(v*100)/100).toFixed(2)+' '+esc(c)).join(', ')||'0.00';
-        return '<div class="tile" style="cursor:default"><b>'+f(com)+'</b><span>Your commission &middot; '+lab+'</span><em>'+t.length+' trades &middot; clients '+f(pl)+'</em></div>';}).join('')+'</div><p class="muted" style="font-size:12px;margin:6px 0 0">Commission is an estimate (markup % of each copied stake). Deriv\'s own app report is the final figure.</p>';
+        const f=o=>Object.entries(o).map(([c,v])=>(Math.round(v*100)/100).toFixed(2)+' '+esc(c)+kes(v,c)).join(', ')||'0.00';
+        return '<div class="tile" style="cursor:default"><b>'+f(com)+'</b><span>Your commission &middot; '+lab+'</span><em>'+t.length+' trades &middot; clients '+f(pl)+'</em></div>';}).join('')+'</div><p class="muted" style="font-size:12px;margin:6px 0 0">Commission is an estimate: markup % of each trade\'s potential payout, counted once the trade is settled (press Update results). Deriv\'s own app report is the final figure.</p>';
     })();
     $('#c-pl').innerHTML='<b>Results of copied trades</b><br>'+plTxt(j.totals)+' <span class="muted">(all clients)</span>';
     $('#c-trades').innerHTML=j.trades.length?'<b>Copied trades</b><br>'+j.trades.slice(0,15).map(t=>new Date(t.at).toLocaleString()+' &middot; '+esc(t.name)+' &middot; '+esc(t.symbol)+' '+esc(t.type)+' &middot; stake '+t.stake+' &middot; '+(t.status==='open'?'open':t.status==='removed'?'client removed':(t.status==='won'?'<span style="color:var(--win,#16a34a)">won ':'<span style="color:var(--loss)">lost ')+(t.profit>0?'+':'')+t.profit+' '+esc(t.currency)+'</span>')).join('<br>'):'';
