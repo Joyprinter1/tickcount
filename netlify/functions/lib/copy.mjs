@@ -400,7 +400,7 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                 totals: summarize(trades, () => true),
                 earn: trades
                     .filter(x => x.at > Date.now() - 32 * 86400000)
-                    .map(x => ({ at: x.at, stake: x.stake, markup: x.markup || 0, profit: x.profit || 0, status: x.status, currency: x.currency })),
+                    .map(x => ({ at: x.at, stake: x.payout ?? 0, markup: x.markup || 0, profit: x.profit || 0, status: x.status, currency: x.currency })),
                 trades: trades.slice(0, 40).map(x => ({ at: x.at, name: x.name, symbol: x.symbol, type: x.type, stake: x.stake, status: x.status, profit: x.profit, currency: x.currency })),
                 log: log.slice(0, 20),
             });
@@ -442,6 +442,7 @@ export async function handleCopy({ req, parts, method, store, env, body, isAdmin
                         const profit = round2(Number(k.profit));
                         if (!Number.isFinite(profit)) return;
                         list[i].profit = profit;
+                        if (Number(k.payout) > 0) list[i].payout = Number(k.payout);
                         list[i].status = profit > 0 ? 'won' : 'lost';
                         updated += 1;
                     });
