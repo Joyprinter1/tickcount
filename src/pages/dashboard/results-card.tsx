@@ -15,7 +15,25 @@ const NAMES = {
     RESETPUT: 'Reset Put', TICKHIGH: 'High Tick', TICKLOW: 'Low Tick', RUNHIGH: 'Only Ups', RUNLOW: 'Only Downs',
     MULTUP: 'Multiplier Up', MULTDOWN: 'Multiplier Down',
 };
-const money = (n, cur) => `${n > 0 ? '+' : ''}${(Math.round(n * 100) / 100).toFixed(2)} ${cur}`;
+let KES = 129;
+try {
+    const c = JSON.parse(localStorage.getItem('td.kes') || 'null');
+    if (c?.r > 50 && c.r < 400) KES = c.r;
+    if (!c || Date.now() - c.at > 432e5) {
+        fetch('https://open.er-api.com/v6/latest/USD')
+            .then(r => r.json())
+            .then(j => {
+                const r = j?.rates?.KES;
+                if (r > 50 && r < 400) {
+                    KES = r;
+                    localStorage.setItem('td.kes', JSON.stringify({ r, at: Date.now() }));
+                }
+            })
+            .catch(() => {});
+    }
+} catch (e) {}
+const money = (n, cur) =>
+    `${n > 0 ? '+' : ''}${(Math.round(n * 100) / 100).toFixed(2)} ${cur}${cur === 'USD' ? ` (≈ KSh ${Math.round(n * KES).toLocaleString('en-KE')})` : ''}`;
 
 const ResultsCard = () => {
     const [days, setDays] = React.useState(7);
