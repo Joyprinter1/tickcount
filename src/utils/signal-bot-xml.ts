@@ -180,7 +180,7 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 </block>`;
 
     // ---- Before purchase: wait for the trigger digit(s), then buy ----
-    const purchase = `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', o.contract)}</block>`;
+    const purchase_block = () => `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', o.contract)}</block>`;
     const digit_checks = search_names.map(name => cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, get(name)));
     const trigger_condition = digit_checks.length ? digit_checks.reduce((a, b) => logic('OR', a, b)) : '';
     // Journal line each time a search number shows up: "Search number 6 found - buying Match 4".
@@ -196,14 +196,14 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
             `${text_shadow('')}<block type="last_digit" id="${id()}"></block>`,
             text_item(text_shadow(` found - buying ${label}`))
         )
-    )}</statement><next><block type="notify" id="${id()}">${field('NOTIFICATION_TYPE', 'info')}${field('NOTIFICATION_SOUND', 'silent')}<value name="MESSAGE">${text_shadow('abc')}${get('Search Message')}</value><next>${purchase}</next></block></next></block>`;
+    )}</statement><next><block type="notify" id="${id()}">${field('NOTIFICATION_TYPE', 'info')}${field('NOTIFICATION_SOUND', 'silent')}<value name="MESSAGE">${text_shadow('abc')}${get('Search Message')}</value><next>${purchase_block()}</next></block></next></block>`;
     const accu_block = `<block type="trade_definition_accumulator" id="${id()}">${field('GROWTHRATE_LIST', growth_rate)}
 <value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
 <statement name="ACCUMULATOR_PARAMS"><block type="accumulator_take_profit" id="${id()}" disabled="true"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow></value></block></statement></block>`;
     const accu_reset = chain([
         next => set('Current Tick Value', num(0), next),
         next => set('Is Bought', `<block type="logic_boolean" id="${id()}">${field('BOOL', 'FALSE')}</block>`, next),
-        () => purchase,
+        () => purchase_block(),
     ]);
     const mult_tp = o.take_profit && o.take_profit > 0 && o.take_profit < 1000000 ? o.take_profit : stake * 2;
     const mult_sl = Math.min(stake, o.stop_loss && o.stop_loss > 0 && o.stop_loss < 1000000 ? o.stop_loss : stake);
@@ -216,8 +216,8 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
         ? o.search_once === false
             ? `<block type="controls_if" id="${id()}">${value('IF0', trigger_condition)}<statement name="DO0">${search_note}</statement></block>`
             : // Search only before the first trade; after that trade on every tick.
-              `<block type="controls_if" id="${id()}"><mutation elseif="1"></mutation>${value('IF0', cmp('GT', get('Runs'), num(0)))}<statement name="DO0">${purchase}</statement>${value('IF1', trigger_condition)}<statement name="DO1">${search_note}</statement></block>`
-        : purchase;
+              `<block type="controls_if" id="${id()}"><mutation elseif="1"></mutation>${value('IF0', cmp('GT', get('Runs'), num(0)))}<statement name="DO0">${purchase_block()}</statement>${value('IF1', trigger_condition)}<statement name="DO1">${search_note}</statement></block>`
+        : purchase_block();
 
     // ---- After purchase: bookkeeping, martingale, stop rules ----
     const next_stake = arith(
