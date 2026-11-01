@@ -19,6 +19,7 @@ export type TSignalBotOptions = {
     growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
+    search_once?: boolean; // default true: wait for the search digit before the first trade only, then trade every tick
     prediction_after_loss?: number; // barrier digit used after a losing trade (defaults to `prediction`)
     trigger: number[]; // last digits that start a trade
     runs: number;
@@ -212,7 +213,10 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
     const before_purchase_stack = is_accu
         ? accu_reset
         : trigger_condition
-        ? `<block type="controls_if" id="${id()}">${value('IF0', trigger_condition)}<statement name="DO0">${search_note}</statement></block>`
+        ? o.search_once === false
+            ? `<block type="controls_if" id="${id()}">${value('IF0', trigger_condition)}<statement name="DO0">${search_note}</statement></block>`
+            : // Search only before the first trade; after that trade on every tick.
+              `<block type="controls_if" id="${id()}"><mutation elseif="1"></mutation>${value('IF0', cmp('GT', get('Runs'), num(0)))}<statement name="DO0">${purchase}</statement>${value('IF1', trigger_condition)}<statement name="DO1">${search_note}</statement></block>`
         : purchase;
 
     // ---- After purchase: bookkeeping, martingale, stop rules ----
