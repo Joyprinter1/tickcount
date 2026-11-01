@@ -19,6 +19,7 @@ export type TSignalBotOptions = {
     growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
+    prediction_after_loss?: number; // barrier digit used after a losing trade (defaults to `prediction`)
     trigger: number[]; // last digits that start a trade
     runs: number;
     stake?: number;
@@ -150,7 +151,7 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
             ? ([
                   ['Prediction', o.prediction as number],
                   ['Prediction before loss', o.prediction as number],
-                  ['Prediction after loss', o.prediction as number],
+                  ['Prediction after loss', Number.isInteger(o.prediction_after_loss) ? (o.prediction_after_loss as number) : (o.prediction as number)],
               ] as [string, number][])
             : []),
         ...(uses_duration ? ([[dur_name, duration]] as [string, number][]) : []),
