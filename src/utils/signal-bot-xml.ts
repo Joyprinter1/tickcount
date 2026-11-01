@@ -19,6 +19,7 @@ export type TSignalBotOptions = {
     growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
+    live_signal?: boolean; // wait for the last digit to equal the live 'Signal Digit' block (Matches/Differs also trades that digit)
     search_once?: boolean; // default true: wait for the search digit before the first trade only, then trade every tick
     prediction_after_loss?: number; // barrier digit used after a losing trade (defaults to `prediction`)
     trigger: number[]; // last digits that start a trade
@@ -132,7 +133,8 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const offset = o.offset && o.offset > 0 ? o.offset : 1;
     const growth_rate = o.growth_rate && o.growth_rate > 0 ? o.growth_rate : 0.01;
     const tick_count = Math.max(1, Math.floor(Number(o.tick_count)) || 5);
-    const triggers = Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 1);
+    const live = o.live_signal === true && (o.tradetype === 'overunder' || o.tradetype === 'matchesdiffers' || o.tradetype === 'evenodd');
+    const triggers = live ? [] : Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 1);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
     const martingale = o.martingale && o.martingale >= 1 ? o.martingale : 2;
     // 0 means "off": use a limit far above anything a session can reach.
@@ -180,11 +182,13 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 </block>`;
 
     // ---- Before purchase: wait for the trigger digit(s), then buy ----
-    const purchase_block = () => `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', o.contract)}</block>`;
-    const digit_checks = search_names.map(name => cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, get(name)));
+    const live_digit = () => `<block type="signal_digit" id="${id()}"></block>`;
+    const purchase_plain = () => `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', o.contract)}</block>`;
+    const purchase_block = () => (live && o.tradetype === 'matchesdiffers' ? set('Prediction', live_digit(), purchase_plain()) : purchase_plain());
+    const digit_checks = live ? [cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, live_digit())] : search_names.map(name => cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, get(name)));
     const trigger_condition = digit_checks.length ? digit_checks.reduce((a, b) => logic('OR', a, b)) : '';
     // Journal line each time a search number shows up: "Search number 6 found - buying Match 4".
-    const label = `${CONTRACT_LABELS[o.contract] ?? o.contract}${has_prediction ? ` ${o.prediction}` : ''}`;
+    const label = `${CONTRACT_LABELS[o.contract] ?? o.contract}${has_prediction ? (live ? ' (signal digit)' : ` ${o.prediction}`) : ''}`;
     const text_item = (inner: string, next = '') =>
         `<block type="text_statement" id="${id()}"><value name="TEXT">${inner}</value>${next ? `<next>${next}</next>` : ''}</block>`;
     const text_shadow = (t: string) => `<shadow type="text" id="${id()}"><field name="TEXT">${esc(t)}</field></shadow>`;
@@ -213,7 +217,7 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
     const before_purchase_stack = is_accu
         ? accu_reset
         : trigger_condition
-        ? o.search_once === false
+        ? o.search_once === false || live
             ? `<block type="controls_if" id="${id()}">${value('IF0', trigger_condition)}<statement name="DO0">${search_note}</statement></block>`
             : // Search only before the first trade; after that trade on every tick.
               `<block type="controls_if" id="${id()}"><mutation elseif="1"></mutation>${value('IF0', cmp('GT', get('Runs'), num(0)))}<statement name="DO0">${purchase_block()}</statement>${value('IF1', trigger_condition)}<statement name="DO1">${search_note}</statement></block>`
