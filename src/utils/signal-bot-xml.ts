@@ -19,17 +19,6 @@ export type TSignalBotOptions = {
     growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
-    // Bollinger Bands + RSI digit strategy (Over/Under only): price below the lower band -> Over, above the upper band -> Under.
-    bbrsi?: {
-        bb_period?: number;
-        bb_dev?: number;
-        rsi_period?: number;
-        rsi_min?: number;
-        rsi_max?: number;
-        over_digit?: number; // search digit for the lower-band (Over) trade, default 2
-        under_digit?: number; // search digit for the upper-band (Under) trade, default 7
-        search_every_trade?: boolean; // default true
-    };
     search_once?: boolean; // default true: wait for the search digit before the first trade only, then trade every tick
     prediction_after_loss?: number; // barrier digit used after a losing trade (defaults to `prediction`)
     trigger: number[]; // last digits that start a trade
@@ -155,20 +144,6 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const search_names = triggers.map((_, i) => `Search Number ${i + 1}`);
 
     // ---- Run once at start ----
-    const dig = (x: unknown, d: number) => (Number.isInteger(Number(x)) && Number(x) >= 0 && Number(x) <= 9 ? Number(x) : d);
-    const bb =
-        o.bbrsi && o.tradetype === 'overunder'
-            ? {
-                  bb_period: Math.max(2, Math.floor(Number(o.bbrsi.bb_period)) || 20),
-                  bb_dev: Number(o.bbrsi.bb_dev) > 0 ? Number(o.bbrsi.bb_dev) : 2,
-                  rsi_period: Math.max(2, Math.floor(Number(o.bbrsi.rsi_period)) || 14),
-                  rsi_min: Number.isFinite(Number(o.bbrsi.rsi_min)) && o.bbrsi.rsi_min !== undefined ? Number(o.bbrsi.rsi_min) : 30,
-                  rsi_max: Number.isFinite(Number(o.bbrsi.rsi_max)) && o.bbrsi.rsi_max !== undefined ? Number(o.bbrsi.rsi_max) : 70,
-                  over_digit: dig(o.bbrsi.over_digit, 2),
-                  under_digit: dig(o.bbrsi.under_digit, 7),
-                  every: o.bbrsi.search_every_trade !== false,
-              }
-            : null;
     const init: [string, number][] = [
         ...triggers.map((d, i): [string, number] => [search_names[i], d]),
         ['Stake', stake],
@@ -183,20 +158,6 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
         ...(uses_duration ? ([[dur_name, duration]] as [string, number][]) : []),
         ...(has_barrier ? ([['Barrier Offset', offset]] as [string, number][]) : []),
         ...(is_accu ? ([['Tick Count', tick_count]] as [string, number][]) : []),
-        ...(bb
-            ? ([
-                  ['Over Search Digit', bb.over_digit],
-                  ['Under Search Digit', bb.under_digit],
-                  ['Over Prediction', bb.over_digit],
-                  ['Under Prediction', bb.under_digit],
-                  ['RSI Min', bb.rsi_min],
-                  ['RSI Max', bb.rsi_max],
-                  ['BB Period', bb.bb_period],
-                  ['BB Deviation', bb.bb_dev],
-                  ['RSI Period', bb.rsi_period],
-                  ['Search Every Trade', bb.every ? 1 : 0],
-              ] as [string, number][])
-            : []),
         ['Martingale', martingale],
         ['Take Profit', take_profit],
         ['Stop Loss', stop_loss],
@@ -249,42 +210,7 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
     const mult_block = `<block type="trade_definition_multiplier" id="${id()}">${field('MULTIPLIERTYPE_LIST', o.multiplier_value && o.multiplier_value > 0 ? o.multiplier_value : 100)}
 <value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
 <statement name="MULTIPLIER_PARAMS"><block type="multiplier_take_profit" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_tp)}</shadow></value><next><block type="multiplier_stop_loss" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_sl)}</shadow></value></block></next></block></statement></block>`;
-    const th = (x: number) => `<shadow type="math_number" id="${id()}">${field('NUM', x)}</shadow>`;
-    const ind = (type: string, variable: string, extra: string, children: string) =>
-        `<block type="${type}" id="${id()}"><field name="VARIABLE" id="${v(variable)}" variabletype="">${variable}</field>${extra}<statement name="STATEMENT">${children}</statement>`;
-    const closing = (next: string) => (next ? `<next>${next}</next></block>` : '</block>');
-    const ind_children = (period_var: string, period_default: number, extra = '') =>
-        `<block type="input_list" id="${id()}"><value name="INPUT_LIST"><block type="ohlc_values" id="${id()}">${field('OHLCFIELD_LIST', 'close')}${field('CANDLEINTERVAL_LIST', 'default')}</block></value><next><block type="period" id="${id()}"><value name="PERIOD">${th(period_default)}${get(period_var)}</value>${extra ? `<next>${extra}</next>` : ''}</block></next></block>`;
-    const bb_deviations = `<block type="std_dev_multiplier_up" id="${id()}"><value name="UPMULTIPLIER">${th(2)}${get('BB Deviation')}</value><next><block type="std_dev_multiplier_down" id="${id()}"><value name="DOWNMULTIPLIER">${th(2)}${get('BB Deviation')}</value></block></next></block>`;
-    const bb_block = (variable: string, band: '1' | '2', next: string) =>
-        ind('bb_statement', variable, field('BBRESULT_LIST', band), ind_children('BB Period', 20, bb_deviations)) + closing(next);
-    const bb_strategy = () => {
-        const tick = () => `<block type="tick" id="${id()}"></block>`;
-        const digit = () => `<block type="last_digit" id="${id()}"></block>`;
-        const digit_ok = (name: string) =>
-            logic(
-                'OR',
-                cmp('EQ', digit(), get(name)),
-                logic('AND', cmp('EQ', get('Search Every Trade'), num(0)), cmp('GT', get('Runs'), num(0)))
-            );
-        const buy = (contract: string, pred: string) =>
-            set('Prediction', get(pred), `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', contract)}</block>`);
-        const rsi_ok = logic('AND', cmp('GTE', get('RSI'), get('RSI Min')), cmp('LTE', get('RSI'), get('RSI Max')));
-        const decide = `<block type="controls_if" id="${id()}"><mutation elseif="1"></mutation>${value(
-            'IF0',
-            logic('AND', rsi_ok, logic('AND', cmp('LT', tick(), get('BB Lower')), digit_ok('Over Search Digit')))
-        )}<statement name="DO0">${buy('DIGITOVER', 'Over Prediction')}</statement>${value(
-            'IF1',
-            logic('AND', rsi_ok, logic('AND', cmp('GT', tick(), get('BB Upper')), digit_ok('Under Search Digit')))
-        )}<statement name="DO1">${buy('DIGITUNDER', 'Under Prediction')}</statement></block>`;
-        const rsi_block =
-            ind('rsi_statement', 'RSI', '', ind_children('RSI Period', 14)) +
-            closing(bb_block('BB Upper', '1', bb_block('BB Lower', '2', decide)));
-        return rsi_block;
-    };
-    const before_purchase_stack = bb
-        ? bb_strategy()
-        : is_accu
+    const before_purchase_stack = is_accu
         ? accu_reset
         : trigger_condition
         ? o.search_once === false
