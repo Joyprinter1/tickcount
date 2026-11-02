@@ -19,7 +19,7 @@ export type TSignalBotOptions = {
     growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
-    live_signal?: boolean; // wait for the last digit to equal the live 'Signal Digit' block (Matches/Differs also trades that digit)
+    live_signal?: boolean; // Matches only: wait for the last digit to equal the live 'Signal Digit' block and trade Matches on that digit
     search_once?: boolean; // default true: wait for the search digit before the first trade only, then trade every tick
     prediction_after_loss?: number; // barrier digit used after a losing trade (defaults to `prediction`)
     trigger: number[]; // last digits that start a trade
@@ -133,7 +133,7 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const offset = o.offset && o.offset > 0 ? o.offset : 1;
     const growth_rate = o.growth_rate && o.growth_rate > 0 ? o.growth_rate : 0.01;
     const tick_count = Math.max(1, Math.floor(Number(o.tick_count)) || 5);
-    const live = o.live_signal === true && (o.tradetype === 'overunder' || o.tradetype === 'matchesdiffers' || o.tradetype === 'evenodd');
+    const live = o.live_signal === true && o.tradetype === 'matchesdiffers' && o.contract === 'DIGITMATCH';
     const triggers = live ? [] : Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 1);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
     const martingale = o.martingale && o.martingale >= 1 ? o.martingale : 2;
