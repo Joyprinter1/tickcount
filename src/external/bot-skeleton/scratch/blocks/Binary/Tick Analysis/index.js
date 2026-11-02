@@ -7,6 +7,7 @@ import './get_ohlc';
 import './check_direction';
 import './tick_analysis';
 import './last_digit';
+import './signal_digit';
 import './lastDigitList';
 import './stat';
 import './stat_list';

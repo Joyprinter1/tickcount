@@ -44,6 +44,7 @@ function tdClock(sec){return sec<60?sec+"s":Math.floor(sec/60)+":"+String(sec%60
 function tdRem(start,w){return w-(Math.floor((Date.now()-start)/1000)%w)}
 function tdTick(){document.querySelectorAll(".td-exp[data-s]").forEach(e=>{const r=tdRem(+e.dataset.s,+e.dataset.w);e.textContent="⏱ "+tdClock(r);e.classList.toggle("warn",r<=5)})}
 function tdDigits(){const a=se(),d=ie(a);if(d===null||!a.ready)return"";const cnt=a.counts,tot=a.sampleCount||1;
+  try{localStorage.setItem("td.signal",JSON.stringify({digit:d,market:n.market,at:Date.now()}))}catch(e){}
   const order=[0,1,2,3,4,5,6,7,8,9].filter(x=>x!==d).sort((x,y)=>(cnt[y]||0)-(cnt[x]||0)||x-y).slice(0,2);
   return`<div class="td-dch">`+[d].concat(order).map((x,i)=>`<span class="td-dc${i===0?" t":""}">${x}:${Math.round((cnt[x]||0)/tot*100)}%</span>`).join("")+`</div>`}
 function tdBanner(key,sig){const R=TD_ROBOT[key];if(!R)return"";let t=null;try{t=tdInfo(key,sig)}catch(e){}
