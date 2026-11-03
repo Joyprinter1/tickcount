@@ -9,6 +9,16 @@ export const getSignalDigit = (now = Date.now(), storage = globalThis.localStora
     }
 };
 
+export const getSignalRun = (now = Date.now(), storage = globalThis.localStorage) => {
+    try {
+        const s = JSON.parse(storage.getItem('td.signalRun') || 'null');
+        const d = Number(s?.dir);
+        return (d === 1 || d === -1) && now - Number(s?.at) < 20000 ? d : 0;
+    } catch (e) {
+        return 0;
+    }
+};
+
 const getTicksInterface = tradeEngine => {
     return {
         getDelayTickValue: (...args) => tradeEngine.getDelayTickValue(...args),
@@ -17,6 +27,7 @@ const getTicksInterface = tradeEngine => {
         getLastTick: (...args) => tradeEngine.getLastTick(...args),
         getLastDigit: (...args) => tradeEngine.getLastDigit(...args),
         getSignalDigit: () => getSignalDigit(),
+        getSignalRun: () => getSignalRun(),
         getTicks: (...args) => tradeEngine.getTicks(...args),
         checkDirection: (...args) => tradeEngine.checkDirection(...args),
         getOhlcFromEnd: (...args) => tradeEngine.getOhlcFromEnd(...args),

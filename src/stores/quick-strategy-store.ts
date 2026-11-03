@@ -334,7 +334,10 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     offset: signal.offset,
                     side: signal.side,
                     hedge: signal.hedge,
-                    live_signal: tradetype === 'matchesdiffers' && signal.contract === 'DIGITMATCH',
+                    live_signal:
+                        !signal.hedge &&
+                        ((tradetype === 'matchesdiffers' && signal.contract === 'DIGITMATCH') ||
+                            (tradetype === 'runs' && (signal.contract === 'RUNHIGH' || signal.contract === 'RUNLOW'))),
                     multiplier_value: signal.multiplier_value,
                     growth_rate: signal.growth_rate,
                     tick_count: signal.tick_count,

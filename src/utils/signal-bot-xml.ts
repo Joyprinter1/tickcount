@@ -19,7 +19,7 @@ export type TSignalBotOptions = {
     growth_rate?: number; // accumulator growth rate, e.g. 0.01 for 1%
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
-    live_signal?: boolean; // Matches only: wait for the last digit to equal the live 'Signal Digit' block and trade Matches on that digit
+    live_signal?: boolean; // Matches: follow the live 'Signal Digit'. Only Ups/Downs: follow the live 'Signal Run' (buy Only Ups on an up streak, Only Downs on a down streak)
     search_once?: boolean; // default true: wait for the search digit before the first trade only, then trade every tick
     prediction_after_loss?: number; // barrier digit used after a losing trade (defaults to `prediction`)
     trigger: number[]; // last digits that start a trade
@@ -183,7 +183,8 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 
     // ---- Before purchase: wait for the trigger digit(s), then buy ----
     const live_digit = () => `<block type="signal_digit" id="${id()}"></block>`;
-    const purchase_plain = () => `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', o.contract)}</block>`;
+    const purchase_plain = (contract = o.contract) => `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', contract)}</block>`;
+    const live_run = o.live_signal === true && o.tradetype === 'runs' && (o.contract === 'RUNHIGH' || o.contract === 'RUNLOW');
     const purchase_block = () => (live && o.tradetype === 'matchesdiffers' ? set('Prediction', live_digit(), purchase_plain()) : purchase_plain());
     const digit_checks = live ? [cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, live_digit())] : search_names.map(name => cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, get(name)));
     const trigger_condition = digit_checks.length ? digit_checks.reduce((a, b) => logic('OR', a, b)) : '';
@@ -214,7 +215,11 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
     const mult_block = `<block type="trade_definition_multiplier" id="${id()}">${field('MULTIPLIERTYPE_LIST', o.multiplier_value && o.multiplier_value > 0 ? o.multiplier_value : 100)}
 <value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
 <statement name="MULTIPLIER_PARAMS"><block type="multiplier_take_profit" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_tp)}</shadow></value><next><block type="multiplier_stop_loss" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_sl)}</shadow></value></block></next></block></statement></block>`;
-    const before_purchase_stack = is_accu
+    const run_branch = (dir: number, contract: string, text: string) =>
+        `${value('IF' + (dir === 1 ? 0 : 1), cmp('EQ', `<block type="signal_run" id="${id()}"></block>`, num(dir)))}<statement name="DO${dir === 1 ? 0 : 1}"><block type="notify" id="${id()}">${field('NOTIFICATION_TYPE', 'info')}${field('NOTIFICATION_SOUND', 'silent')}<value name="MESSAGE">${text_shadow(text)}</value><next>${purchase_plain(contract)}</next></block></statement>`;
+    const before_purchase_stack = live_run
+        ? `<block type="controls_if" id="${id()}"><mutation elseif="1"></mutation>${run_branch(1, 'RUNHIGH', 'Up streak found - buying Only Ups')}${run_branch(-1, 'RUNLOW', 'Down streak found - buying Only Downs')}</block>`
+        : is_accu
         ? accu_reset
         : trigger_condition
         ? o.search_once === false || live

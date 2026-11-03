@@ -47,7 +47,7 @@ function tdDigits(){const a=se(),d=ie(a);if(d===null||!a.ready)return"";const cn
   try{localStorage.setItem("td.signal",JSON.stringify({digit:d,market:n.market,at:Date.now()}))}catch(e){}
   const order=[0,1,2,3,4,5,6,7,8,9].filter(x=>x!==d).sort((x,y)=>(cnt[y]||0)-(cnt[x]||0)||x-y).slice(0,2);
   return`<div class="td-dch">`+[d].concat(order).map((x,i)=>`<span class="td-dc${i===0?" t":""}">${x}:${Math.round((cnt[x]||0)/tot*100)}%</span>`).join("")+`</div>`}
-function tdBanner(key,sig){const R=TD_ROBOT[key];if(!R)return"";let t=null;try{t=tdInfo(key,sig)}catch(e){}
+function tdBanner(key,sig){const R=TD_ROBOT[key];if(!R)return"";if(key==="continuation"&&sig){try{localStorage.setItem("td.signalRun",JSON.stringify({dir:sig.prediction==="ONLY UPS"?1:sig.prediction==="ONLY DOWNS"?-1:0,market:n.market,at:Date.now()}))}catch(e){}}let t=null;try{t=tdInfo(key,sig)}catch(e){}
   const mood=t&&t.ok?"go":sig&&sig.strength>=55?"watch":"idle",txt=mood==="go"?"READY":mood==="watch"?"WATCHING":"SCANNING";
   if(mood==="go"){if(!tdSince[key])tdSince[key]=Date.now()}else delete tdSince[key];
   const w=Math.round(tdWin(key)),exp=mood==="go"?`<span class="td-exp" title="Seconds until this signal is re-checked" data-s="${tdSince[key]}" data-w="${w}">⏱ ${tdClock(tdRem(tdSince[key],w))}</span>`:"";
