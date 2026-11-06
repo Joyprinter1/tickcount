@@ -44,13 +44,14 @@ function tdClock(sec){return sec<60?sec+"s":Math.floor(sec/60)+":"+String(sec%60
 function tdRem(start,w){return w-(Math.floor((Date.now()-start)/1000)%w)}
 function tdTick(){document.querySelectorAll(".td-exp[data-s]").forEach(e=>{const r=tdRem(+e.dataset.s,+e.dataset.w);e.textContent="⏱ "+tdClock(r);e.classList.toggle("warn",r<=5)})}
 function tdDigits(){const a=se(),d=ie(a);if(d===null||!a.ready)return"";const cnt=a.counts,tot=a.sampleCount||1;
+  try{localStorage.setItem("td.signal",JSON.stringify({digit:d,market:n.market,at:Date.now()}))}catch(e){}
   const order=[0,1,2,3,4,5,6,7,8,9].filter(x=>x!==d).sort((x,y)=>(cnt[y]||0)-(cnt[x]||0)||x-y).slice(0,2);
   return`<div class="td-dch">`+[d].concat(order).map((x,i)=>`<span class="td-dc${i===0?" t":""}">${x}:${Math.round((cnt[x]||0)/tot*100)}%</span>`).join("")+`</div>`}
-function tdBanner(key,sig){const R=TD_ROBOT[key];if(!R)return"";let t=null;try{t=tdInfo(key,sig)}catch(e){}
+function tdBanner(key,sig){const R=TD_ROBOT[key];if(!R)return"";if(key==="continuation"&&sig){try{localStorage.setItem("td.signalRun",JSON.stringify({dir:sig.prediction==="ONLY UPS"?1:sig.prediction==="ONLY DOWNS"?-1:0,market:n.market,at:Date.now()}))}catch(e){}}let t=null;try{t=tdInfo(key,sig)}catch(e){}
   const mood=t&&t.ok?"go":sig&&sig.strength>=55?"watch":"idle",txt=mood==="go"?"READY":mood==="watch"?"WATCHING":"SCANNING";
   if(mood==="go"){if(!tdSince[key])tdSince[key]=Date.now()}else delete tdSince[key];
   const w=Math.round(tdWin(key)),exp=mood==="go"?`<span class="td-exp" title="Seconds until this signal is re-checked" data-s="${tdSince[key]}" data-w="${w}">⏱ ${tdClock(tdRem(tdSince[key],w))}</span>`:"";
-  return`<div class="td-banner ${mood}" data-trade="${key}" role="button" tabindex="0" aria-label="${R[0]}: ${mood==="go"?"Trade now":"not ready yet"}" style="--c1:${R[1]};--c2:${R[2]}">${tdRobot(mood)}<div class="td-bot-txt"><strong>${R[0]}</strong><span class="td-chips2"><span class="td-chip">${mood==="go"?"TRADE NOW ›":txt}</span>${exp}</span>${key==="matchesDiffers"?tdDigits():""}</div></div>`}
+  return`<div class="td-banner ${mood}" data-trade="${key}" role="button" tabindex="0" aria-label="${R[0]}: ${mood==="go"?"Trade now":"not ready yet"}" style="--c1:${R[1]};--c2:${R[2]};--pic:url(../img/${["robot-street","robot-sunset","robot-city"][TD_KEYS.indexOf(key)%3]}.jpg)">${tdRobot(mood)}<div class="td-bot-txt"><strong>${R[0]}</strong><span class="td-chips2"><span class="td-chip">${mood==="go"?"TRADE NOW ›":txt}</span>${exp}</span>${key==="matchesDiffers"?tdDigits():""}</div></div>`}
 function tdLab(title,line){const ks=TD_KEYS.filter(k=>TD_ROBOT[k]);
   return`<section class="td-lab"><div class="td-lab-bots">${ks.map(k=>{let m="idle";try{const sg=j()[k],t=tdInfo(k,sg);m=t&&t.ok?"go":sg&&sg.strength>=55?"watch":"idle"}catch(e){}return`<div class="td-mini ${m}" data-trade="${k}" role="button" tabindex="0" title="${TD_ROBOT[k][0]}">${tdRobot(m)}<small>${TD_ROBOT[k][0]}</small></div>`}).join("")}</div><div class="td-lab-txt"><h2>${title}</h2><p>${line}</p></div></section>`}
 function tdSd(a){if(a.length<3)return 0;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length)}
