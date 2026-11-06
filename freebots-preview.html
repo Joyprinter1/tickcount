@@ -47,7 +47,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .card{--a:#F2B544;background:linear-gradient(180deg,var(--surface),color-mix(in srgb,var(--a) 8%,var(--surface)));border:1.5px solid color-mix(in srgb,var(--a) 45%,var(--line));border-radius:20px;box-shadow:var(--shadow);padding:10px;display:flex;flex-direction:column;gap:10px}
 .art{position:relative;aspect-ratio:16/10;display:grid;place-items:center;overflow:hidden;border-radius:14px}
 .art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.art svg{width:46%;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))}
+.art svg.bg{position:absolute;inset:0;width:100%;height:100%}
 .num{position:absolute;left:8px;top:8px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:800 15px var(--f-body);color:#fff;background:radial-gradient(circle at 30% 25%,#5b8cff,#1f3fb8);border:2px solid rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.35)}
 .chip{position:absolute;left:30px;top:10px;padding:4px 10px 4px 20px;border-radius:999px;font:700 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;background:rgba(255,255,255,.88);color:#1f3fb8}
 .prem{position:absolute;right:8px;top:8px;display:inline-flex;align-items:center;gap:4px;font:800 10px var(--f-body);letter-spacing:.08em;padding:4px 8px;border-radius:999px;background:#1B1303;color:#F2B544;border:1px solid rgba(242,181,68,.6)}
@@ -88,12 +88,33 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 function shade(hex,k){const n=parseInt(hex.slice(1),16);let r=n>>16,g=(n>>8)&255,b=n&255;const f=k<0?0:255,t=Math.abs(k);r=Math.round((f-r)*t+r);g=Math.round((f-g)*t+g);b=Math.round((f-b)*t+b);return'#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');}
 function art(b,i){
   const a=/^#[0-9a-f]{6}$/i.test(b.accent)?b.accent:'#F2B544',d=shade(a,-.55),l=shade(a,.55);
-  const pic=b.image?'<img src="'+esc(b.image)+'" alt="" loading="lazy" decoding="async">':
-   '<svg viewBox="0 0 120 120" aria-hidden="true"><line x1="60" y1="8" x2="60" y2="24" stroke="'+l+'" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="8" r="6" fill="'+a+'"/>'+
-   '<rect x="22" y="24" width="76" height="62" rx="20" fill="'+l+'"/><rect x="30" y="34" width="60" height="38" rx="14" fill="'+d+'"/>'+
-   '<circle cx="47" cy="53" r="7.5" fill="'+a+'"/><circle cx="73" cy="53" r="7.5" fill="'+a+'"/>'+
-   '<rect x="36" y="92" width="48" height="16" rx="8" fill="'+l+'"/><path d="M8 66h10M102 66h10" stroke="'+l+'" stroke-width="6" stroke-linecap="round"/></svg>';
-  return '<div class="art" style="background:linear-gradient(145deg,'+shade(a,-.35)+','+d+' 70%,#0B1117)">'+pic+
+  const k='r'+i,hi=shade(a,.78),mid=shade(a,.45),dk=shade(a,-.6);
+  const robot='<svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" class="bg" aria-hidden="true">'+
+   '<defs><linearGradient id="s'+k+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+shade(a,-.15)+'"/><stop offset="1" stop-color="'+dk+'"/></linearGradient>'+
+   '<linearGradient id="m'+k+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="'+hi+'"/><stop offset="1" stop-color="'+mid+'"/></linearGradient>'+
+   '<radialGradient id="o'+k+'" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="'+hi+'"/><stop offset="1" stop-color="'+a+'" stop-opacity=".25"/></radialGradient>'+
+   '<radialGradient id="g'+k+'"><stop offset="0" stop-color="'+hi+'" stop-opacity=".9"/><stop offset="1" stop-color="'+hi+'" stop-opacity="0"/></radialGradient></defs>'+
+   '<rect width="320" height="200" fill="url(#s'+k+')"/>'+
+   '<path d="M0 150 L50 100 L85 128 L130 80 L180 130 L225 95 L275 135 L320 110 V200 H0Z" fill="#fff" fill-opacity=".1"/>'+
+   '<path d="M0 170 L60 130 L110 155 L160 118 L215 160 L270 125 L320 150 V200 H0Z" fill="#fff" fill-opacity=".08"/>'+
+   '<g transform="translate(14 40)"><rect width="104" height="78" rx="8" fill="'+hi+'" fill-opacity=".14" stroke="'+hi+'" stroke-opacity=".7"/>'+
+   '<g stroke="'+hi+'" stroke-opacity=".25"><path d="M0 20H104M0 40H104M0 60H104M26 0V78M52 0V78M78 0V78"/></g>'+
+   '<g stroke="'+hi+'" stroke-width="2" stroke-linecap="round"><path d="M14 56V44M30 52V36M46 46V28M62 40V22M78 32V14M94 26V10" stroke-opacity=".9"/></g>'+
+   '<path d="M8 60 L26 48 L44 52 L62 34 L80 28 L98 12" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></g>'+
+   '<ellipse cx="236" cy="190" rx="82" ry="10" fill="#000" fill-opacity=".25"/>'+
+   '<circle cx="262" cy="92" r="34" fill="url(#g'+k+')"/><circle cx="262" cy="92" r="19" fill="url(#o'+k+')"/>'+
+   '<path d="M218 150 Q232 118 252 112 L262 112" fill="none" stroke="url(#m'+k+')" stroke-width="12" stroke-linecap="round"/><circle cx="256" cy="112" r="8" fill="'+mid+'"/>'+
+   '<path d="M164 200 V168 Q164 146 190 142 H226 Q252 146 252 168 V200Z" fill="url(#m'+k+')"/>'+
+   '<path d="M190 150 H226 L218 176 H198Z" fill="'+dk+'" fill-opacity=".55"/><circle cx="208" cy="162" r="5" fill="'+a+'"/><circle cx="208" cy="162" r="9" fill="'+hi+'" fill-opacity=".35"/>'+
+   '<rect x="198" y="128" width="20" height="18" rx="5" fill="'+mid+'"/>'+
+   '<rect x="182" y="82" width="52" height="50" rx="20" fill="url(#m'+k+')"/>'+
+   '<rect x="188" y="94" width="40" height="22" rx="11" fill="'+dk+'"/>'+
+   '<ellipse cx="199" cy="105" rx="5.5" ry="4.5" fill="'+hi+'"/><ellipse cx="217" cy="105" rx="5.5" ry="4.5" fill="'+hi+'"/><ellipse cx="199" cy="105" rx="9" ry="8" fill="'+hi+'" fill-opacity=".25"/><ellipse cx="217" cy="105" rx="9" ry="8" fill="'+hi+'" fill-opacity=".25"/>'+
+   '<path d="M176 100 q-8 0 -8 12 q0 12 8 12 M240 100 q8 0 8 12 q0 12 -8 12" fill="none" stroke="'+mid+'" stroke-width="7" stroke-linecap="round"/>'+
+   '<path d="M208 82 V70" stroke="'+hi+'" stroke-width="3" stroke-linecap="round"/><circle cx="208" cy="67" r="4.5" fill="'+a+'"/>'+
+   '<circle cx="262" cy="92" r="19" fill="none" stroke="#fff" stroke-opacity=".4"/></svg>';
+  const pic=b.image?'<img src="'+esc(b.image)+'" alt="" loading="lazy" decoding="async">':robot;
+  return '<div class="art">'+pic+
    '<span class="num">'+(i+1)+'</span><span class="chip">Free bots</span>'+(b.downloadable?'':'<span class="prem">&#9733; PREMIUM</span>')+'</div>';
 }
 function render(){
