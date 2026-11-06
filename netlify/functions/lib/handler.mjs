@@ -4,6 +4,8 @@ import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypt
 
 export const CATEGORIES = ['Over / Under', 'Even / Odd', 'Rise / Fall', 'Matches / Differs', 'Only Ups / Downs', 'Other'];
 const MAX_XML = 1_500_000;
+const MAX_IMG = 450_000; // base64 characters
+const IMG_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 
 
@@ -68,6 +70,7 @@ const publicBot = b => ({
     accent: b.accent,
     downloadable: !!b.downloadable,
     published: b.published !== false,
+    image: b.hasImage ? `/api/bots/${b.id}/image?v=${b.imgAt ?? 0}` : null,
     createdAt: b.createdAt,
 });
 
@@ -134,6 +137,14 @@ export async function handle(req, store, env = {}, deps = {}) {
     if (method === 'GET' && parts[0] === 'bots' && parts.length === 1) {
         const list = await getIndex();
         return json({ bots: list.filter(b => b.published !== false).map(publicBot), categories: CATEGORIES });
+    }
+    if (method === 'GET' && parts[0] === 'bots' && parts[2] === 'image') {
+        const bot = (await getIndex()).find(b => b.id === parts[1] && b.published !== false && b.hasImage);
+        if (!bot) return json({ error: 'No image.' }, 404);
+        const data = await store.get(`img/${bot.id}`, { type: 'text' });
+        const m = IMG_RE.test(data ?? '') ? data.match(/^data:(image\/[a-z]+);base64,(.*)$/) : null;
+        if (!m) return json({ error: 'No image.' }, 404);
+        return new Response(Buffer.from(m[2], 'base64'), { status: 200, headers: { 'content-type': m[1], 'cache-control': 'public, max-age=31536000, immutable' } });
     }
     if (method === 'GET' && parts[0] === 'bots' && parts[2] === 'xml') {
         const bot = (await getIndex()).find(b => b.id === parts[1] && b.published !== false);
@@ -244,6 +255,11 @@ export async function handle(req, store, env = {}, deps = {}) {
             createdAt: Date.now(),
             size: xml.length,
         };
+        if (typeof b.image === 'string' && b.image.length <= MAX_IMG && IMG_RE.test(b.image)) {
+            await store.set(`img/${bot.id}`, b.image);
+            bot.hasImage = true;
+            bot.imgAt = Date.now();
+        }
         await store.set(`xml/${bot.id}`, xml);
         const list = await getIndex();
         list.unshift(bot);
@@ -279,6 +295,7 @@ export async function handle(req, store, env = {}, deps = {}) {
             list.splice(i, 1);
             await putIndex(list);
             await store.delete(`xml/${id}`);
+            await store.delete(`img/${id}`);
             return json({ ok: true });
         }
         if (method === 'PATCH') {
@@ -290,6 +307,15 @@ export async function handle(req, store, env = {}, deps = {}) {
             if (/^#[0-9a-fA-F]{6}$/.test(b.accent || '')) bot.accent = b.accent;
             if (typeof b.downloadable === 'boolean') bot.downloadable = b.downloadable;
             if (typeof b.published === 'boolean') bot.published = b.published;
+            if (b.image === null) {
+                bot.hasImage = false;
+                await store.delete(`img/${id}`);
+            } else if (typeof b.image === 'string') {
+                if (b.image.length > MAX_IMG || !IMG_RE.test(b.image)) return json({ error: 'Choose a JPG, PNG or WebP picture.' }, 400);
+                await store.set(`img/${id}`, b.image);
+                bot.hasImage = true;
+                bot.imgAt = Date.now();
+            }
             await putIndex(list);
             return json({ bot: publicBot(bot) });
         }

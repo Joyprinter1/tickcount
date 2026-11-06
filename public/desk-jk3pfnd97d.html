@@ -137,6 +137,7 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
       <input type="file" id="file" accept=".xml,text/xml,application/xml">
       <label for="name">Name</label><input type="text" id="name" maxlength="60" placeholder="e.g. Nexus Speedbot V5">
       <label for="cat">Type</label><select id="cat"></select>
+      <label for="img">Cover picture (optional: JPG, PNG or WebP)</label><input type="file" id="img" accept="image/*">
       <label for="desc">Short description (optional)</label><textarea id="desc" maxlength="160" placeholder="One line that appears on the card"></textarea>
       <div class="row" style="margin-top:10px"><div><label style="margin-top:0">Card colour</label><input type="color" id="accent" value="#f2b544"></div>
         <div style="display:flex;align-items:center;gap:10px"><div class="lbl" style="text-align:right">Allow people to load it<br>right after upload</div><div class="sw"><input type="checkbox" id="dl"><span></span></div></div></div>
@@ -212,7 +213,7 @@ async function refresh(){
     $('#count').textContent='('+j.bots.length+')';
     $('#list').innerHTML=j.bots.length?j.bots.map(b=>'<div class="bot" data-id="'+b.id+'"><span class="dot" style="background:'+esc(b.accent)+'"></span><div class="info"><b>'+esc(b.name)+(b.published===false?' <span class="pill">Draft</span>':'')+'</b><small>'+esc(b.category)+' &middot; '+Math.round((b.size||0)/1024)+' KB</small></div>'+
       '<div><label class="sw" style="margin:0"><input type="checkbox" data-t="'+b.id+'" '+(b.downloadable?'checked':'')+' aria-label="Allow loading '+esc(b.name)+'"><span></span></label><div class="lbl">'+(b.downloadable?'Open':'Locked')+'</div></div>'+
-      '<button class="btn sec sm" data-pub="'+b.id+'" data-to="'+(b.published===false?'1':'0')+'">'+(b.published===false?'Publish':'Hide')+'</button> <button class="btn bad sm" data-d="'+b.id+'">Delete</button></div>').join(''):'<p class="muted">No bots yet. Upload your first one above.</p>';
+      '<button class="btn sec sm" data-img="'+b.id+'">Picture</button> <button class="btn sec sm" data-pub="'+b.id+'" data-to="'+(b.published===false?'1':'0')+'">'+(b.published===false?'Publish':'Hide')+'</button> <button class="btn bad sm" data-d="'+b.id+'">Delete</button></div>').join(''):'<p class="muted">No bots yet. Upload your first one above.</p>';
   }catch(e){msg($('#lmsg'),e.message);}
 }
 $('#go').onclick=async()=>{
@@ -228,6 +229,7 @@ $('#pw').onclick=async()=>{
   try{await api('POST','password',{current:cur,next:nx});alert('Password changed. Please log in again.');setToken('');showGate();}catch(e){alert(e.message);}
 };
 $('#file').onchange=e=>{const f=e.target.files[0];if(f&&!$('#name').value)$('#name').value=f.name.replace(/\.xml$/i,'').replace(/[_-]+/g,' ').slice(0,60);};
+function shrink(file,maxW){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const k=Math.min(1,maxW/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);let q=.85,d=c.toDataURL('image/jpeg',q);while(d.length>440000&&q>.4){q-=.1;d=c.toDataURL('image/jpeg',q);}d.length>440000?rej(new Error('That picture is too large. Try a smaller one.')):res(d);};im.onerror=()=>rej(new Error('Could not read that picture.'));im.src=u;});}
 $('#up').onclick=async()=>{
   const f=$('#file').files[0];msg($('#umsg'),'');
   if(!f){msg($('#umsg'),'Choose the bot .xml file first.');return;}
@@ -235,9 +237,10 @@ $('#up').onclick=async()=>{
   $('#up').disabled=true;
   try{
     const xml=await f.text();
-    await api('POST','bots',{name:$('#name').value,category:$('#cat').value,description:$('#desc').value,accent:$('#accent').value,downloadable:$('#dl').checked,published:!$('#draft').checked,xml});
+    const image=$('#img').files[0]?await shrink($('#img').files[0],900):undefined;
+    await api('POST','bots',{image,name:$('#name').value,category:$('#cat').value,description:$('#desc').value,accent:$('#accent').value,downloadable:$('#dl').checked,published:!$('#draft').checked,xml});
     msg($('#umsg'),'Uploaded. It now shows on the Free bots page.',true);
-    $('#file').value='';$('#name').value='';$('#desc').value='';await refresh();
+    $('#file').value='';$('#img').value='';$('#name').value='';$('#desc').value='';await refresh();
   }catch(e){msg($('#umsg'),e.message);}finally{$('#up').disabled=false;}
 };
 $('#list').addEventListener('change',async e=>{
@@ -246,6 +249,7 @@ $('#list').addEventListener('change',async e=>{
 });
 $('#list').addEventListener('click',async e=>{
   const pid=e.target.dataset.pub;if(pid){try{await api('PATCH','bots/'+pid,{published:e.target.dataset.to==='1'});await refresh();}catch(err){msg($('#lmsg'),err.message);}return;}
+  const iid=e.target.dataset.img;if(iid){const p=document.createElement('input');p.type='file';p.accept='image/*';p.onchange=async()=>{if(!p.files[0])return;try{await api('PATCH','bots/'+iid,{image:await shrink(p.files[0],900)});msg($('#lmsg'),'Picture updated.',true);await refresh();}catch(err){msg($('#lmsg'),err.message);}};p.click();return;}
   const id=e.target.dataset.d;if(!id)return;
   if(!confirm('Delete this bot for good?'))return;
   try{await api('DELETE','bots/'+id);await refresh();}catch(err){msg($('#lmsg'),err.message);}
