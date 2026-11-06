@@ -68,7 +68,7 @@
 .card-action{font-size:12px;padding:8px 0 0}
 .trade-wrap{margin-top:8px}
 .trade-now{min-height:40px;font-size:13px}
-.td-banner{padding:6px 10px;margin-bottom:8px;gap:10px}
+.td-banner{padding:6px 10px;margin-bottom:8px;gap:10px;min-height:56px;background-image:linear-gradient(100deg,color-mix(in srgb,var(--c2) 90%,transparent) 0%,color-mix(in srgb,var(--c1) 48%,transparent) 50%,color-mix(in srgb,var(--c1) 14%,transparent) 100%),var(--pic);background-size:cover;background-position:center 18%}.td-banner>.td-bot-txt strong{text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .td-robot{width:52px}
 .td-bot-txt strong{font-size:14px}
 .td-lab{margin:12px 0 10px;padding:12px}
