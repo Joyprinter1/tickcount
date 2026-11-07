@@ -68,8 +68,16 @@
 .card-action{font-size:12px;padding:8px 0 0}
 .trade-wrap{margin-top:8px}
 .trade-now{min-height:40px;font-size:13px}
-.td-banner{padding:6px 10px;margin-bottom:8px;gap:10px;min-height:56px;background-image:linear-gradient(100deg,color-mix(in srgb,var(--c2) 90%,transparent) 0%,color-mix(in srgb,var(--c1) 48%,transparent) 50%,color-mix(in srgb,var(--c1) 14%,transparent) 100%),var(--pic);background-size:cover;background-position:center 18%}.td-banner>.td-bot-txt strong{text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.td-banner{padding:6px 10px;margin-bottom:8px;gap:10px}
 .td-robot{width:52px}
 .td-bot-txt strong{font-size:14px}
 .td-lab{margin:12px 0 10px;padding:12px}
 .td-lab-txt h2{font-size:17px}
+
+:root{--muted:#B6C2CE;--text:#F5F9FC;--panel:#18222C;--panel2:#202C38;--line:rgba(231,237,242,.16);--green:#4BE0A0;--red:#FF7F92;--amber:#FFC95C;--violet:#7FB6FF}
+.signal-card{--bgimg:none;background:linear-gradient(rgba(6,12,20,.55),rgba(6,12,20,.80)),var(--bgimg) center 25%/cover,linear-gradient(145deg,#1d2b37,#131e28);text-shadow:0 1px 3px rgba(0,0,0,.75)}
+.signal-card.td-t-MatchesDiffers{--bgimg:url(../../img/robot-blue.jpg);background-position:center,center 22%,center}
+.signal-card.td-t-EvenOdd{--bgimg:url(../../img/robot-girl.jpg);background-position:center,center 38%,center}
+.signal-card.td-t-OverUnder{--bgimg:url(../../img/robot-amg.jpg)}
+.signal-card.td-t-RiseFall{--bgimg:url(../../img/robot-sunset.jpg)}
+.signal-card.td-t-HighLowTick{--bgimg:url(../../img/robot-city.jpg)}
