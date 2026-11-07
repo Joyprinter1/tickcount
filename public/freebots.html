@@ -113,7 +113,7 @@ function render(){
   $('#chips').innerHTML=['All'].concat(cats.filter(c=>bots.some(b=>b.category===c))).map(c=>'<button type="button" data-c="'+esc(c)+'" aria-pressed="'+(c===cat)+'">'+esc(c)+'</button>').join('');
   const g=$('#grid');g.hidden=!list.length;
   g.innerHTML=list.map((b,i)=>'<article class="card" style="--a:'+(/^#[0-9a-f]{6}$/i.test(b.accent)?b.accent:'#F2B544')+'">'+art(b,i)+'<div class="body"><span class="acc">'+(b.downloadable?'Open access':'Premium')+' <i>&middot; '+esc(b.category)+'</i></span><b>'+esc(b.name)+'</b>'+(b.description?'<small>'+esc(b.description)+'</small>':'')+
-    (b.downloadable?'<button type="button" class="btn on" data-load="'+b.id+'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 21h14"/></svg>'+(EMBEDDED?'Load bot':'Download bot')+'</button>':'<button type="button" class="btn off" disabled>&#128274; Premium &middot; locked</button>')+'</div></article>').join('');
+    (b.downloadable?'<button type="button" class="btn on" data-load="'+b.id+'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>'+'Load bot'+'</button>':'<button type="button" class="btn off" disabled>&#128274; Premium &middot; locked</button>')+'</div></article>').join('');
   const st=$('#state');
   st.hidden=!!list.length;
   if(!list.length)st.innerHTML=bots.length?'No bots in this type yet.':'No bots yet. New bots will appear here soon.';
@@ -141,7 +141,7 @@ document.addEventListener('click',async e=>{
     if(!r.ok)throw 0;
     const xml=await r.text();
     if(EMBEDDED){window.parent.postMessage({type:'tickdesk:loadbot',name:bot.name,xml:xml},window.location.origin);toast('Opening Deriv bot builder…');}
-    else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([xml],{type:'application/xml'}));a.download=bot.name.replace(/[^\w.-]+/g,'_')+'.xml';a.click();}
+    else{toast('Open this on joytrader.site to load the bot.');setTimeout(()=>{window.location.href='/#free_bots';},900);}
   }catch(err){toast('Could not get that bot. Try again.');}
   finally{b.disabled=false;}
 });
