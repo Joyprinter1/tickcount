@@ -73,3 +73,11 @@
 .td-bot-txt strong{font-size:14px}
 .td-lab{margin:12px 0 10px;padding:12px}
 .td-lab-txt h2{font-size:17px}
+
+:root{--muted:#B6C2CE;--text:#F5F9FC;--panel:#18222C;--panel2:#202C38;--line:rgba(231,237,242,.16);--green:#4BE0A0;--red:#FF7F92;--amber:#FFC95C;--violet:#7FB6FF}
+.signal-card{--bgimg:none;background:linear-gradient(rgba(6,12,20,.55),rgba(6,12,20,.80)),var(--bgimg) center 25%/cover,linear-gradient(145deg,#1d2b37,#131e28);text-shadow:0 1px 3px rgba(0,0,0,.75)}
+.signal-card.td-t-MatchesDiffers{--bgimg:url(/img/robot-blue.jpg);background-position:center,center 22%,center}
+.signal-card.td-t-EvenOdd{--bgimg:url(/img/robot-girl.jpg);background-position:center,center 38%,center}
+.signal-card.td-t-OverUnder{--bgimg:url(/img/robot-amg.jpg)}
+.signal-card.td-t-RiseFall{--bgimg:url(/img/robot-sunset.jpg)}
+.signal-card.td-t-HighLowTick{--bgimg:url(/img/robot-city.jpg)}
