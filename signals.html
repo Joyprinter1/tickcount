@@ -129,6 +129,8 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
 #cards{display:flex;flex-direction:column;gap:14px}
 .card{--fg:#F1F5F9;--muted:#CBD5E1;--surface:rgba(8,14,22,.55);--raise:rgba(255,255,255,.10);--line:rgba(255,255,255,.20);color:var(--fg);background:linear-gradient(rgba(6,12,20,.34),rgba(6,12,20,.64)),url(img/robot-amg.jpg) center 22%/cover;border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);min-width:0}
 .card{text-shadow:0 1px 3px rgba(0,0,0,.75)}
+.card.eo{background-image:linear-gradient(rgba(6,12,20,.34),rgba(6,12,20,.64)),url(img/robot-girl.jpg);background-position:center 30%}
+.card.dm{background-image:linear-gradient(rgba(6,12,20,.34),rgba(6,12,20,.64)),url(img/robot-blue.jpg);background-position:center 22%}
 .card.sig{border-color:var(--accent)}
 .ch{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .ch h3{margin:0;font:600 17px var(--f-display);letter-spacing:-.01em}
@@ -799,7 +801,7 @@ const RING=226.2;
 function buildCards(){
   const box=$('#cards');box.innerHTML='';
   MARKETS.forEach(m=>{
-    const el=document.createElement('article');el.className='card';el.dataset.key=m.key;
+    const el=document.createElement('article');el.className='card '+sigTab;el.dataset.key=m.key;
     el.innerHTML='<div class="ch"><h3>'+m.name+'<span class="code"></span></h3></div>'+
       '<div class="cb"><div class="ring"><svg viewBox="0 0 84 84" aria-hidden="true"><circle class="trk" cx="42" cy="42" r="36" fill="none" stroke-width="7"/><circle class="arc" cx="42" cy="42" r="36" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="'+RING+'" stroke-dashoffset="'+RING+'"/></svg><span class="rd">–</span></div>'+
       '<div class="info"><div class="state">COLLECTING TICKS</div><div class="sigline"></div><div class="sub"></div><div class="clock"></div><div class="chiprow"></div></div></div>'+
@@ -861,7 +863,7 @@ function paintCard(key){
   evs[key]=ev;
   sticky[sigTab+key]=ev&&ev.signal?ev.key:null;
   if(!ev){
-    c.el.className='card';c.el.style.order=2;c.arc.style.strokeDashoffset=RING;
+    c.el.className='card '+sigTab;c.el.style.order=2;c.arc.style.strokeDashoffset=RING;
     c.state.textContent=mk[key].err?'NOT AVAILABLE':feed==='offline'?'NO LIVE DATA':'COLLECTING TICKS';c.sigline.innerHTML='';
     c.sub.textContent=mk[key].err?mk[key].err:d.length+' of '+T.win+' ticks';
     c.meta.hidden=true;c.go.disabled=true;c.tape.innerHTML=chips(d.slice(-14),null);
@@ -870,7 +872,7 @@ function paintCard(key){
   const prog=clamp(ev.rate/ev.need,0,1);
   c.arc.style.strokeDashoffset=(RING*(1-prog)).toFixed(1);
   const trig=ev.signal&&ev.trigger.indexOf(last)>=0;
-  c.el.className='card'+(ev.signal?' sig':'')+(trig?' hit':'');
+  c.el.className='card '+sigTab+(ev.signal?' sig':'')+(trig?' hit':'');
   c.el.style.order=ev.signal?0:1;
   const nm=ctName(ev.ct,ev.b);
   if(ev.signal){
