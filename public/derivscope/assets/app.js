@@ -195,7 +195,7 @@ function tdSel(){
   }
 }
 function B({icon:t,name:e,tag:a,signal:i,metrics:s,action:r}){return`
-    <article class="signal-card ${i.tone}">${tdBanner(r,i)}
+    <article class="signal-card ${i.tone} td-t-${String(e).replace(/\W+/g,"")}">${tdBanner(r,i)}
       <div class="signal-head">
         <div class="signal-title"><span class="signal-icon">${t}</span><div><strong>${e}</strong><span>${a}</span></div></div>
         ${K(n.connection==="live"?"Live feed":"Awaiting feed",n.connection==="live"?"live":"muted")}
