@@ -9,6 +9,17 @@ export const getSignalDigit = (now = Date.now(), storage = globalThis.localStora
     }
 };
 
+// The Signals page also stores its Even/Odd read ('EVEN' / 'ODD' / '' when there is no clear read); fresh under 20 s only.
+export const getSignalSide = (now = Date.now(), storage = globalThis.localStorage) => {
+    try {
+        const s = JSON.parse(storage.getItem('td.signalEO') || 'null');
+        const side = String(s?.side || '').toUpperCase();
+        return (side === 'EVEN' || side === 'ODD') && now - Number(s?.at) < 20000 ? side.toLowerCase() : '';
+    } catch (e) {
+        return '';
+    }
+};
+
 const getTicksInterface = tradeEngine => {
     return {
         getDelayTickValue: (...args) => tradeEngine.getDelayTickValue(...args),
@@ -17,6 +28,7 @@ const getTicksInterface = tradeEngine => {
         getLastTick: (...args) => tradeEngine.getLastTick(...args),
         getLastDigit: (...args) => tradeEngine.getLastDigit(...args),
         getSignalDigit: () => getSignalDigit(),
+        getSignalSide: () => getSignalSide(),
         getTicks: (...args) => tradeEngine.getTicks(...args),
         checkDirection: (...args) => tradeEngine.checkDirection(...args),
         getOhlcFromEnd: (...args) => tradeEngine.getOhlcFromEnd(...args),
