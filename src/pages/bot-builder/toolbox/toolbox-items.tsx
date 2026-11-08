@@ -380,6 +380,7 @@ export const ToolboxItems = () =>
                     <Block type='tick' />
                     <Block type='last_digit' />
                     <Block type='signal_digit' />
+                    <Block type='signal_side' />
                     <Block type='stat' />
                     <Block type='stat_list' />
                     <Block type='ticks' />

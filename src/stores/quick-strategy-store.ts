@@ -22,6 +22,7 @@ export type TTickdeskSignal = {
     side?: '+' | '-';
     hedge?: string;
     tradetype?: string;
+    eo_mode?: 'follow' | 'even' | 'odd';
     multiplier_value?: number;
     growth_rate?: number;
     tick_count?: number;
@@ -335,6 +336,8 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     side: signal.side,
                     hedge: signal.hedge,
                     live_signal: tradetype === 'matchesdiffers' && signal.contract === 'DIGITMATCH',
+                    live_mode:
+                        tradetype === 'evenodd' ? (signal.eo_mode === 'even' || signal.eo_mode === 'odd' ? signal.eo_mode : 'follow') : undefined,
                     multiplier_value: signal.multiplier_value,
                     growth_rate: signal.growth_rate,
                     tick_count: signal.tick_count,
