@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
-import { useKes } from './kes';
+import { setKesMode, useKes, useKesMode } from './kes';
 import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
 import Text from '@/components/shared_ui/text';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
@@ -15,6 +15,7 @@ import './account-switcher.scss';
 
 const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const kes = useKes();
+    const cur_mode = useKesMode();
     const [isOpen, setIsOpen] = useState(false);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const { accountList, activeLoginid } = useApiBase();
@@ -104,6 +105,35 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                     <Localize i18n_default_text='Real account' />
                                 )}
                             </Text>
+                            {currency === 'USD' && (
+                                <span
+                                    role='group'
+                                    aria-label='Balance currency'
+                                    style={{ display: 'inline-flex', marginInlineStart: 6, borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(128,128,128,.55)', fontSize: 9, fontWeight: 800, lineHeight: 1 }}
+                                    onClick={e => e.stopPropagation()}
+                                >
+                                    {(['KES', 'USD'] as const).map(m => (
+                                        <button
+                                            key={m}
+                                            type='button'
+                                            aria-pressed={cur_mode === m}
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                setKesMode(m);
+                                            }}
+                                            style={{
+                                                all: 'unset',
+                                                cursor: 'pointer',
+                                                padding: '3px 5px',
+                                                background: cur_mode === m ? (m === 'KES' ? '#BB1F2A' : '#2F6FED') : 'transparent',
+                                                color: cur_mode === m ? '#fff' : 'inherit',
+                                            }}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
+                                </span>
+                            )}
                             {showChevron && (
                                 <span
                                     className={classNames('acc-info__select-arrow', {
@@ -132,11 +162,13 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                 >
                                     {!currency ? (
                                         <Localize i18n_default_text='No currency assigned' />
+                                    ) : cur_mode === 'KES' && !!kes(balance, currency) ? (
+                                        kes(balance, currency).replace('≈ ', '')
                                     ) : (
                                         `${balance} ${getCurrencyDisplayCode(currency)}`
                                     )}
                                 </p>
-                                {!!kes(balance, currency) && (
+                                {cur_mode === 'USD' && !!kes(balance, currency) && (
                                     <p style={{ margin: 0, fontSize: 10, opacity: 0.75, lineHeight: 1.2 }}>{kes(balance, currency)}</p>
                                 )}
                             </div>
