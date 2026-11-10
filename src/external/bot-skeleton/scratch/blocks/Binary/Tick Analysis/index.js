@@ -8,6 +8,7 @@ import './check_direction';
 import './tick_analysis';
 import './last_digit';
 import './signal_digit';
+import './signal_search';
 import './signal_side';
 import './lastDigitList';
 import './stat';

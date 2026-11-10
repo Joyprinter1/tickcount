@@ -19,13 +19,15 @@ function tdHL(){
 function tdCfg(){let c={};try{c=JSON.parse(localStorage.getItem("tickdesk.bot"))||{}}catch(e){}
   const n0=(v,d)=>v===undefined||v===null||v===""||!isFinite(+v)?d:+v;
   const pk=(v,lo,hi)=>v===undefined||v===null||v===""||!isFinite(+v)||+v<lo||+v>hi?null:Math.round(+v);
-  return{stake:n0(c.stake,1)>0?n0(c.stake,1):1,mult:n0(c.mult,1)>=1?n0(c.mult,1):1,tp:Math.max(0,n0(c.tp,10)),sl:Math.max(0,n0(c.sl,10)),pickO:pk(c.pickO,0,8),pickU:pk(c.pickU,1,9),eoMode:c.eoMode==="even"||c.eoMode==="odd"?c.eoMode:"follow"}}
+  return{stake:n0(c.stake,1)>0?n0(c.stake,1):1,mult:n0(c.mult,1)>=1?n0(c.mult,1):1,tp:Math.max(0,n0(c.tp,10)),sl:Math.max(0,n0(c.sl,10)),pickO:pk(c.pickO,0,8),pickU:pk(c.pickU,1,9),eoMode:c.eoMode==="even"||c.eoMode==="odd"?c.eoMode:"follow",gap:[0,.1,.2,.3,.5,1].includes(+c.gap)&&c.gap!==undefined&&c.gap!==null&&c.gap!==""?+c.gap:.3}}
 function tdCfgSave(k,v){let c={};try{c=JSON.parse(localStorage.getItem("tickdesk.bot"))||{}}catch(e){}c[k]=v;try{localStorage.setItem("tickdesk.bot",JSON.stringify(c))}catch(e){}}
 function tdCfgNote(c){return`A win returns the stake to ${c.stake}. A loss multiplies it by ${c.mult}`+(c.tp>0?`. Stops at +${c.tp}`:"")+(c.sl>0?` or -${c.sl}`:"")+"."}
+function tdGap(){const t=n.ticks.slice(-1e3);if(t.length<900)return null;const c=Array(10).fill(0);t.forEach(p=>{c[Q(p)]++});const o=[0,1,2,3,4,5,6,7,8,9].sort((x,y)=>c[y]-c[x]||x-y),N=t.length;return{d1:o[0],d2:o[1],p1:c[o[0]]/N*100,p2:c[o[1]]/N*100,gap:(c[o[0]]-c[o[1]])/N*100,n:N}}
+function tdGapRow(c){return`<div class="td-bar" data-row="gap"><span>Matches gap</span><div class="td-chips">`+[[0,"Off"],[.1,"0.1%"],[.2,"0.2%"],[.3,"0.3%"],[.5,"0.5%"],[1,"1%"]].map(([v,l])=>`<button type="button" data-gap="${v}" aria-pressed="${c.gap===v}">${l}</button>`).join("")+`</div></div><p class="td-cfg-note">Gap strategy: when the most common digit and the second most common digit (last 1000 ticks) are this close, the bot waits for the most common digit, then matches the second one. Off keeps the original single-digit Matches signal.</p>`}
 function tdEoRow(c){return`<div class="td-bar" data-row="eoMode"><span>Even/Odd bot</span><div class="td-chips">`+[["follow","Follow signal"],["even","Only Even"],["odd","Only Odd"]].map(([v,l])=>`<button type="button" data-eo="${v}" aria-pressed="${c.eoMode===v}">${l}</button>`).join("")+`</div></div><p class="td-cfg-note">Follow signal trades Even when the read says Even and Odd when it says Odd. Only Even or Only Odd waits and ignores the other side.</p>`}
 function tdRow(key,lo,hi,c){return`<div class="td-bar" data-row="${key}"><span>${key==="pickO"?"Over barrier":"Under barrier"}</span><div class="td-chips"><button type="button" data-pick="${key}" data-p="" aria-pressed="${c[key]===null}">Scan</button>`+Array.from({length:hi-lo+1},(_,i)=>lo+i).map(d=>`<button type="button" data-pick="${key}" data-p="${d}" aria-pressed="${c[key]===d}">${d}</button>`).join("")+`</div></div>`}
 function tdPanel(){const c=tdCfg();
-  return`<section class="td-cfg panel-surface" aria-label="Bot settings"><div class="td-cfg-grid">`+[["stake","Stake",".01",.35],["mult","Martingale",".1",1],["tp","Take profit",".01",0],["sl","Stop loss",".01",0]].map(([k,l,st,mn])=>`<label>${l}<input data-cfg="${k}" type="number" inputmode="decimal" min="${mn}" step="${st}" value="${c[k]}"></label>`).join("")+`</div>${tdEoRow(c)}${TD_OU?tdRow("pickO",0,8,c)+tdRow("pickU",1,9,c)+`<p class="td-cfg-note">Pick a lower Over or a higher Under barrier and Trade now loads that safer barrier, even when the signal shows another digit.</p>`:""}<p class="td-cfg-note">${tdCfgNote(c)}</p><p class="td-cfg-note">Set once. Every Trade now below loads the bot with these numbers. Use 0 to turn take profit or stop loss off.</p></section>`}
+  return`<section class="td-cfg panel-surface" aria-label="Bot settings"><div class="td-cfg-grid">`+[["stake","Stake",".01",.35],["mult","Martingale",".1",1],["tp","Take profit",".01",0],["sl","Stop loss",".01",0]].map(([k,l,st,mn])=>`<label>${l}<input data-cfg="${k}" type="number" inputmode="decimal" min="${mn}" step="${st}" value="${c[k]}"></label>`).join("")+`</div>${tdGapRow(c)}${tdEoRow(c)}${TD_OU?tdRow("pickO",0,8,c)+tdRow("pickU",1,9,c)+`<p class="td-cfg-note">Pick a lower Over or a higher Under barrier and Trade now loads that safer barrier, even when the signal shows another digit.</p>`:""}<p class="td-cfg-note">${tdCfgNote(c)}</p><p class="td-cfg-note">Set once. Every Trade now below loads the bot with these numbers. Use 0 to turn take profit or stop loss off.</p></section>`}
 function tdSearch(c,b){
   const st=V(),d=st.digits||[],cnt=st.digitCounts||[],cn=x=>cnt[x]||0,D=[0,1,2,3,4,5,6,7,8,9];
   const top=a=>a.length?[a.slice().sort((x,y)=>cn(y)-cn(x)||x-y)[0]]:[];
@@ -44,7 +46,8 @@ function tdWin(key){const iv=tdIv();return key==="matchesDiffers"?Math.max(1,n.s
 function tdClock(sec){return sec<60?sec+"s":Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0")}
 function tdRem(start,w){return w-(Math.floor((Date.now()-start)/1000)%w)}
 function tdTick(){document.querySelectorAll(".td-exp[data-s]").forEach(e=>{const r=tdRem(+e.dataset.s,+e.dataset.w);e.textContent="⏱ "+tdClock(r);e.classList.toggle("warn",r<=5)})}
-function tdDigits(){const a=se(),d=ie(a);if(d===null||!a.ready)return"";const cnt=a.counts,tot=a.sampleCount||1;
+function tdDigits(){const G=tdCfg().gap;if(G>0){const g=tdGap();if(!g)return"";const ok=g.gap<=G+1e-9;try{localStorage.setItem("td.signal",JSON.stringify({digit:ok?g.d2:-1,search:g.d1,gap:g.gap,market:n.market,at:Date.now()}))}catch(e){}return`<div class="td-dch"><span class="td-dc t">${g.d1}:${g.p1.toFixed(1)}%</span><span class="td-dc">${g.d2}:${g.p2.toFixed(1)}%</span><span class="td-dc">gap ${g.gap.toFixed(1)}%</span></div>`}
+  const a=se(),d=ie(a);if(d===null||!a.ready)return"";const cnt=a.counts,tot=a.sampleCount||1;
   try{localStorage.setItem("td.signal",JSON.stringify({digit:d,market:n.market,at:Date.now()}))}catch(e){}
   const order=[0,1,2,3,4,5,6,7,8,9].filter(x=>x!==d).sort((x,y)=>(cnt[y]||0)-(cnt[x]||0)||x-y).slice(0,2);
   return`<div class="td-dch">`+[d].concat(order).map((x,i)=>`<span class="td-dc${i===0?" t":""}">${x}:${Math.round((cnt[x]||0)/tot*100)}%</span>`).join("")+`</div>`}
@@ -77,7 +80,8 @@ function tdAC(){
 function tdInfo(key,sig){
   const a=se(),d=ie(a);let contract=null,barrier=null,label="",ok=!1,note="",extra=null;
   if(key==="matchesDiffers"){
-    if(!a.ready||d===null)note="Warming up…";
+    if(tdCfg().gap>0){const g=tdGap();if(!g)note="Warming up… collecting 1000 ticks";else{contract="DIGITMATCH";barrier=g.d2;label=`Match ${g.d2} after ${g.d1}`;extra={gap:!0,search:g.d1,trigger:[g.d1]};if(g.gap<=tdCfg().gap+1e-9)ok=!0;else note=`Gap ${g.d1} vs ${g.d2} is ${g.gap.toFixed(1)}%, needs ${tdCfg().gap}% or less`}}
+    else if(!a.ready||d===null)note="Warming up…";
     else{const mr=Math.round(a.matchRate(d)*1e3)/10;contract="DIGITMATCH";barrier=d;label=`Match ${d}`;if(mr>=TD_MATCH_MIN)ok=!0;else note=`Digit ${d} appears ${mr}% of ticks, needs ${TD_MATCH_MIN}%+`}
   }else if(key==="evenOdd"){
     if(sig.prediction==="EVEN"||sig.prediction==="ODD"){contract=sig.prediction==="EVEN"?"DIGITEVEN":"DIGITODD";label=sig.prediction==="EVEN"?"Even":"Odd";if(sig.strength>=TD_EO_MIN)ok=!0;else note=`Needs ${TD_EO_MIN}%+ strength (now ${sig.strength}%)`}
@@ -176,6 +180,10 @@ function tdSel(){
   document.querySelectorAll("[data-pick]").forEach(b=>b.addEventListener("click",()=>{
     const k=b.dataset.pick;tdCfgSave(k,b.dataset.p===""?null:+b.dataset.p);
     document.querySelectorAll(`[data-pick="${k}"]`).forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+    tdPend=!0;tdRelease()}));
+  document.querySelectorAll("[data-gap]").forEach(b=>b.addEventListener("click",()=>{
+    tdCfgSave("gap",+b.dataset.gap);
+    document.querySelectorAll("[data-gap]").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
     tdPend=!0;tdRelease()}));
   document.querySelectorAll("[data-eo]").forEach(b=>b.addEventListener("click",()=>{
     tdCfgSave("eoMode",b.dataset.eo);
