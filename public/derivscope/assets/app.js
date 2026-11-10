@@ -157,7 +157,7 @@ function tdTrade(key){
   const sig=j()[key],t=tdInfo(key,sig);
   if(!t||!t.ok){q(t&&t.note||"No trade signal right now.");return}
   const m=k[n.market];
-  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:n.market,name:m?m.label:n.market,contract:t.contract,kind:key,barrier:t.barrier,trigger:tdSearch(t.contract,t.barrier),runs:10,stake:tdCfg().stake,mult:tdCfg().mult,tp:tdCfg().tp,sl:tdCfg().sl,ticks:t.contract.startsWith("TICK")||t.contract.startsWith("RESET")||t.contract.startsWith("ASIAN")||t.contract.endsWith("TOUCH")?5:t.contract.startsWith("RUN")?2:1,...(t.extra||{}),...(key==="evenOdd"?{eo_mode:tdCfg().eoMode}:{}),rate:sig.strength,base:0,at:Date.now()}},window.location.origin);
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:n.market,name:m?m.label:n.market,contract:t.contract,kind:key,barrier:t.barrier,trigger:tdSearch(t.contract,t.barrier),runs:10,stake:tdCfg().stake,mult:tdCfg().mult,tp:tdCfg().tp,sl:tdCfg().sl,ticks:t.contract.startsWith("TICK")||t.contract.startsWith("RESET")||t.contract.startsWith("ASIAN")||t.contract.endsWith("TOUCH")?5:t.contract.startsWith("RUN")?2:1,...(t.extra||{}),...(key==="evenOdd"?{eo_mode:tdCfg().eoMode}:{}),...(key==="evenOdd"||key==="matchesDiffers"?{live:!0}:{}),rate:sig.strength,base:0,at:Date.now()}},window.location.origin);
   q("Opening Deriv bot builder…")
 }
 function tdSel(){

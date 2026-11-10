@@ -361,7 +361,7 @@ const AppWrapper = observer(() => {
             }
             if (!data || data.type !== 'tickdesk:signal' || !data.signal) return;
             const signal = data.signal;
-            if (['DIGITMATCH', 'DIGITEVEN', 'DIGITODD'].includes(String(signal.contract))) setKeepSignalAlive(true);
+            if (signal.live === true && ['DIGITMATCH', 'DIGITEVEN', 'DIGITODD'].includes(String(signal.contract))) setKeepSignalAlive(true);
             setActiveTab(BOT_BUILDER);
             // Wait (up to ~20s) for the builder and Deriv's contract data to be ready.
             const ready = () => !!(window.Blockly?.derivWorkspace && ApiHelpers?.instance?.contracts_for);
