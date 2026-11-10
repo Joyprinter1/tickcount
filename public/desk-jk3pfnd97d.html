@@ -79,6 +79,7 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
     <input type="password" id="pass" autocomplete="current-password">
     <label for="pass2" id="pass2l" hidden>Repeat password</label>
     <input type="password" id="pass2" autocomplete="new-password" hidden>
+    <label class="showpw" style="display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:14px;cursor:pointer"><input type="checkbox" id="showpw" style="width:auto;margin:0"> Show password</label>
     <p class="msg" id="gmsg"></p>
     <button class="btn" id="go">Continue</button>
   </section>
@@ -182,6 +183,7 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
 const $=s=>document.querySelector(s);
 const K='tickdesk.admin.token';
 let token='',cats=[],mode='login';
+document.addEventListener('change',e=>{if(e.target&&e.target.id==='showpw'){['pass','pass2'].forEach(i=>{const el=document.getElementById(i);if(el)el.type=e.target.checked?'text':'password'})}});
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 try{token=sessionStorage.getItem(K)||''}catch(e){}
 async function api(method,path,body){

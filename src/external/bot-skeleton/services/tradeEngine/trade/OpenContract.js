@@ -15,6 +15,8 @@ export default Engine =>
                     const hid = this.hedgeContractId;
                     if (hid && hid !== 'pending' && contract?.contract_id === hid) {
                         this.hedgeData = contract;
+                        // Show the hedge leg as its own row (own stake and result) in Transactions.
+                        broadcastContract({ accountID: api_base.account_info.loginid, ...contract });
                         if (contract.is_sold) this.flushHedge();
                         return;
                     }
@@ -72,9 +74,11 @@ export default Engine =>
             const contract = this.mergeHedge(raw);
             this.setContractFlags(contract);
 
+            // The bot itself reasons about the combined result of both hedge legs (martingale, take profit...),
+            // but the Transactions list shows each leg as its own contract.
             this.data.contract = contract;
 
-            broadcastContract({ accountID: api_base.account_info.loginid, ...contract });
+            broadcastContract({ accountID: api_base.account_info.loginid, ...raw });
 
             if (this.isSold) {
                 this.contractId = '';

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 let rate = 129;
 let loaded = false;
@@ -39,3 +39,28 @@ export const useKes = () => {
         return `≈ KSh ${Math.round(n * rate).toLocaleString('en-KE')}`;
     };
 };
+
+// Header currency switch: show the balance in USD or in Kenyan shillings (display only).
+type TMode = 'USD' | 'KES';
+let mode: TMode = 'USD';
+try {
+    if (localStorage.getItem('td.curmode') === 'KES') mode = 'KES';
+} catch (e) {}
+const subs = new Set<() => void>();
+export const setKesMode = (m: TMode) => {
+    mode = m;
+    try {
+        localStorage.setItem('td.curmode', m);
+    } catch (e) {}
+    subs.forEach(f => f());
+};
+export const useKesMode = (): TMode =>
+    useSyncExternalStore(
+        cb => {
+            subs.add(cb);
+            return () => {
+                subs.delete(cb);
+            };
+        },
+        () => mode
+    );

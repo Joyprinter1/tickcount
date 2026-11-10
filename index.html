@@ -153,7 +153,7 @@
                 } catch (e) {}
                 var msgs = ['Warming up your trading desk\u2026', 'Connecting to live markets\u2026', 'Loading your bot builder\u2026', 'Syncing signals and analysis\u2026', 'Almost there\u2026'];
                 var msg = document.getElementById('td-msg'), k = 0;
-                var rot = setInterval(function () { k = Math.min(k + 1, msgs.length - 1); if (msg) msg.textContent = msgs[k]; }, 3600);
+                var rot = setInterval(function () { k = Math.min(k + 1, msgs.length - 1); if (msg) msg.textContent = msgs[k]; }, 1800);
                 window.addEventListener('load', function () { loaded = true; });
                 function hide() {
                     if (done) return; done = true; clearInterval(rot); clearInterval(poll);
@@ -163,7 +163,7 @@
                 var poll = setInterval(function () {
                     var root = document.getElementById('root');
                     var age = Date.now() - start;
-                    if ((loaded && root && root.children.length && age > 15000) || age > 30000) hide();
+                    if ((loaded && root && root.children.length && age > 3500) || age > 9000) hide();
                 }, 200);
             })();
         </script>
