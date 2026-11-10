@@ -74,7 +74,36 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const showChevron = !isSingleAccount && !is_bot_running;
 
     return (
-        <div className='acc-info__wrapper' ref={wrapperRef}>
+        <div className='acc-info__wrapper' ref={wrapperRef} style={{ position: 'relative' }}>
+        {currency === 'USD' && (
+            <span
+                role='group'
+                aria-label='Balance currency'
+                style={{ position: 'absolute', insetInlineEnd: '100%', top: '50%', transform: 'translateY(-50%)', marginInlineEnd: 6, zIndex: 5, display: 'inline-flex', borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(128,128,128,.55)', fontSize: 9, fontWeight: 800, lineHeight: 1 }}
+                onClick={e => e.stopPropagation()}
+            >
+                {(['KES', 'USD'] as const).map(m => (
+                    <button
+                        key={m}
+                        type='button'
+                        aria-pressed={cur_mode === m}
+                        onClick={e => {
+                            e.stopPropagation();
+                            setKesMode(m);
+                        }}
+                        style={{
+                            all: 'unset',
+                            cursor: 'pointer',
+                            padding: '3px 5px',
+                            background: cur_mode === m ? (m === 'KES' ? '#BB1F2A' : '#2F6FED') : 'transparent',
+                            color: cur_mode === m ? '#fff' : 'inherit',
+                        }}
+                    >
+                        {m}
+                    </button>
+                ))}
+            </span>
+        )}
             <AccountInfoWrapper>
                 <div
                     data-testid='dt_acc_info'
@@ -105,35 +134,6 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                     <Localize i18n_default_text='Real account' />
                                 )}
                             </Text>
-                            {currency === 'USD' && (
-                                <span
-                                    role='group'
-                                    aria-label='Balance currency'
-                                    style={{ display: 'inline-flex', marginInlineStart: 6, borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(128,128,128,.55)', fontSize: 9, fontWeight: 800, lineHeight: 1 }}
-                                    onClick={e => e.stopPropagation()}
-                                >
-                                    {(['KES', 'USD'] as const).map(m => (
-                                        <button
-                                            key={m}
-                                            type='button'
-                                            aria-pressed={cur_mode === m}
-                                            onClick={e => {
-                                                e.stopPropagation();
-                                                setKesMode(m);
-                                            }}
-                                            style={{
-                                                all: 'unset',
-                                                cursor: 'pointer',
-                                                padding: '3px 5px',
-                                                background: cur_mode === m ? (m === 'KES' ? '#BB1F2A' : '#2F6FED') : 'transparent',
-                                                color: cur_mode === m ? '#fff' : 'inherit',
-                                            }}
-                                        >
-                                            {m}
-                                        </button>
-                                    ))}
-                                </span>
-                            )}
                             {showChevron && (
                                 <span
                                     className={classNames('acc-info__select-arrow', {
