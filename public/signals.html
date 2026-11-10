@@ -280,6 +280,12 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
         <div class="bar-pick" id="q-bar-u" role="group" aria-label="Under barrier digit"></div>
         <p class="hint" id="q-bar-note"></p>
       </div>
+      <div class="panel qs" id="gap-bar" hidden>
+        <label>Matches gap (top digit vs second digit)</label>
+        <div class="bar-pick" id="gap-pick" role="group" aria-label="Matches gap"></div>
+        <div class="bar-pick" id="gapn-pick" role="group" aria-label="Ticks to analyse"></div>
+        <p class="hint" id="gap-note"></p>
+      </div>
       <div class="sum" id="sumline"></div>
       <div id="cards"></div>
       <p class="foot">Hit rate is the share of recent ticks that would have won the contract. A hot streak does not change the odds of the next tick.</p>
@@ -464,8 +470,19 @@ function topLoss(digits,ct,b,k){
   const f=freq(digits,100);
   return [0,1,2,3,4,5,6,7,8,9].filter(d=>!CT[ct].win(d,b)).sort((x,y)=>f[y]-f[x]||x-y).slice(0,k).sort((x,y)=>x-y);
 }
-function evaluate(tab,digits,sens,prevKey){
+/* Matches gap strategy: when the most common and the second most common digit (last 1000 ticks) are within
+   `gap` percentage points, the search number is the most common digit and the digit to match is the second. */
+function gapEval(digits,gap,n){
+  n=[50,100,250,1000].includes(n)?n:1000;
+  if(digits.length<n)return null;
+  const f=freq(digits,n),o=[0,1,2,3,4,5,6,7,8,9].sort((x,y)=>f[y]-f[x]||x-y);
+  const d1=o[0],d2=o[1],p1=f[d1]/n*100,p2=f[d2]/n*100,g=(f[d1]-f[d2])/n*100;
+  const signal=g<=gap+1e-9;
+  return {ct:'MATCH',b:d2,key:'MATCH'+d2,rate:gap,base:10,edge:0,signal,trigger:[d1],minEdge:0,need:Math.max(g,gap)||gap,n,runs:8,gapMode:true,d1,d2,p1,p2,gapPct:g,gapNeed:gap};
+}
+function evaluate(tab,digits,sens,prevKey,gapSet,gapN){
   const T=TABS[tab];
+  if(tab==='dm'&&gapSet>0)return gapEval(digits,gapSet,gapN);
   if(digits.length<T.win)return null;
   const minEdge=T.edge[sens];
   const scored=T.cands().map(([ct,b])=>{
@@ -501,7 +518,7 @@ function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('on
 
 /* ---------- state ---------- */
 const MKT={};MARKETS.forEach(m=>{MKT[m.key]=m;});
-const DEF_SET={family:'all',sens:'normal',theme:'auto',forceDemo:false,sigTab:'ou'};
+const DEF_SET={family:'all',sens:'normal',theme:'auto',forceDemo:false,sigTab:'ou',gap:0.3,gapN:1000};
 const EMBEDDED=window.parent!==window;
 if(EMBEDDED)document.documentElement.classList.add('embedded');
 const DEF_BOT={volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper',pickO:null,pickU:null};
@@ -596,7 +613,7 @@ const demo={on:false,timers:[],gen:0,
     if(this.on)return;
     this.on=true;const g=++this.gen;
     MARKETS.forEach((m,i)=>{
-      mk[m.key].digits=Array.from({length:300},()=>Math.floor(Math.random()*10));
+      mk[m.key].digits=Array.from({length:1000},()=>Math.floor(Math.random()*10));
       setTimeout(()=>{
         if(!this.on||g!==this.gen)return;
         this.timers.push(setInterval(()=>pushDigit(m.key,Math.floor(Math.random()*10)),m.sec*1000));
@@ -652,12 +669,12 @@ async function loadHistory(m){
   const sym=symOf(m);
   mk[m.key].pip=PIP[sym]||2;
   try{
-    const r=await pub.send({ticks_history:sym,count:300,end:'latest',style:'ticks'},8000);
+    const r=await pub.send({ticks_history:sym,count:1000,end:'latest',style:'ticks'},8000);
     const h=r.history||{};
     const pip=r.pip_size!=null?r.pip_size:mk[m.key].pip;
     mk[m.key].pip=pip;
     const hist=(h.prices||[]).map(p=>digitOf(p,pip));
-    mk[m.key].digits=hist.concat(mk[m.key].digits).slice(-400);
+    mk[m.key].digits=hist.concat(mk[m.key].digits).slice(-1100);
   }catch(e){}
 }
 function onTickMsg(key,m){
@@ -673,7 +690,7 @@ function onTickMsg(key,m){
 function pushDigit(key,d){
   const a=mk[key].digits;
   a.push(d);
-  if(a.length>400)a.splice(0,a.length-400);
+  if(a.length>1100)a.splice(0,a.length-1100);
   botTick(key,d);
   if(tab==='signals')updateCard(key);
   else if(tab==='analysis'&&key===anaKey)renderAnalysis();
@@ -812,6 +829,7 @@ function buildCards(){
     cards[m.key]={el,code:$('.code',el),arc:$('.arc',el),rd:$('.rd',el),state:$('.state',el),sigline:$('.sigline',el),sub:$('.sub',el),clock:$('.clock',el),chips:$('.chiprow',el),meta:$('.meta',el),go:$('.go',el),tape:$('.tape',el)};
   });
 }
+const needTicks=tab=>tab==='dm'&&set.gap>0?(set.gapN||1000):TABS[tab].win;
 const chips=(d,ev)=>d.map(x=>'<span class="dg'+(ev?(CT[ev.ct].win(x,ev.b)?' w':' l'):'')+'">'+x+'</span>').join('');
 function fmtClock(sec){return sec<60?sec+'s':Math.floor(sec/60)+':'+pad(sec%60);}
 /* Seconds left before the signal is re-checked: one scan window long (ticks in the window x seconds per tick
@@ -826,7 +844,9 @@ function paintChips(key){
   const ev=evs[key],d=mk[key].digits;let h='';
   const rem=expRemain(key,ev);
   if(rem!==null)h+='<span class="xc'+(rem<=5?' warn':'')+'" title="Seconds until this signal is re-checked">⏱ '+fmtClock(rem)+'</span>';
-  if(ev&&ev.ct==='MATCH'&&d.length){
+  if(ev&&ev.gapMode){
+    h+='<span class="dchip t">'+ev.d1+':'+ev.p1.toFixed(1)+'%</span><span class="dchip">'+ev.d2+':'+ev.p2.toFixed(1)+'%</span>';
+  }else if(ev&&ev.ct==='MATCH'&&d.length){
     const w=d.slice(-50),f=freq(w,50),n=w.length||1;
     const order=[0,1,2,3,4,5,6,7,8,9].filter(x=>x!==ev.b).sort((x,y)=>f[y]-f[x]||x-y).slice(0,2);
     h+=[ev.b].concat(order).map((x,i)=>'<span class="dchip'+(i===0?' t':'')+'">'+x+':'+Math.round(f[x]/n*100)+'%</span>').join('');
@@ -838,7 +858,7 @@ function fmtSpan(ms){const s=Math.max(0,Math.floor(ms/1000));return s<60?s+'s':M
 function clockText(key){
   const e=evs[key],k=sigTab+key,T=TABS[sigTab];
   if(mk[key].err)return '';
-  if(!e)return mk[key].digits.length+' of '+T.win+' ticks collected';
+  if(!e)return mk[key].digits.length+' of '+needTicks(sigTab)+' ticks collected';
   const win=e.n+' ticks · '+(e.n*MKT[key].sec)+'s window';
   return e.signal?'Signal open '+fmtSpan(Date.now()-(sigSince[k]||Date.now()))+' · '+win:'Scanning '+fmtSpan(Date.now()-(scanSince[k]||Date.now()))+' · '+win;
 }
@@ -859,13 +879,13 @@ function paintCard(key){
   c.code.textContent=symOf(MKT[key]);
   const last=d.length?d[d.length-1]:null;
   c.rd.textContent=last===null?'–':last;
-  const ev=evaluate(sigTab,d,set.sens,sticky[sigTab+key]);
+  const ev=evaluate(sigTab,d,set.sens,sticky[sigTab+key],set.gap,set.gapN);
   evs[key]=ev;
   sticky[sigTab+key]=ev&&ev.signal?ev.key:null;
   if(!ev){
     c.el.className='card '+sigTab;c.el.style.order=2;c.arc.style.strokeDashoffset=RING;
     c.state.textContent=mk[key].err?'NOT AVAILABLE':feed==='offline'?'NO LIVE DATA':'COLLECTING TICKS';c.sigline.innerHTML='';
-    c.sub.textContent=mk[key].err?mk[key].err:d.length+' of '+T.win+' ticks';
+    c.sub.textContent=mk[key].err?mk[key].err:d.length+' of '+needTicks(sigTab)+' ticks';
     c.meta.hidden=true;c.go.disabled=true;c.tape.innerHTML=chips(d.slice(-14),null);
     return;
   }
@@ -878,7 +898,7 @@ function paintCard(key){
   if(ev.signal){
     c.state.textContent=trig?'ENTER NOW':'WAIT TO ENTER';
     c.sigline.innerHTML='<span class="sigpill">'+nm+'</span>';
-    c.sub.innerHTML='<b>'+Math.round(ev.rate)+'%</b> hit rate · base '+Math.round(ev.base)+'% · last '+ev.n;
+    c.sub.innerHTML=ev.gapMode?'Top <b>'+ev.d1+'</b> '+ev.p1.toFixed(1)+'% · 2nd <b>'+ev.d2+'</b> '+ev.p2.toFixed(1)+'% · gap <b>'+ev.gapPct.toFixed(1)+'%</b>':'<b>'+Math.round(ev.rate)+'%</b> hit rate · base '+Math.round(ev.base)+'% · last '+ev.n;
     c.meta.hidden=false;
     const tl=ev.trigger.length>1?ev.trigger.slice(0,-1).join(', ')+' or '+ev.trigger[ev.trigger.length-1]:String(ev.trigger[0]);
     c.meta.innerHTML=ev.ct==='MATCH'
@@ -886,7 +906,7 @@ function paintCard(key){
       :'Enter when the last digit is <b>'+tl+'</b> · <b>'+ev.runs+'</b> runs';
   }else{
     c.state.textContent='SCANNING';c.sigline.innerHTML='';
-    c.sub.innerHTML='Closest: <b>'+nm+'</b> at '+Math.round(ev.rate)+'% · needs '+Math.round(ev.need)+'%';
+    c.sub.innerHTML=ev.gapMode?'Gap <b>'+ev.d1+'</b> vs <b>'+ev.d2+'</b> is <b>'+ev.gapPct.toFixed(1)+'%</b> · needs ≤ '+ev.gapNeed+'%':'Closest: <b>'+nm+'</b> at '+Math.round(ev.rate)+'% · needs '+Math.round(ev.need)+'%';
     c.meta.hidden=true;
   }
   c.go.disabled=!ev.signal;
@@ -1007,6 +1027,14 @@ function applyTheme(){
 }
 
 /* ---------- quick settings (stake, martingale, take profit, stop loss, barrier) ---------- */
+function renderGap(){
+  const on=sigTab==='dm';
+  $('#gap-bar').hidden=!on;
+  if(!on)return;
+  $('#gap-pick').innerHTML=[[0,'Off'],[0.1,'0.1%'],[0.2,'0.2%'],[0.3,'0.3%'],[0.5,'0.5%'],[1,'1%']].map(([v,l])=>'<button type="button" data-g="'+v+'" aria-pressed="'+(set.gap===v)+'">'+l+'</button>').join('');
+  $('#gapn-pick').innerHTML='<span class="sub">Ticks:</span> '+[50,100,250,1000].map(v=>'<button type="button" data-n="'+v+'" aria-pressed="'+((set.gapN||1000)===v)+'">'+v+'</button>').join('');
+  $('#gap-note').textContent=set.gap>0?'Signals when the most common digit and the second most common digit (last '+(set.gapN||1000)+' ticks) are within '+set.gap+'%. The bot waits for the most common digit, then matches the second one.':'Off: the original Digit Match signal is used.';
+}
 function renderQS(){
   const f=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=v;};
   f('#q-stake',cfg.stake);f('#q-mult',cfg.mult);f('#q-tp',cfg.tp);f('#q-sl',cfg.sl);
@@ -1014,6 +1042,7 @@ function renderQS(){
   $('#q-note').textContent='A win returns the stake to '+cfg.stake+'. A loss multiplies it by '+m+(cfg.tp>0?'. Stops at +'+cfg.tp:'')+(cfg.sl>0?' or -'+cfg.sl:'')+'.';
   const ou=sigTab==='ou';
   $('#qs-bar').hidden=!ou;
+  renderGap();
   if(ou){
     const row=(id,key,lo,hi)=>{$(id).innerHTML='<button type="button" data-k="'+key+'" data-p="" aria-pressed="'+(cfg[key]==null)+'">Scan</button>'+Array.from({length:hi-lo+1},(_,i)=>lo+i).map(d=>'<button type="button" data-k="'+key+'" data-p="'+d+'" aria-pressed="'+(cfg[key]===d)+'">'+d+'</button>').join('');};
     row('#q-bar-o','pickO',0,8);row('#q-bar-u','pickU',1,9);
@@ -1029,6 +1058,7 @@ function bindAll(){
     let v=numOr(e.target.value,a[2]);if(a[1]==='mult')v=Math.max(1,v);if(a[1]==='stake')v=Math.max(0.35,v);if(v<0)v=0;
     cfg[a[1]]=v;saveCfg();renderQS();syncForm();
   }));
+  $('#gap-bar').addEventListener('click',e=>{const nb=e.target.closest('button[data-n]');if(nb){set.gapN=+nb.dataset.n;saveSet();renderGap();Object.keys(cards).forEach(paintCard);renderSum();return;}const b=e.target.closest('button[data-g]');if(!b)return;set.gap=+b.dataset.g;saveSet();renderGap();Object.keys(cards).forEach(paintCard);renderSum();});
   $('#qs-bar').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;cfg[b.dataset.k]=b.dataset.p===''?null:+b.dataset.p;saveCfg();renderQS();});
   $('.nav-in').addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTab(b.dataset.tab);});
   $('#sig-tabs').addEventListener('click',e=>{

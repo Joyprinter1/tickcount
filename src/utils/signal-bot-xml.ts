@@ -20,6 +20,7 @@ export type TSignalBotOptions = {
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
     live_signal?: boolean; // Matches only: wait for the last digit to equal the live 'Signal Digit' block and trade Matches on that digit
+    live_search?: boolean; // Matches gap strategy: wait for the live 'Signal Search Digit', then match the live 'Signal Digit'
     live_mode?: 'follow' | 'even' | 'odd'; // Even/Odd live bot: buy Even/Odd as the live 'Signal Side' block says ('even'/'odd' = ignore the other side)
     search_once?: boolean; // default true: wait for the search digit before the first trade only, then trade every tick
     prediction_after_loss?: number; // barrier digit used after a losing trade (defaults to `prediction`)
@@ -185,9 +186,10 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 
     // ---- Before purchase: wait for the trigger digit(s), then buy ----
     const live_digit = () => `<block type="signal_digit" id="${id()}"></block>`;
+    const live_search = () => `<block type="signal_search" id="${id()}"></block>`;
     const purchase_plain = () => `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', o.contract)}</block>`;
     const purchase_block = () => (live && o.tradetype === 'matchesdiffers' ? set('Prediction', live_digit(), purchase_plain()) : purchase_plain());
-    const digit_checks = live ? [cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, live_digit())] : search_names.map(name => cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, get(name)));
+    const digit_checks = live ? [cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, o.live_search ? live_search() : live_digit())] : search_names.map(name => cmp('EQ', `<block type="last_digit" id="${id()}"></block>`, get(name)));
     const trigger_condition = digit_checks.length ? digit_checks.reduce((a, b) => logic('OR', a, b)) : '';
     // Journal line each time a search number shows up: "Search number 6 found - buying Match 4".
     const label = `${CONTRACT_LABELS[o.contract] ?? o.contract}${has_prediction ? (live ? ' (signal digit)' : ` ${o.prediction}`) : ''}`;
