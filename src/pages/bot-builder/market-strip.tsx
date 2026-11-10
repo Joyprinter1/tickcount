@@ -214,13 +214,13 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
             </button>
             {open && (
                 <>
-                    <div style={{ display: 'flex', gap: 4, marginTop: 4, padding: 3, overflowX: 'auto' }}>
+                    <div style={{ display: 'flex', gap: 3, marginTop: 4, padding: 3, overflowX: 'auto' }}>
                         {counts.map((n, d) => (
                             <div key={d} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 <div
                                     style={{
-                                        width: 30,
-                                        height: 30,
+                                        width: 'clamp(22px, calc((100vw - 130px) / 10), 30px)',
+                                        height: 'clamp(22px, calc((100vw - 130px) / 10), 30px)',
                                         borderRadius: '50%',
                                         background: role[d] || '#BFC3C7',
                                         color: role[d] && role[d] !== '#F2E01A' ? '#fff' : '#111',
@@ -228,14 +228,14 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: 12,
+                                        fontSize: 'clamp(10px, 3.2vw, 12px)',
                                         lineHeight: 1,
                                         outline: last === d ? '3px solid #E02F2F' : 'none',
                                         outlineOffset: 1,
                                     }}
                                 >
                                     <b>{d}</b>
-                                    <span style={{ fontSize: 8 }}>{digits.length ? ((n / total) * 100).toFixed(1) : '–'}%</span>
+                                    <span style={{ fontSize: 'clamp(6px, 2vw, 8px)' }}>{digits.length ? ((n / total) * 100).toFixed(1) : '–'}%</span>
                                 </div>
                                 <span style={{ color: '#E02F2F', fontSize: 9, height: 9 }}>{last === d ? '▲' : ''}</span>
                             </div>
