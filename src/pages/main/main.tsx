@@ -83,6 +83,9 @@ const AppWrapper = observer(() => {
     const location = useLocation();
     const navigate = useNavigate();
     const [left_tab_shadow, setLeftTabShadow] = useState<boolean>(false);
+    // The live Matches / Even-Odd bots read the signal that DerivScope publishes. DerivScope only runs while its tab is
+    // open, so after a live signal is sent we keep a hidden copy running in the background.
+    const [keep_signal_alive, setKeepSignalAlive] = useState<boolean>(false);
     const [right_tab_shadow, setRightTabShadow] = useState<boolean>(false);
 
     // Trade type modal state
@@ -358,6 +361,7 @@ const AppWrapper = observer(() => {
             }
             if (!data || data.type !== 'tickdesk:signal' || !data.signal) return;
             const signal = data.signal;
+            if (['DIGITMATCH', 'DIGITEVEN', 'DIGITODD'].includes(String(signal.contract))) setKeepSignalAlive(true);
             setActiveTab(BOT_BUILDER);
             // Wait (up to ~20s) for the builder and Deriv's contract data to be ready.
             const ready = () => !!(window.Blockly?.derivWorkspace && ApiHelpers?.instance?.contracts_for);
@@ -619,6 +623,15 @@ const AppWrapper = observer(() => {
                 <TradingViewModal />
             </DesktopWrapper>
             <MobileWrapper>{!is_open && <RunPanel />}</MobileWrapper>
+            {keep_signal_alive && active_tab !== DERIVSCOPE && (
+                <iframe
+                    src='/derivscope/index.html'
+                    title='DerivScope (background signal for live bots)'
+                    aria-hidden='true'
+                    tabIndex={-1}
+                    style={{ position: 'fixed', left: -10000, top: 0, width: 420, height: 720, border: 0, pointerEvents: 'none' }}
+                />
+            )}
             <Dialog
                 cancel_button_text={cancel_button_text || localize('Cancel')}
                 className='dc-dialog__wrapper--fixed'
