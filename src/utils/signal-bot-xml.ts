@@ -309,6 +309,7 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 <block type="before_purchase" id="${id()}" x="0" y="640"><statement name="BEFOREPURCHASE_STACK">${before_purchase_stack}</statement></block>${is_accu ? accu_extra : ''}`;
 
     if (o.hedge) v(o.hedge);
+    if (live && o.tradetype === 'matchesdiffers') v('LIVE|SIGNAL'); // tells Purchase.js to buy Matches on the live signal digit
     const variables = Object.entries(vars)
         .map(([name, vid]) => `<variable type="" id="${vid}" islocal="false" iscloud="false">${esc(name)}</variable>`)
         .join('');

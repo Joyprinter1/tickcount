@@ -4,6 +4,7 @@ import { contractStatus, info, log } from '../utils/broadcast';
 import { doUntilDone, getUUID, recoverFromError, tradeOptionToBuy } from '../utils/helpers';
 import { purchaseSuccessful } from './state/actions';
 import { BEFORE_PURCHASE } from './state/constants';
+import { getSignalDigit } from '../Interface/TicksInterface';
 
 let delayIndex = 0;
 let purchase_reference;
@@ -37,7 +38,7 @@ export default Engine =>
                 try {
                     if (typeof window !== 'undefined' && window.__tickdeskCopy) {
                         window.__tickdeskCopy({
-                            parameters: tradeOptionToBuy(contract_type, this.tradeOptions).parameters,
+                            parameters: tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, this.tradeOptions)).parameters,
                             isVirtual: /^VR/i.test(String(this.accountInfo?.loginid ?? '')),
                             masterContractId: buy.contract_id,
                         });
@@ -100,7 +101,7 @@ export default Engine =>
                     delayIndex++
                 ).then(onSuccess);
             }
-            const trade_option = tradeOptionToBuy(contract_type, this.tradeOptions);
+            const trade_option = tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, this.tradeOptions));
             const action = () => api_base.api.send(trade_option);
 
             this.isSold = false;
@@ -131,6 +132,20 @@ export default Engine =>
                 ['PriceMoved', 'InvalidContractProposal'],
                 delayIndex++
             ).then(onSuccess);
+        }
+        // Live Matches bots (variable "LIVE|SIGNAL"): the trade options are fixed when the run starts, so the digit to
+        // match is read from the live signal at the moment of purchase instead of the fixed Prediction.
+        withLiveDigit(contract_type, options) {
+            try {
+                if (contract_type !== 'DIGITMATCH') return options;
+                const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
+                const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
+                const live = vars.some(v => String(v.name ?? (v.getName ? v.getName() : '')) === 'LIVE|SIGNAL');
+                const d = live ? getSignalDigit() : -1;
+                return d >= 0 ? { ...options, prediction: d } : options;
+            } catch (e) {
+                return options;
+            }
         }
         // Tickdesk hedging: a bot variable named "HEDGE|TYPE|digit|barrier|barrier2" asks for a second contract
         // of the same market and duration to be bought together with the main one.
