@@ -1,9 +1,12 @@
 // The Signals page stores its current digit in the browser; only a fresh value (under 20 s old) counts.
-export const getSignalDigit = (now = Date.now(), storage = globalThis.localStorage) => {
+// When the board also lists the greyed digits (`digits`), the live last digit counts if it is any of them.
+export const getSignalDigit = (now = Date.now(), storage = globalThis.localStorage, last = undefined) => {
     try {
         const s = JSON.parse(storage.getItem('td.signal') || 'null');
         const d = Number(s?.digit);
-        return Number.isInteger(d) && d >= 0 && d <= 9 && now - Number(s?.at) < 20000 ? d : -1;
+        if (!(Number.isInteger(d) && d >= 0 && d <= 9 && now - Number(s?.at) < 20000)) return -1;
+        const list = Array.isArray(s?.digits) ? s.digits.map(Number) : [];
+        return Number.isInteger(last) && list.includes(last) ? last : d;
     } catch (e) {
         return -1;
     }
@@ -39,7 +42,13 @@ const getTicksInterface = tradeEngine => {
         getStatList: (...args) => tradeEngine.getStatList(...args),
         getLastTick: (...args) => tradeEngine.getLastTick(...args),
         getLastDigit: (...args) => tradeEngine.getLastDigit(...args),
-        getSignalDigit: () => Promise.resolve(getSignalDigit()),
+        getSignalDigit: () =>
+            Promise.resolve(tradeEngine.getLastDigit()).then(last => {
+                const d = getSignalDigit(Date.now(), globalThis.localStorage, Number(last));
+                // remember a hit so the purchase buys Matches on exactly this digit
+                if (d >= 0 && d === Number(last)) globalThis.__tdMatch = { d, at: Date.now() };
+                return d;
+            }),
         getSignalSide: () => Promise.resolve(getSignalSide()),
         getSignalSearch: () => Promise.resolve(getSignalSearch()),
         getTicks: (...args) => tradeEngine.getTicks(...args),
