@@ -1,6 +1,7 @@
 // Tickdesk bot library API. Pure logic: the storage object is passed in, so it can be tested without Netlify.
 import { handleCopy } from './copy.mjs';
 import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypto';
+import ANALYZER_HTML from './analyzer-page.mjs';
 
 export const CATEGORIES = ['Over / Under', 'Even / Odd', 'Rise / Fall', 'Matches / Differs', 'Only Ups / Downs', 'Other'];
 const MAX_XML = 1_500_000;
@@ -198,6 +199,10 @@ export async function handle(req, store, env = {}, deps = {}) {
     }
 
     if (!(await isAdmin())) return json({ error: 'Please log in.' }, 401);
+
+    if (method === 'GET' && sub === 'analyzer') {
+        return new Response(ANALYZER_HTML, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex' } });
+    }
 
     if (sub === 'settings') {
         const site = (await store.get('site', { type: 'json' })) ?? DEFAULT_SITE;

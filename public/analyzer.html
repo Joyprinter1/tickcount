@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="color-scheme" content="dark">
+<title>Private page</title>
+<style>
+:root{--bg:#0B1117;--surface:#131B23;--raise:#1A242E;--line:#26323E;--fg:#E7EDF2;--muted:#8997A6;--accent:#F2B544;--on-accent:#1B1303;--loss:#FF6B6B}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px}
+.box{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px}
+.lock{font-size:34px;line-height:1}
+h1{margin:10px 0 4px;font-size:20px}
+p{margin:0 0 14px;color:var(--muted);font-size:14px}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 4px}
+input[type=password],input[type=text]{width:100%;background:var(--raise);border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-height:44px;color:var(--fg);font:inherit}
+.show{display:flex;gap:8px;align-items:center;margin:10px 0 0;font-size:13.5px;color:var(--muted)}
+.show input{width:18px;height:18px}
+button{margin-top:14px;width:100%;border:0;border-radius:11px;padding:11px 16px;font:inherit;font-weight:700;min-height:46px;background:var(--accent);color:var(--on-accent);cursor:pointer}
+button:disabled{opacity:.6}
+.msg{margin:10px 0 0;font-size:14px;min-height:1.3em;color:var(--loss)}
+</style>
+</head>
+<body>
+<form class="box" id="f" autocomplete="off">
+  <div class="lock" aria-hidden="true">🔒</div>
+  <h1>Private page</h1>
+  <p>Only the owner can open this. Enter the admin password.</p>
+  <label for="pw">Password</label>
+  <input type="password" id="pw" autocomplete="current-password" required>
+  <label class="show"><input type="checkbox" id="showpw"> Show password</label>
+  <button type="submit" id="go">Unlock</button>
+  <div class="msg" id="msg" role="alert"></div>
+</form>
+<script>
+(function(){
+  var f=document.getElementById('f'),pw=document.getElementById('pw'),msg=document.getElementById('msg'),go=document.getElementById('go');
+  var KEY='td.an.token';
+  function store(v){try{if(v)sessionStorage.setItem(KEY,v);else sessionStorage.removeItem(KEY)}catch(e){}}
+  function load(){try{return sessionStorage.getItem(KEY)||''}catch(e){return ''}}
+  document.getElementById('showpw').addEventListener('change',function(e){pw.type=e.target.checked?'text':'password'});
+  function open(html){document.open();document.write(html);document.close()}
+  function fetchPage(token){
+    return fetch('/api/admin/analyzer',{headers:{authorization:'Bearer '+token},cache:'no-store'}).then(function(r){
+      if(r.status===401)return null;
+      if(!r.ok)throw new Error('Could not load the page ('+r.status+').');
+      return r.text();
+    });
+  }
+  function show(t){msg.textContent=t||''}
+  var saved=load();
+  if(saved){go.disabled=true;fetchPage(saved).then(function(h){if(h)open(h);else{store('');go.disabled=false}}).catch(function(){go.disabled=false})}
+  f.addEventListener('submit',function(e){
+    e.preventDefault();show('');go.disabled=true;
+    fetch('/api/admin/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:pw.value})})
+      .then(function(r){return r.json().then(function(j){return{ok:r.ok,j:j}})})
+      .then(function(x){
+        if(!x.ok||!x.j.token)throw new Error(x.j&&x.j.error||'Wrong password.');
+        store(x.j.token);return fetchPage(x.j.token);
+      })
+      .then(function(h){if(!h)throw new Error('Please try again.');open(h)})
+      .catch(function(err){show(err&&err.message||'Could not reach the server.');go.disabled=false});
+  });
+})();
+</script>
+</body>
+</html>
