@@ -141,7 +141,9 @@ export default Engine =>
                 const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
                 const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
                 const live = vars.some(v => String(v.name ?? (v.getName ? v.getName() : '')) === 'LIVE|SIGNAL');
-                const d = live ? getSignalDigit() : -1;
+                const m = globalThis.__tdMatch;
+                globalThis.__tdMatch = undefined;
+                const d = live ? (m && Date.now() - m.at < 5000 ? m.d : getSignalDigit()) : -1;
                 return d >= 0 ? { ...options, prediction: d } : options;
             } catch (e) {
                 return options;
