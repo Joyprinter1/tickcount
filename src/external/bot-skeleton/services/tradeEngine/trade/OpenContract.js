@@ -11,6 +11,15 @@ export default Engine =>
                 if (data.msg_type === 'proposal_open_contract') {
                     const contract = data.proposal_open_contract;
 
+                    // "All 3 at once" Matches: the extra legs are shown as their own rows and merged into the result.
+                    const lid = contract?.contract_id;
+                    if (lid && this.legIds?.includes(lid)) {
+                        this.legData[lid] = contract;
+                        broadcastContract({ accountID: api_base.account_info.loginid, ...contract });
+                        if (contract.is_sold) this.flushLegs();
+                        return;
+                    }
+
                     // Tickdesk hedging: the second leg is bought next to the main contract (see Purchase.js).
                     const hid = this.hedgeContractId;
                     if (hid && hid !== 'pending' && contract?.contract_id === hid) {
@@ -26,7 +35,7 @@ export default Engine =>
                     }
 
                     // Wait until both legs of a hedge have finished, then report them as one trade.
-                    if (contract.is_sold && this.hedgeContractId && !this.hedgeData?.is_sold) {
+                    if (contract.is_sold && ((this.hedgeContractId && !this.hedgeData?.is_sold) || this.legsOpen())) {
                         this.hedgeWaiting = contract;
                         clearTimeout(this.hedgePoll);
                         this.hedgePoll = setTimeout(() => {
@@ -34,8 +43,13 @@ export default Engine =>
                             if (this.hedgeContractId && this.hedgeContractId !== 'pending') {
                                 api_base.api.send({ proposal_open_contract: 1, contract_id: this.hedgeContractId });
                             }
+                            (this.legIds || []).forEach(id => {
+                                if (!this.legData[id]?.is_sold) api_base.api.send({ proposal_open_contract: 1, contract_id: id });
+                            });
                             this.hedgePoll = setTimeout(() => {
                                 this.hedgeContractId = '';
+                                this.legsPendingBuys = 0;
+                                this.legIds = [];
                                 this.flushHedge();
                             }, 20000);
                         }, 8000);
@@ -48,6 +62,14 @@ export default Engine =>
             api_base.pushSubscription(subscription);
         }
 
+        legsOpen() {
+            return (this.legsPendingBuys || 0) > 0 || (this.legIds || []).some(id => !this.legData?.[id]?.is_sold);
+        }
+
+        flushLegs() {
+            if (!this.legsOpen() && !(this.hedgeContractId && !this.hedgeData?.is_sold)) this.flushHedge();
+        }
+
         flushHedge() {
             const waiting = this.hedgeWaiting;
             if (!waiting) return;
@@ -57,6 +79,18 @@ export default Engine =>
         }
 
         mergeHedge(contract) {
+            const legs = (this.legIds || []).map(id => this.legData?.[id]).filter(l => l?.is_sold);
+            if (legs.length) {
+                const sum = key => legs.reduce((t, l) => t + (Number(l[key]) || 0), Number(contract[key]) || 0);
+                contract = {
+                    ...contract,
+                    buy_price: sum('buy_price'),
+                    sell_price: sum('sell_price'),
+                    bid_price: sum('bid_price'),
+                    payout: sum('payout'),
+                    profit: Math.round(sum('profit') * 100) / 100,
+                };
+            }
             const h = this.hedgeData;
             if (!this.hedgeContractId || !h || !h.is_sold) return contract;
             const add = key => (Number(contract[key]) || 0) + (Number(h[key]) || 0);
@@ -84,6 +118,9 @@ export default Engine =>
                 this.contractId = '';
                 this.hedgeContractId = '';
                 this.hedgeData = null;
+                this.legIds = [];
+                this.legData = {};
+                this.legsPendingBuys = 0;
                 clearTimeout(this.transaction_recovery_timeout);
                 this.updateTotals(contract);
                 contractStatus({

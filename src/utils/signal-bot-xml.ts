@@ -20,6 +20,7 @@ export type TSignalBotOptions = {
     tick_count?: number; // accumulator: sell after this many ticks
     prediction: number | null; // barrier digit, null for even/odd
     live_signal?: boolean; // Matches only: wait for the last digit to equal the live 'Signal Digit' block and trade Matches on that digit
+    live_triple?: boolean; // Matches live: buy Match on the main and both greyed digits together (Purchase.js)
     live_search?: boolean; // Matches gap strategy: wait for the live 'Signal Search Digit', then match the live 'Signal Digit'
     live_mode?: 'follow' | 'even' | 'odd'; // Even/Odd live bot: buy Even/Odd as the live 'Signal Side' block says ('even'/'odd' = ignore the other side)
     search_once?: boolean; // default true: wait for the search digit before the first trade only, then trade every tick
@@ -309,7 +310,8 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 <block type="before_purchase" id="${id()}" x="0" y="640"><statement name="BEFOREPURCHASE_STACK">${before_purchase_stack}</statement></block>${is_accu ? accu_extra : ''}`;
 
     if (o.hedge) v(o.hedge);
-    if (live && o.tradetype === 'matchesdiffers') v('LIVE|SIGNAL'); // tells Purchase.js to buy Matches on the live signal digit
+    if (live && o.tradetype === 'matchesdiffers') v('LIVE|SIGNAL');
+    if (live && o.live_triple) v('LIVE|TRIPLE'); // tells Purchase.js to buy Matches on the live signal digit
     const variables = Object.entries(vars)
         .map(([name, vid]) => `<variable type="" id="${vid}" islocal="false" iscloud="false">${esc(name)}</variable>`)
         .join('');

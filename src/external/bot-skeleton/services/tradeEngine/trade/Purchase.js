@@ -20,6 +20,9 @@ export default Engine =>
             this.hedgeContractId = '';
             this.hedgeData = null;
             this.hedgeWaiting = null;
+            this.legIds = [];
+            this.legData = {};
+            this.legsPendingBuys = 0;
 
             const onSuccess = response => {
                 // Don't unnecessarily send a forget request for a purchased contract.
@@ -53,6 +56,7 @@ export default Engine =>
 
                 delayIndex = 0;
                 this.buyHedgeLeg();
+                this.buyTripleLegs(contract_type);
                 log(LogTypes.PURCHASE, { transaction_id: buy.transaction_id });
                 info({
                     accountID: this.accountInfo.loginid,
@@ -140,7 +144,12 @@ export default Engine =>
                 if (contract_type !== 'DIGITMATCH') return options;
                 const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
                 const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
-                const live = vars.some(v => String(v.name ?? (v.getName ? v.getName() : '')) === 'LIVE|SIGNAL');
+                const names = vars.map(v => String(v.name ?? (v.getName ? v.getName() : '')));
+                const live = names.includes('LIVE|SIGNAL');
+                if (live && names.includes('LIVE|TRIPLE')) {
+                    const list = this.getBoardDigits();
+                    if (list.length > 1) return { ...options, prediction: list[0] };
+                }
                 const m = globalThis.__tdMatch;
                 globalThis.__tdMatch = undefined;
                 const d = live ? (m && Date.now() - m.at < 5000 ? m.d : getSignalDigit()) : -1;
@@ -149,6 +158,50 @@ export default Engine =>
                 return options;
             }
         }
+        // The digits on the live board: main digit first, then the greyed ones.
+        getBoardDigits() {
+            try {
+                const s = JSON.parse(globalThis.localStorage.getItem('td.signal') || 'null');
+                if (!(Date.now() - Number(s?.at) < 20000)) return [];
+                const list = [Number(s.digit), ...(Array.isArray(s.digits) ? s.digits.map(Number) : [])];
+                return list.filter((d, i) => Number.isInteger(d) && d >= 0 && d <= 9 && list.indexOf(d) === i);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // "All 3 at once" Matches: next to the main contract (main digit) buy Match on the two greyed digits.
+        buyTripleLegs(contract_type) {
+            try {
+                if (contract_type !== 'DIGITMATCH') return;
+                const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
+                const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
+                if (!vars.some(v => String(v.name ?? (v.getName ? v.getName() : '')) === 'LIVE|TRIPLE')) return;
+                const extra = this.getBoardDigits().slice(1, 3);
+                this.legsPendingBuys = extra.length;
+                extra.forEach(digit => {
+                    const request = tradeOptionToBuy('DIGITMATCH', { ...this.tradeOptions, prediction: digit });
+                    doUntilDone(() => api_base.api.send(request))
+                        .then(response => {
+                            const id = response?.buy?.contract_id;
+                            this.legsPendingBuys -= 1;
+                            if (id) {
+                                this.legIds.push(id);
+                                api_base.api.send({ proposal_open_contract: 1, contract_id: id });
+                            } else {
+                                this.flushLegs();
+                            }
+                        })
+                        .catch(() => {
+                            this.legsPendingBuys -= 1;
+                            this.flushLegs();
+                        });
+                });
+            } catch (e) {
+                this.legsPendingBuys = 0;
+            }
+        }
+
         // Tickdesk hedging: a bot variable named "HEDGE|TYPE|digit|barrier|barrier2" asks for a second contract
         // of the same market and duration to be bought together with the main one.
         getHedgeSpec() {
