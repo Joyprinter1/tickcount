@@ -340,7 +340,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     live_signal: signal.live === true && tradetype === 'matchesdiffers' && signal.contract === 'DIGITMATCH',
                     live_search: signal.live === true && signal.gap === true,
                     live_mode:
-                        signal.live === true && tradetype === 'evenodd' ? (signal.eo_mode === 'even' || signal.eo_mode === 'odd' ? signal.eo_mode : 'follow') : undefined,
+                        signal.live === true && (tradetype === 'evenodd' || tradetype === 'overunder' || tradetype === 'risefall') ? (signal.eo_mode === 'even' || signal.eo_mode === 'odd' ? signal.eo_mode : 'follow') : undefined,
                     multiplier_value: signal.multiplier_value,
                     growth_rate: signal.growth_rate,
                     tick_count: signal.tick_count,

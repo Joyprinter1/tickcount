@@ -136,7 +136,7 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const growth_rate = o.growth_rate && o.growth_rate > 0 ? o.growth_rate : 0.01;
     const tick_count = Math.max(1, Math.floor(Number(o.tick_count)) || 5);
     const live = o.live_signal === true && o.tradetype === 'matchesdiffers' && o.contract === 'DIGITMATCH';
-    const live_eo = o.live_mode !== undefined && o.tradetype === 'evenodd';
+    const live_eo = o.live_mode !== undefined && (o.tradetype === 'evenodd' || o.tradetype === 'overunder' || o.tradetype === 'risefall');
     const triggers = live || live_eo ? [] : Array.from(new Set(o.trigger.map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 9))).slice(0, 1);
     const stake = o.stake && o.stake > 0 ? o.stake : 1;
     const martingale = o.martingale && o.martingale >= 1 ? o.martingale : 2;
@@ -220,8 +220,11 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 <statement name="MULTIPLIER_PARAMS"><block type="multiplier_take_profit" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_tp)}</shadow></value><next><block type="multiplier_stop_loss" id="${id()}"><value name="AMOUNT"><shadow type="math_number_positive" id="${id()}">${field('NUM', mult_sl)}</shadow></value></block></next></block></statement></block>`;
     const eo_side = (s: string) => cmp('EQ', `<block type="signal_side" id="${id()}"></block>`, `<block type="text" id="${id()}">${field('TEXT', s)}</block>`);
     const eo_buy = (c: string) => `<block type="purchase" id="${id()}">${field('PURCHASE_LIST', c)}</block>`;
-    const live_eo_stack =
-        o.live_mode === 'even'
+    const live_pair: [string, string, string, string] | null =
+        o.tradetype === 'overunder' ? ['over', 'DIGITOVER', 'under', 'DIGITUNDER'] : o.tradetype === 'risefall' ? ['rise', 'CALL', 'fall', 'PUT'] : null;
+    const live_eo_stack = live_pair
+        ? `<block type="controls_if" id="${id()}"><mutation elseif="1"></mutation>${value('IF0', eo_side(live_pair[0]))}<statement name="DO0">${eo_buy(live_pair[1])}</statement>${value('IF1', eo_side(live_pair[2]))}<statement name="DO1">${eo_buy(live_pair[3])}</statement></block>`
+        : o.live_mode === 'even'
             ? `<block type="controls_if" id="${id()}">${value('IF0', eo_side('even'))}<statement name="DO0">${eo_buy('DIGITEVEN')}</statement></block>`
             : o.live_mode === 'odd'
             ? `<block type="controls_if" id="${id()}">${value('IF0', eo_side('odd'))}<statement name="DO0">${eo_buy('DIGITODD')}</statement></block>`

@@ -24,9 +24,19 @@ export const getSignalSearch = (now = Date.now(), storage = globalThis.localStor
 // The Signals page also stores its Even/Odd read ('EVEN' / 'ODD' / '' when there is no clear read); fresh under 20 s only.
 export const getSignalSide = (now = Date.now(), storage = globalThis.localStorage) => {
     try {
-        const s = JSON.parse(storage.getItem('td.signalEO') || 'null');
-        const side = String(s?.side || '').toUpperCase();
-        return (side === 'EVEN' || side === 'ODD') && now - Number(s?.at) < 20000 ? side.toLowerCase() : '';
+        // Freshest non-empty side among the Even/Odd, Over/Under and Rise/Fall boards.
+        let best = '';
+        let best_at = 0;
+        ['td.signalEO', 'td.signalOU', 'td.signalRF'].forEach(k => {
+            const s = JSON.parse(storage.getItem(k) || 'null');
+            const side = String(s?.side || '').toUpperCase();
+            const at = Number(s?.at);
+            if (['EVEN', 'ODD', 'OVER', 'UNDER', 'RISE', 'FALL'].includes(side) && now - at < 20000 && at >= best_at) {
+                best = side.toLowerCase();
+                best_at = at;
+            }
+        });
+        return best;
     } catch (e) {
         return '';
     }
