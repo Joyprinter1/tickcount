@@ -114,7 +114,8 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
 .xc.warn{color:var(--loss);border-color:var(--loss)}
 .dchip.t{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .qs{display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
-.qs-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qs-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#qs-set{gap:6px;padding:10px 12px}#qs-set label{font-size:11.5px;gap:3px}#qs-set input{min-height:36px;padding:4px 8px;font-size:15px}
 .qs label{display:flex;flex-direction:column;gap:5px;font-weight:700;font-size:14px}
 .qs input{width:100%;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-weight:600;font-size:16px}
 .bar-pick{display:flex;flex-wrap:wrap;gap:6px}
@@ -260,6 +261,8 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
           <label>Martingale<input id="q-mult" type="number" min="1" step="0.1" inputmode="decimal"></label>
           <label>Take profit<input id="q-tp" type="number" min="0" step="0.01" inputmode="decimal"></label>
           <label>Stop loss<input id="q-sl" type="number" min="0" step="0.01" inputmode="decimal"></label>
+          <label>Runs<input id="q-runs" type="number" min="1" step="1" inputmode="numeric"></label>
+          <label>Ticks<input id="q-dur" type="number" min="1" max="10" step="1" inputmode="numeric"></label>
         </div>
         <p class="hint" id="q-note"></p>
       </div>
@@ -521,7 +524,7 @@ const MKT={};MARKETS.forEach(m=>{MKT[m.key]=m;});
 const DEF_SET={family:'all',sens:'normal',theme:'auto',forceDemo:false,sigTab:'ou',gap:0.3,gapN:1000};
 const EMBEDDED=window.parent!==window;
 if(EMBEDDED)document.documentElement.classList.add('embedded');
-const DEF_BOT={volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper',pickO:null,pickU:null};
+const DEF_BOT={sdur:1,volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper',pickO:null,pickU:null};
 const set=Object.assign({},DEF_SET,store.get('tickdesk.set',{}));
 const cfg=Object.assign({},DEF_BOT,store.get('tickdesk.bot',{}));
 cfg.target='paper';
@@ -924,7 +927,7 @@ function openBot(key){
   if(EMBEDDED){
     window.parent.postMessage({type:'tickdesk:signal',signal:{
       symbol:MKT[key].sym,name:MKT[key].name,contract:CT[ev.ct].api,kind:ev.ct,
-      barrier:CT[ev.ct].needs?cfg.barrier:null,trigger:ev.trigger.slice(),runs:ev.runs,
+      barrier:CT[ev.ct].needs?cfg.barrier:null,trigger:ev.trigger.slice(),runs:cfg.runs,ticks:cfg.sdur||1,
       stake:cfg.stake,mult:cfg.mult,tp:cfg.tp,sl:cfg.sl,rate:Math.round(ev.rate),base:Math.round(ev.base),at:Date.now()}},window.location.origin);
     toast('Opening Deriv bot builder…');
     return;
@@ -1037,7 +1040,7 @@ function renderGap(){
 }
 function renderQS(){
   const f=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=v;};
-  f('#q-stake',cfg.stake);f('#q-mult',cfg.mult);f('#q-tp',cfg.tp);f('#q-sl',cfg.sl);
+  f('#q-stake',cfg.stake);f('#q-mult',cfg.mult);f('#q-tp',cfg.tp);f('#q-sl',cfg.sl);f('#q-runs',cfg.runs);f('#q-dur',cfg.sdur||1);
   const m=Math.max(1,cfg.mult);
   $('#q-note').textContent='A win returns the stake to '+cfg.stake+'. A loss multiplies it by '+m+(cfg.tp>0?'. Stops at +'+cfg.tp:'')+(cfg.sl>0?' or -'+cfg.sl:'')+'.';
   const ou=sigTab==='ou';
@@ -1054,8 +1057,8 @@ function renderQS(){
 }
 /* ---------- events ---------- */
 function bindAll(){
-  [['#q-stake','stake',1],['#q-mult','mult',1],['#q-tp','tp',0],['#q-sl','sl',0]].forEach(a=>$(a[0]).addEventListener('input',e=>{
-    let v=numOr(e.target.value,a[2]);if(a[1]==='mult')v=Math.max(1,v);if(a[1]==='stake')v=Math.max(0.35,v);if(v<0)v=0;
+  [['#q-stake','stake',1],['#q-mult','mult',1],['#q-tp','tp',0],['#q-sl','sl',0],['#q-runs','runs',10],['#q-dur','sdur',1]].forEach(a=>$(a[0]).addEventListener('input',e=>{
+    let v=numOr(e.target.value,a[2]);if(a[1]==='mult')v=Math.max(1,v);if(a[1]==='stake')v=Math.max(0.35,v);if(a[1]==='runs')v=Math.max(1,Math.round(v));if(a[1]==='sdur')v=Math.min(10,Math.max(1,Math.round(v)));if(v<0)v=0;
     cfg[a[1]]=v;saveCfg();renderQS();syncForm();
   }));
   $('#gap-bar').addEventListener('click',e=>{const nb=e.target.closest('button[data-n]');if(nb){set.gapN=+nb.dataset.n;saveSet();renderGap();Object.keys(cards).forEach(paintCard);renderSum();return;}const b=e.target.closest('button[data-g]');if(!b)return;set.gap=+b.dataset.g;saveSet();renderGap();Object.keys(cards).forEach(paintCard);renderSum();});
