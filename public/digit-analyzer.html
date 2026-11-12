@@ -1171,7 +1171,7 @@ async function sendTradeTypeToBot(type,targetNote){
  const sel=$("symbol"),name=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:sel.value;
  const r=Math.max(1,Math.round(num("daRuns",10,1)));
  if(window.parent===window){if(targetNote)targetNote.textContent="Open this page from the Joytrader site to load the bot.";return}
- window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:sel.value,name:name,contract:contract,kind:type,barrier:barrier,trigger:[],runs:r,stake:num("daStake",0.35,0.35),mult:num("daMult",1,1),tp:num("daTp",0,0),sl:num("daSl",0,0),ticks:Math.max(1,Math.min(10,Math.round(num("daDur",contract.startsWith("RUN")?2:1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
+ window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:sel.value,name:name,contract:contract,kind:type,barrier:barrier,trigger:[],runs:r,stake:num("daStake",0.35,0.35),mult:num("daMult",1,1),tp:num("daTp",0,0),sl:num("daSl",0,0),ticks:contract.startsWith("RUN")?Math.max(2,Math.min(5,Math.round(num("daDur",2,1)))):Math.max(1,Math.min(10,Math.round(num("daDur",1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
  if(targetNote)targetNote.textContent="Opening Bot Builder…";
 }
 function updateBotHandoff(signalResult){
