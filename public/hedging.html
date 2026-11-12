@@ -159,6 +159,12 @@ function readRU(key){
   const edge=((uu/n)/.25+(dd/n)/.25)/2-1;
   return{key,family:'ru',strength:clamp(Math.round(50+edge*250),50,85),uu:uu/n,dd:dd/n,edge};
 }
+function readMH(key){
+  const d=D[key];if(d.p.length<150)return null;
+  const ds=d.p.slice(-200).map(q=>digitOf(q,d.pip)),n=ds.length,c=Array(10).fill(0);ds.forEach(x=>c[x]++);
+  const o=[0,1,2,3,4,5,6,7,8,9].sort((x,y)=>c[y]-c[x]||x-y),a=o[0],b=o[1];
+  return{key,family:'mh',strength:clamp(Math.round(50+((c[a]+c[b])/n-.2)*250),50,85),a,b,pa:c[a]/n,pb:c[b]/n,n};
+}
 function readRS(key){const r=readRF(key);return r&&Object.assign(r,{family:'rs'})}
 function readHL(key){
   const d=D[key];if(d.p.length<150)return null;
@@ -182,6 +188,7 @@ function readSHL(key){
   return{key,family:'shl',strength:clamp(Math.round(85-Math.abs(st.ratio-1)*150),50,85),N,ratio:st.ratio,pip:d.pip,inband};
 }
 const FAM={
+  mh:{read:readMH,min:50,win:key=>100*MARKETS.find(m=>m[0]===key)[2]},
   rs:{read:readRS,min:60,win:key=>25*info(key)[2]},
   hl:{read:readHL,min:60,win:key=>25*info(key)[2]},
   srf:{read:readSRF,min:60,win:()=>25},
@@ -205,6 +212,7 @@ const mname=k=>info(k)[1];
 /* ---------- trade payload ---------- */
 function tradeOf(r){
   if(!r)return null;
+  if(r.family==='mh')return{contract:'DIGITMATCH',barrier:r.a,hedge:`HEDGE|DIGITMATCH|${r.b}`,legA:`Matches ${r.a}`,legB:`Matches ${r.b}`,extra:{ticks:1}};
   if(r.family==='rs')return{contract:'RESETCALL',barrier:null,hedge:'HEDGE|RESETPUT',legA:'Reset Call',legB:'Reset Put',extra:{ticks:5}};
   if(r.family==='hl')return{contract:'TICKHIGH',barrier:r.ph,hedge:`HEDGE|TICKLOW|${r.pl}`,legA:`High Tick ${r.ph}`,legB:`Low Tick ${r.pl}`,extra:{ticks:5}};
   if(r.family==='srf')return{contract:'CALL',barrier:null,hedge:'HEDGE|PUT',legA:'Rise',legB:'Fall',extra:{ticks:5}};
@@ -229,6 +237,7 @@ function cardHtml(f,title,tag,r){
   if(r&&t){
     legs=`<div class="legs"><div class="leg"><span>Trade 1</span><b>${t.legA}</b></div><div class="leg"><span>Trade 2</span><b>${t.legB}</b></div></div>`;
     if(f==='ou')mets=`<span>Both win on <b>${r.mid.length?r.mid.join(', '):'no digit'}</b></span><span>Seen <b>${Math.round(r.midShare*100)}%</b> vs normal ${Math.round(r.midExp*100)}%</span><span>Win rate vs normal <b>${r.edge>=0?'+':''}${(r.edge*100).toFixed(1)}%</b></span>`;
+    else if(f==='mh')mets=`<span>Strong digit <b>${r.a}</b> (${Math.round(r.pa*100)}%)</span><span>Greyed / waiting digit <b>${r.b}</b> (${Math.round(r.pb*100)}%)</span><span>Normal is 10% each. Either digit hitting pays; two stakes per trade</span>`;
     else if(f==='rs')mets=`<span>Up moves <b>${Math.round(r.sh*100)}%</b></span><span>Flat ticks <b>${Math.round(r.flat*100)}%</b></span><span>Reset re-centres the barrier part-way</span>`;
     else if(f==='srf')mets=`<span>Up moves <b>${Math.round(r.sh*100)}%</b></span><span>Steps never stay flat</span>`;
     else if(f==='hl')mets=`<span>Best high spot <b>${r.ph}</b> (${Math.round(r.rh*100)}%)</span><span>Best low spot <b>${r.pl}</b> (${Math.round(r.rl*100)}%)</span><span>vs normal 20%</span>`;
@@ -245,9 +254,10 @@ function cardHtml(f,title,tag,r){
 }
 let cur={};
 function render(){
-  cur={};['ou','io','tn','eo','rf','ru','rs','hl','srf','seq','shl'].forEach(f=>{cur[f]=best(f)});
+  cur={};['ou','mh','io','tn','eo','rf','ru','rs','hl','srf','seq','shl'].forEach(f=>{cur[f]=best(f)});
   $('#cards').innerHTML=
     cardHtml('ou','Over / Under hedge','Digit pair · 1 tick',cur.ou)+
+    cardHtml('mh','Matches hedge','Strong digit + greyed digit \u00b7 1 tick',cur.mh)+
     cardHtml('io','In/Out hedge','Ends Between + Ends Outside · 2 min',cur.io)+
     cardHtml('tn','Touch / No Touch hedge','Touch near + No Touch far \u00b7 5 ticks',cur.tn)+
     cardHtml('eo','Even / Odd hedge','Both sides \u00b7 1 tick',cur.eo)+
