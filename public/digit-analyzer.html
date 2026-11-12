@@ -1,0 +1,1302 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="robots" content="noindex"><meta name="theme-color" content="#071321"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digit Analyzer</title>
+<style>
+*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#090d16;color:#f4f7ff;margin:0;padding:14px}.wrap{max-width:1100px;margin:auto}
+.card{background:#121927;border:1px solid #26334a;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 8px 28px #0005}
+h1{margin:0 0 5px;font-size:27px}h2{margin:0 0 12px;font-size:18px}.muted,label,.note{color:#9eabc0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+label{display:block;font-size:12px;margin-bottom:5px}input,select,button{width:100%;padding:11px;border-radius:10px;border:1px solid #34435d;background:#0b111d;color:#fff}button{cursor:pointer;background:#3478ff;border:0;font-weight:700}.secondary{background:#303b50!important}
+.status{font-weight:700}.ok{color:#42df93}.warn{color:#ffd166}.bad{color:#ff6b6b}.big{font-size:30px;font-weight:800}.signal{padding:14px;border-radius:12px;background:#0b111c;border:1px solid #26344c}
+table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #273247;text-align:left}.bar{height:10px;background:#273247;border-radius:8px;overflow:hidden}.fill{height:100%;background:#3478ff}
+#v3Login{position:fixed;inset:0;background:#080d18;display:flex;align-items:center;justify-content:center;z-index:10000}#v3Login .box{width:min(92vw,420px);background:#121a2b;border:1px solid #30415e;border-radius:18px;padding:25px;box-shadow:0 20px 60px #000b}#v3Login input{margin:7px 0}
+#v3bar{position:sticky;top:0;z-index:999;background:#0e1524;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:1px solid #26344a}
+#v3bar button{width:auto;padding:7px 10px;background:#18243a;border:1px solid #40516f}.pill{display:inline-block;padding:6px 9px;border-radius:20px;background:#18243a;margin:3px}
+</style><style>
+#v3Login{position:fixed;inset:0;background:radial-gradient(circle at 50% 25%,#102b58 0,#07101f 42%,#03070e 100%);display:flex;align-items:center;justify-content:center;z-index:10000;overflow:hidden}
+.loginCard{position:relative;width:min(92vw,430px);padding:32px 28px 25px;background:linear-gradient(145deg,#0e1b31f5,#071120f7);border:1px solid #1763a8;border-radius:26px;box-shadow:0 0 0 1px #071e3a,0 25px 80px #000b,0 0 45px #006dff26;color:#fff;text-align:left}
+.loginGlow{position:absolute;border-radius:50%;filter:blur(65px);pointer-events:none}.glow1{width:240px;height:240px;background:#0077ff30;top:-80px;left:-70px}.glow2{width:220px;height:220px;background:#00f5b430;right:-80px;bottom:-80px}
+.brandIcon{margin:auto;width:62px;height:62px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900;color:#18bfff;background:linear-gradient(145deg,#0b315d,#07182e);border:1px solid #1587d8;box-shadow:0 0 25px #00aaff55}
+.loginBrand{text-align:center;font-size:25px;font-weight:800;margin-top:15px}.loginBrand span{color:#12cfff}.loginTag{text-align:center;color:#8ea6c7;font-size:10px;letter-spacing:2px;margin-top:6px}.loginTag i{color:#14d7a0;font-style:normal}
+.onlineBadge{width:max-content;margin:18px auto 22px;padding:8px 13px;border:1px solid #087d68;border-radius:20px;background:#06251f;color:#32e0b1;font-size:12px}.onlineBadge span{display:inline-block;width:8px;height:8px;background:#00e89c;border-radius:50%;margin-right:7px;box-shadow:0 0 10px #00e89c}
+.loginCard h2{font-size:23px;margin:0 0 5px}.loginSub{color:#93a4bc;font-size:13px;line-height:1.5;margin:0 0 22px}.loginLabel{display:block!important;color:#a8bad3!important;font-size:12px!important;margin:12px 0 6px!important}
+.loginInput{display:flex;align-items:center;gap:9px;background:#07111f;border:1px solid #29425f;border-radius:12px;padding:0 12px;transition:.2s}.loginInput:focus-within{border-color:#00bfff;box-shadow:0 0 16px #00bfff22}.loginInput span{color:#36c8ff}.loginInput input{border:0!important;background:transparent!important;padding:13px 0!important;outline:none;width:100%}.loginInput button{width:auto;background:transparent;border:0;padding:6px;color:#7890ad}
+.loginButton{margin-top:20px;width:100%;padding:14px;border-radius:12px;border:0;background:linear-gradient(90deg,#087cff,#00c7ff);box-shadow:0 0 24px #008cff55;font-size:15px}.loginButton span{float:right;font-size:20px}
+.secureNote{display:flex;gap:10px;margin-top:17px;padding:12px;border:1px solid #1c3854;background:#081523;border-radius:12px;color:#86a0bd;font-size:11px}.secureNote b{color:#c6d8ec}.secureNote small{color:#7188a3;line-height:1.4}.loginFooter{text-align:center;color:#627a98;font-size:10px;margin:18px 0 0}
+</style>
+<style>
+/* Neon dashboard theme */
+body{background:radial-gradient(circle at 50% -10%,#10294b 0,#070d18 38%,#03060c 100%);padding:0;min-height:100vh}
+.wrap{max-width:1180px;padding:20px 16px 50px}
+#v3bar{background:rgba(5,12,24,.82);backdrop-filter:blur(16px);border-bottom:1px solid #173253;padding:10px 16px;box-shadow:0 8px 30px #0008}
+#v3bar button{border-radius:9px}
+.card{background:linear-gradient(145deg,rgba(13,25,43,.96),rgba(7,14,27,.96));border:1px solid #173b62;border-radius:20px;padding:20px;margin:14px 0;box-shadow:0 14px 45px #0008,0 0 30px #006dff0b}
+.card h2{font-size:18px;color:#eaf5ff}
+.dashHero{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:25px 24px;border-radius:24px;border:1px solid #14518a;background:linear-gradient(135deg,#0d2543,#071323 65%,#06221f);box-shadow:0 18px 55px #0009,0 0 45px #008cff18}
+.dashHero h1{font-size:31px;margin:8px 0 7px;letter-spacing:-.6px}.dashHero h1 span{color:#13c9ff}
+.dashHero p{margin:0;color:#829bb8;font-size:13px}.eyebrow{font-size:11px;letter-spacing:2px;color:#36e3b4;font-weight:800}.buildBadge{display:inline-block;margin-left:8px;padding:4px 8px;border:1px solid #28577d;border-radius:999px;color:#7fdfff;background:#061321;font-size:9px;letter-spacing:1px;vertical-align:middle}.sectionHead{display:flex;justify-content:space-between;align-items:center;gap:12px}.liveChip{padding:7px 10px;border-radius:999px;background:#06271f;border:1px solid #087b65;color:#35e5b5;font-size:10px;font-weight:800;letter-spacing:1px;white-space:nowrap}.liveDot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#00e89c;box-shadow:0 0 13px #00e89c;margin-right:7px}
+.heroBadge{text-align:center;padding:11px 16px;border-radius:14px;background:#061b2b;border:1px solid #0d6b91;color:#61dfff;font-size:10px;letter-spacing:1px;min-width:90px}.heroBadge b{font-size:13px;color:#24e6b4}
+.statusGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:13px 0}
+.statusCard{display:flex;align-items:center;gap:12px;padding:15px;border-radius:16px;background:#0b1728;border:1px solid #173553;box-shadow:0 8px 24px #0005}.statusIcon{width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:#06253a;color:#1bd1ff;font-size:20px;border:1px solid #0c6283}.statusCard small{display:block;color:#7089a5;font-size:9px;letter-spacing:1.2px}.statusCard b{display:block;color:#dcf6ff;margin-top:3px;font-size:13px}
+.grid{gap:12px}input,select{background:#071321;border:1px solid #21405e;border-radius:11px}input:focus,select:focus{outline:none;border-color:#0bbfff;box-shadow:0 0 15px #00bfff18}
+button{border-radius:11px;background:linear-gradient(90deg,#087cff,#00bfff);box-shadow:0 8px 22px #007cff25}.secondary{background:#17263b!important;box-shadow:none}
+.signal{background:radial-gradient(circle at 0 0,#0b3151,#07111f 58%);border:1px solid #18527d;box-shadow:inset 0 0 30px #008cff08}.signal .big{font-size:34px;color:#19d6ff}
+.analysisTiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.analysisTile{padding:12px;border:1px solid #173b59;border-radius:14px;background:#081522}.analysisTile small{display:block;color:#708ba7;font-size:9px;letter-spacing:1px}.analysisTile b{display:block;margin-top:5px;font-size:18px;color:#dff8ff}.analysisTile span{display:block;margin-top:3px;color:#6edcbf;font-size:10px}#digits{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;padding:5px 0}
+#digits tr{display:block;background:#091727;border:1px solid #183652;border-radius:13px;padding:12px;box-shadow:0 7px 18px #0004}
+#digits td{display:block;border:0;padding:2px 0}
+#digits tr.dist-high{border-color:#1de58b;box-shadow:0 0 18px #16e58b18}
+#digits tr.dist-second-high{border-color:#168bff;box-shadow:0 0 18px #168bff18}
+#digits tr.dist-least{border-color:#ff244c;box-shadow:0 0 18px #ff244c18}
+#digits tr.dist-second-least{border-color:#ff9d2e;box-shadow:0 0 18px #ff9d2e18}
+.distStatus{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.5px}
+.distStatus.high{color:#42f39a;background:#063824;border:1px solid #0e9e60}
+.distStatus.secondHigh{color:#4da7ff;background:#062b51;border:1px solid #1679c9}
+.distStatus.least{color:#ff5574;background:#4a0a1c;border:1px solid #c21f42}
+.distStatus.secondLeast{color:#ffad3d;background:#4a2605;border:1px solid #c76f0a}
+.distLegend{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding:14px;border:1px solid #173652;border-radius:16px;background:#071321}
+.distLegendItem{padding:10px;border-right:1px solid #1a334c}
+.distLegendItem:last-child{border-right:0}
+.distLegendItem small{display:block;color:#7892ae;font-size:9px;letter-spacing:1px}
+.distLegendItem b{display:block;margin-top:5px;font-size:16px}
+.distLegendItem.high b{color:#42f39a}.distLegendItem.secondHigh b{color:#4da7ff}.distLegendItem.least b{color:#ff5574}.distLegendItem.secondLeast b{color:#ffad3d}
+.bar{margin-top:8px;background:#172b42;height:7px}.fill{background:linear-gradient(90deg,#087cff,#16d8c0);box-shadow:0 0 10px #008cff44}
+#digits tr.dist-high .fill{background:#42e98f;box-shadow:0 0 12px #42e98f66}
+#digits tr.dist-second-high .fill{background:#168bff;box-shadow:0 0 12px #168bff66}
+#digits tr.dist-least .fill{background:#ff244c;box-shadow:0 0 12px #ff244c66}
+#digits tr.dist-second-least .fill{background:#ff9d2e;box-shadow:0 0 12px #ff9d2e66}
+#marketStatus{background:#071827!important;border:1px solid #185274;box-shadow:0 6px 20px #0008!important}
+.engineCard{margin-top:14px;background:linear-gradient(145deg,#0b1b2d,#07111e);border-color:#155276}
+.engineGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.engineBox{padding:12px;border:1px solid #173b59;border-radius:14px;background:#081522}
+.engineBox small{display:block;color:#708ba7;font-size:9px;letter-spacing:1px}
+.engineBox b{display:block;margin-top:5px;font-size:16px;color:#dff8ff}
+.engineBox span{display:block;margin-top:4px;color:#7892ae;font-size:10px;line-height:1.4}
+.engineReasons{margin-top:10px;padding:12px;border-radius:12px;background:#061321;border:1px solid #173652;color:#9bb1ca;font-size:11px;line-height:1.6}
+.engineReasons b{color:#e5f6ff}.engineReasons span{color:#3dddb2;padding:0 5px}
+.note{color:#8199b5!important}
+.tradeSignalList{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+.tradeSignalCard{padding:18px;border:1px solid #263b57;border-radius:18px;background:linear-gradient(145deg,#081724,#07111d);box-shadow:0 8px 24px #0006}
+.tradeSignalCard.trade{border-color:#13a978;box-shadow:0 0 22px #00d59a16}
+.tradeSignalTop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tradeSignalName{font-size:17px;font-weight:800;color:#eaf7ff}
+.tradeSignalBadge{padding:7px 11px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.7px;background:#15243a;border:1px solid #29415f;color:#b9cce2}
+.tradeSignalCard.trade .tradeSignalBadge{background:#06382b;border-color:#0e9d6c;color:#42f0b2}
+.tradeSignalValue{font-size:27px;font-weight:900;color:#18d3ff;margin:10px 0 7px}
+.tradeSignalMeta{color:#91a8c1;font-size:12px;line-height:1.6}
+.tradeSignalMeta b{color:#dff5ff}
+.tradeSignalNote{margin-top:8px;color:#7189a4;font-size:11px;line-height:1.5}
+@media(max-width:700px){.tradeSignalCard{padding:16px}.tradeSignalValue{font-size:25px}}
+@media(max-width:700px){.analysisTiles{grid-template-columns:repeat(2,1fr)}.engineGrid{grid-template-columns:repeat(2,1fr)}.wrap{padding:13px 11px 45px}.dashHero{padding:20px 17px}.dashHero h1{font-size:25px}.heroBadge{display:none}.statusGrid{grid-template-columns:1fr}.statusCard{padding:12px}#digits{grid-template-columns:repeat(2,1fr)}}
+
+.tradeTypePanel{margin-top:14px;padding:16px;border:1px solid #173b62;border-radius:18px;background:linear-gradient(145deg,#0a1829,#07111e)}
+.tradeTypePanel h3{margin:0 0 5px;font-size:15px;color:#eaf5ff}.tradeTypePanel p{margin:0 0 12px;color:#7892ae;font-size:11px}
+.tradeTypeGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.tradeTypeBtn{width:100%;padding:11px 7px;border:1px solid #21405e;border-radius:11px;background:#071321;color:#d9efff;box-shadow:none;font-size:12px}
+.tradeTypeBtn.active{background:linear-gradient(90deg,#087cff,#00bfff);border-color:#18cfff;color:#fff;box-shadow:0 7px 18px #007cff25}
+@media(max-width:700px){.tradeTypeGrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+<style>
+.botHandoff{display:none;margin-top:10px;gap:10px;grid-template-columns:1fr}
+.botHandoff.show{display:grid}
+.botHandoff button{font-size:14px;padding:13px}
+.botHandoffNote{font-size:11px;color:#8ea6c7;text-align:center}
+</style>
+</head><body>
+<div id="v3Login" style="display:none"><div class="loginGlow glow1"></div><div class="loginGlow glow2"></div><div class="loginCard">
+<div class="brandIcon">↗</div>
+<div class="loginBrand"><span>Deriv</span> Market Analyzer</div>
+<div class="loginTag">SMARTER ANALYSIS <i>•</i> BETTER DECISIONS</div>
+<div class="onlineBadge"><span></span> Analyzer Secure Login</div>
+<h2>Welcome back</h2><p class="loginSub">Sign in to access your live market analysis dashboard.</p>
+<label class="loginLabel">Registered Email</label><div class="loginInput"><span>✉</span><input id="v3User" autocomplete="email" type="email" placeholder="Enter your registered email"></div>
+<label class="loginLabel">Analyzer Password</label><div class="loginInput"><span>●</span><input id="v3Pass" autocomplete="current-password" type="password" placeholder="Enter your password"><button type="button" id="showPass">◉</button></div>
+<button class="loginButton" id="v3LoginBtn">Sign In <span>→</span></button><div id="loginStatus" style="display:none;margin-top:10px;padding:9px 11px;border-radius:10px;background:#071a2b;border:1px solid #214a69;color:#8fdcff;font-size:11px;line-height:1.4"></div>
+<div style="text-align:center;margin-top:13px"><button type="button" id="forgotPassword" style="width:auto;padding:0;background:transparent;border:0;color:#55cfff;font-size:12px;font-weight:700">Forgot password?</button></div>
+<div class="secureNote"><span>🔒</span><div><b>Private Analyzer Login</b><br><small>Your analyzer password is separate from your Deriv password.</small></div></div>
+<p class="loginFooter">Secure email login • Password reset by email • Demo/Paper mode recommended</p>
+</div></div>
+
+<div id="v3bar"><span id="v3AccountState">Analyzer open | Login temporarily disabled</span><span><button id="v3BotBtn">Analysis Ready: OFF</button> <button id="v3Logout">Logout</button></span></div>
+<div class="wrap">
+<div class="dashHero">
+  <div>
+    <div class="eyebrow"><span class="liveDot"></span> ANALYZER ONLINE <span class="buildBadge">NEON LIVE v4</span></div>
+    <h1>Deriv <span>Digit Analyzer</span></h1>
+    <p>Live statistical analysis for digits, parity, barriers and market direction.</p>
+  </div>
+  <div class="heroBadge">LIVE DATA<br><b>30s AUTO</b></div>
+</div>
+<div class="statusGrid">
+  <div class="statusCard"><div class="statusIcon">◉</div><div><small>MARKET DATA</small><b id="heroMarketStatus">Loading…</b></div></div>
+  <div class="statusCard"><div class="statusIcon">▦</div><div><small>MARKETS LOADED</small><b id="heroMarketsLoaded">Loading…</b></div></div>
+  <div class="statusCard"><div class="statusIcon">⚡</div><div><small>BOT STATUS</small><b id="heroBotStatus">Not connected</b></div></div>
+</div>
+<div class="card"><h2>API / Bot Connection</h2><p class="note">Connection status is shown separately so you always know whether you are receiving public market data or using an authenticated trading API.</p><div class="grid">
+<div><label>API Token / PAT <span class="muted">(optional — not used for public data)</span></label><input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Keep token private"><div id="tokenSessionNote" class="note" style="font-size:10px;margin-top:5px">🔒 Kept masked for this browser session only. It is not saved to permanent browser storage.</div></div>
+<div><label>App ID <span class="muted">(for authenticated API later)</span></label><input id="appId" placeholder="Deriv App ID"></div>
+<div><label>Account ID <span class="muted">(auto-filled from Deriv)</span></label><input id="accountId" placeholder="Auto-filled after Connect Deriv API"><div class="note" style="font-size:10px;margin-top:5px">You do not need to type this. Connect Deriv API will load your selected Demo/Real account automatically.</div></div>
+<div><label>Account</label><select id="account"><option value="demo">Demo</option><option value="real">Real</option></select></div>
+</div><div class="grid" style="margin-top:10px"><button id="connect">Connect Market Data</button><button id="connectAuth">Connect Deriv API</button><button id="disconnect" class="secondary">Disconnect Market Data</button></div>
+<p>Market Data: <span id="apiStatus" class="status bad">Disconnected</span> · Authenticated API: <span id="authStatus" class="status warn">Not connected</span> · Bot: <span id="botStatus" class="status warn">Demo/Manual</span></p>
+<p class="note">Public market data needs no token. “Connect Deriv API” automatically loads your selected Demo/Real account, then starts authenticated monitoring. This version does not place trades.</p></div>
+
+<div class="card"><div class="sectionHead"><div><h2>Live Analysis</h2><div class="muted">Choose a market and contract type, then analyze the latest ticks. WAIT means the model has not reached your confidence threshold yet.</div></div><span class="liveChip">● LIVE</span></div><div class="grid">
+<div><label>Symbol</label><select id="symbol"><option>1HZ10V</option></select></div>
+<div><label>Trade Type</label><select id="tradeType">
+<option value="matches">Matches</option><option value="differs">Differs</option><option value="even">Even</option><option value="odd">Odd</option><option value="over">Over</option><option value="under">Under</option><option value="rise">Rise</option><option value="fall">Fall</option><option value="upOnly">Up Only</option><option value="downOnly">Down Only</option>
+</select></div>
+<div><label>Window</label><select id="window"><option>100</option><option>250</option><option>400</option><option selected>500</option><option>1000</option></select></div>
+<div id="targetBox"><label>Target digit</label><select id="target"></select></div>
+<div id="barrierBox"><label>Barrier</label><select id="barrier"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
+<div><label>Minimum confidence</label><input id="threshold" type="number" value="65" min="0" max="100"></div>
+</div>
+<div class="grid" style="margin-top:10px"><div><label>Auto Analyze</label><select id="auto"><option value="on" selected>ON — every 30 seconds</option><option value="off">OFF</option></select></div><div><label>Next analysis</label><input id="countdown" value="30s" readonly></div><button id="analyzeNow">Analyze Now</button></div>
+<div class="signal" style="margin-top:12px"><div class="muted">Current signal</div><div id="signal" class="big">WAIT</div><div id="signalDetail">Waiting for market data…</div><div>Model Confidence <b id="confidence">0%</b> · Historical Evidence <b id="evidence">0%</b></div></div>
+<div id="botHandoff" class="botHandoff">
+  <button id="sendDigitToBot">🟢 Trade now</button>
+  <div id="botHandoffNote" class="botHandoffNote">Loads a bot with your bot settings into Bot Builder. You press Run.</div>
+</div>
+<div class="card" id="daBotCard"><div class="sectionHead"><div><h2>Bot settings</h2><div class="muted">Used by Trade now on this page only. They are separate from Signals and DerivScope. The bot has no entry digit: it buys as soon as it runs, using the digit or side shown on the card.</div></div></div>
+<div class="grid">
+<div><label>Stake</label><input id="daStake" type="number" min="0.35" step="0.01" value="0.35"></div>
+<div><label>Martingale (x after a loss)</label><input id="daMult" type="number" min="1" step="0.1" value="1"></div>
+<div><label>Take profit</label><input id="daTp" type="number" min="0" step="0.1" value="5"></div>
+<div><label>Stop loss</label><input id="daSl" type="number" min="0" step="0.1" value="5"></div>
+<div><label>Number of runs</label><input id="daRuns" type="number" min="1" step="1" value="10"></div>
+</div><div class="note" id="daBotNote" style="margin-top:8px">Saved automatically. Tap Trade now on a card, then press Run in Bot Builder.</div></div>
+<div class="card" id="tradeSignalsCard"><div class="sectionHead"><div><h2>Trade Type Signals</h2><div class="muted">Live signal cards for every available trade type, using the same market window and confidence engine.</div></div><span class="liveChip">● LIVE</span></div><div id="tradeSignalList" class="tradeSignalList"><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Matches</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Differs</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Even</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Odd</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Over</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Under</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Rise</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Fall</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Up Only</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div><div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">Down Only</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data…</div></div></div></div>
+<div class="card engineCard"><div class="sectionHead"><div><h2>Signal Engine</h2><div class="muted">The live distribution now feeds the contract suggestion. It uses historical frequency and recent agreement; it does not predict or guarantee the next outcome.</div></div><span id="engineBadge" class="liveChip">● ANALYZING</span></div><div class="engineGrid">
+<div class="engineBox"><small>RECOMMENDED SETUP</small><b id="engineSetup">Waiting for data</b><span id="engineSetupNote">Builds from the current analysis window.</span></div>
+<div class="engineBox"><small>DISTRIBUTION DRIVER</small><b id="engineDriver">—</b><span id="engineDriverNote">Highest / lowest live digits</span></div>
+<div class="engineBox"><small>PARITY DRIVER</small><b id="engineParity">—</b><span id="engineParityNote">Even / odd historical share</span></div>
+<div class="engineBox"><small>DIRECTION DRIVER</small><b id="engineDirection">—</b><span id="engineDirectionNote">Up / down tick share</span></div>
+</div><div id="engineReasons" class="engineReasons">Waiting for enough live ticks to explain the setup.</div></div>
+<div class="card"><div class="sectionHead"><div><h2>Manual API Connection</h2><div class="muted">Connect to Deriv so the analyzer can detect and monitor trades you place manually in Deriv Bot. The analyzer never buys a contract.</div></div><span id="bridgeBadge" class="liveChip">● STANDBY</span></div>
+<div class="grid">
+<div><label>Suggested contract</label><input id="bridgeContract" readonly value="Waiting for analysis"></div>
+<div><label>API monitor</label><input id="bridgeStatus" readonly value="Waiting"></div>
+<div><label>Trading mode</label><input readonly value="Manual — Deriv Bot"></div>
+</div>
+<div class="grid" style="margin-top:10px">
+<div><label>Detected manual trade</label><input id="monitorTrade" readonly value="Waiting for your trade"></div>
+<div><label>Contract ID</label><input id="monitorContractId" readonly value="—"></div>
+<div><label>Result</label><input id="monitorResult" readonly value="—"></div>
+</div>
+<p id="bridgeNote" class="note">Connect the API, wait for a TRADE NOW signal, then place the matching trade manually in Deriv Bot. The analyzer listens for account activity and attempts to match the purchase to the active signal.</p></div>
+<div class="analysisTiles">
+<div class="analysisTile"><small>LAST DIGIT</small><b id="tileLast">—</b><span>Latest tick</span></div>
+<div class="analysisTile"><small>MOST APPEARING</small><b id="tileTop">—</b><span id="tileTopRate">Waiting for data</span></div>
+<div class="analysisTile"><small>LEAST APPEARING</small><b id="tileLeast">—</b><span id="tileLeastRate">Waiting for data</span></div>
+<div class="analysisTile"><small>PARITY</small><b id="tileParity">—</b><span id="tileParityRate">Even / Odd</span></div>
+<div class="analysisTile"><small>DIRECTION</small><b id="tileDirection">—</b><span id="tileDirectionRate">Up / Down ticks</span></div>
+</div></div>
+
+<div class="card"><div class="sectionHead"><div><h2>LIVE DISTRIBUTION</h2><div class="muted">Across the selected analysis window.</div></div><span class="liveChip"><span class="liveDot"></span>LIVE DATA</span></div><table><thead><tr><th>Digit</th><th>Count</th><th>% Frequency</th><th>Distribution</th><th>Status</th></tr></thead><tbody id="digits"></tbody></table><div id="distLegend" class="distLegend"></div></div>
+<div class="card"><h2>Market Statistics</h2><div class="grid">
+<div>Even: <b id="even">0%</b></div><div>Odd: <b id="odd">0%</b></div><div>Over 5: <b id="over">0%</b></div><div>Under 5: <b id="under">0%</b></div><div>Up ticks: <b id="up">0%</b></div><div>Down ticks: <b id="down">0%</b></div><div>Ticks loaded: <b id="loaded">0</b></div><div>Last digit: <b id="last">-</b></div></div></div>
+<div class="card"><h2>Analysis Ready</h2><p>Use this analyzer alongside Deriv.com. It provides live statistical signals for your manual trades and does not automatically place trades.</p><button id="botReady">Mark Analysis Ready</button></div>
+<div class="card note"><b>Important:</b> Model Confidence is a signal-strength score, not a guaranteed probability of the next outcome. Historical percentages are descriptive statistics. Demo testing is recommended.</div>
+</div>
+<div id="marketStatus" style="position:fixed;bottom:8px;right:8px;padding:6px 10px;border-radius:8px;background:#111;color:#fff;font:12px sans-serif;z-index:9999">Loading Synthetic Markets…</div>
+
+<script>
+const $=id=>document.getElementById(id);
+for(let i=0;i<10;i++) $("target").insertAdjacentHTML("beforeend","<option>"+i+"</option>");
+let ws=null,ticks=[],quotes=[],lastAnalysis=Date.now();
+
+function setHeroMarketStatus(text, cls){
+  const el=$("heroMarketStatus");
+  if(el){el.textContent=text;el.className=cls||"";}
+}
+function setHeroMarketsLoaded(count, loading=false){
+  const el=$("heroMarketsLoaded");
+  if(el) el.textContent=loading ? "Loading…" : String(count);
+}
+function setHeroBotStatus(text, connected=false){
+  const el=$("heroBotStatus");
+  if(el){el.textContent=text;el.className=connected?"ok":"warn";}
+}
+function setBotConnected(connected){
+  $("v3BotBtn").dataset.on=connected?"1":"0";
+  $("v3BotBtn").textContent="Analysis Ready: "+(connected?"ON":"OFF");
+  $("botStatus").textContent=connected?"Analysis ready • Manual trading":"Manual trading";
+  $("botStatus").className=connected?"status ok":"status warn";
+  setHeroBotStatus(connected?"Analysis Ready":"Not ready",connected);
+}
+
+function digitFromQuote(q,pipSize){
+ let s;
+ const p=Number(pipSize);
+ if(Number.isFinite(p)&&p>=0&&p<=12){s=Number(q).toFixed(Math.trunc(p));}
+ else{s=String(q);}
+ if(s.includes("e-")){let[m,e]=s.split("e-"),d=parseInt(e),dec=(m.split(".")[1]||"").padEnd(d,"0");return +(dec.slice(-1)||"0")}
+ s=s.replace(/[^0-9.]/g,"");let parts=s.split(".");
+ return +(parts.length>1?parts[1].slice(-1):parts[0].slice(-1));
+}
+function pct(v,n){return n?(v/n*100):0}
+function confidence(evidence,recentEvidence,n,type){
+ const sample=Math.min(1,n/500);
+ let edge;
+ // Contract-aware edge: Matches is measured against its 10% digit baseline,
+ // rather than treating a normal 10-20% digit frequency as a huge deviation
+ // from 50%. This prevents Matches strength from being artificially pinned high.
+ if(type==="matches"){
+   edge=Math.max(0,Math.min(1,(evidence-10)/20));
+ } else if(type==="differs"){
+   edge=Math.max(0,Math.min(1,(evidence-90)/10));
+ } else if(type==="over"){
+   edge=Math.max(0,Math.min(1,(evidence-50)/50));
+ } else if(type==="under"){
+   edge=Math.max(0,Math.min(1,(evidence-50)/50));
+ } else {
+   edge=Math.max(0,Math.min(1,Math.abs(evidence-50)/50));
+ }
+ const consistency=1-Math.min(1,Math.abs(evidence-recentEvidence)/50);
+ // Dynamic strength uses contract-specific edge, sample size and recent agreement.
+ return Math.max(0,Math.min(97,45+edge*30+sample*12+consistency*10));
+}
+function modelDigit(a){
+ const total=a.length||1;
+ const recent=a.slice(-Math.min(50,a.length));
+ const full=Array(10).fill(0),rec=Array(10).fill(0);
+ a.forEach(d=>full[d]++);
+ recent.forEach(d=>rec[d]++);
+ const scored=[];
+ for(let i=0;i<10;i++){
+  const fullRate=full[i]/total;
+  const recentRate=recent.length?rec[i]/recent.length:0;
+  // Every digit remains eligible. Historical frequency is the base, while
+  // recent movement can lift a digit even when it is not #1 or #2 overall.
+  const movement=recentRate-fullRate;
+  const score=fullRate*0.45+recentRate*0.35+Math.max(-0.05,Math.min(0.05,movement))*0.20;
+  scored.push({digit:i,fullRate,recentRate,movement,score});
+ }
+ scored.sort((a,b)=>b.score-a.score||b.fullRate-a.fullRate||a.digit-b.digit);
+ const best=scored[0],runner=scored[1];
+ const margin=Math.max(0,best.score-runner.score);
+ return best.digit;
+}
+function matchModel(a){
+ const total=a.length||1;
+ const recent=a.slice(-Math.min(50,a.length));
+ const full=Array(10).fill(0),rec=Array(10).fill(0);
+ a.forEach(d=>full[d]++);
+ recent.forEach(d=>rec[d]++);
+ const scored=[];
+ for(let i=0;i<10;i++){
+  const fullRate=full[i]/total;
+  const recentRate=recent.length?rec[i]/recent.length:0;
+  const movement=recentRate-fullRate;
+  const score=fullRate*0.45+recentRate*0.35+Math.max(-0.05,Math.min(0.05,movement))*0.20;
+  scored.push({digit:i,fullRate,recentRate,movement,score});
+ }
+ scored.sort((a,b)=>b.score-a.score||b.fullRate-a.fullRate||a.digit-b.digit);
+ return {best:scored[0],runner:scored[1],margin:Math.max(0,scored[0].score-scored[1].score)};
+}
+function distributionProfile(a){
+ const n=a.length||1,c=Array(10).fill(0);a.forEach(x=>c[x]++);
+ const ranked=[...Array(10).keys()].sort((x,y)=>c[y]-c[x]||x-y);
+ const high=ranked[0],secondHigh=ranked[1],least=ranked[9],secondLeast=ranked[8];
+ const evenCount=c.reduce((s,x,i)=>s+(i%2===0?x:0),0),oddCount=n-evenCount;
+ const evenRate=pct(evenCount,n),oddRate=pct(oddCount,n);
+ return {n,c,ranked,high,secondHigh,least,secondLeast,evenCount,oddCount,evenRate,oddRate};
+}
+function directionProfile(n){
+ const q=quotes.slice(-n);let up=0,down=0;
+ for(let i=1;i<q.length;i++){if(q[i]>q[i-1])up++;else if(q[i]<q[i-1])down++}
+ const total=up+down;
+ return {up,down,total,upRate:pct(up,total),downRate:pct(down,total)};
+}
+function recommendedSetup(a){
+ const p=distributionProfile(a),d=directionProfile(a.length);
+ const type=$("tradeType").value;
+ let setup="Digit "+p.high,driver="Digit "+p.high+" is highest ("+pct(p.c[p.high],p.n).toFixed(2)+"%)",parity=p.evenRate>=p.oddRate?"EVEN":"ODD",direction=d.upRate>=d.downRate?"UP":"DOWN";
+ if(type==="differs"){const candidate=modelDigit(a);setup="Differ from "+candidate;driver="Model candidate is digit "+candidate+"; the least-appearing digit is "+p.least+" ("+pct(p.c[p.least],p.n).toFixed(2)+"%)."}
+ else if(type==="matches"){const candidate=modelDigit(a);setup="Match "+candidate;driver="Model candidate is digit "+candidate+"; highest-appearing digit is "+p.high+" ("+pct(p.c[p.high],p.n).toFixed(2)+"%)."}
+ else if(type==="even"||type==="odd"){setup=parity;driver=parity+" currently leads "+Math.max(p.evenRate,p.oddRate).toFixed(2)+"% to "+Math.min(p.evenRate,p.oddRate).toFixed(2)+"%."}
+ else if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){setup=direction;driver=direction==="UP"?"Up ticks lead at "+d.upRate.toFixed(2)+"%.":"Down ticks lead at "+d.downRate.toFixed(2)+"%."}
+ else {setup=type==="over"?"Over "+$("barrier").value:"Under "+$("barrier").value;driver="Using the selected barrier; the engine keeps your barrier unchanged and reports its live historical split."}
+ return {p,d,setup,driver,parity,direction};
+}
+function updateSignalEngine(a){
+ const p=distributionProfile(a),d=directionProfile(a.length),r=recommendedSetup(a);
+ const type=$("tradeType").value;
+ let targetNote="Highest digit drives Matches; least digit drives Differs.";
+ if(type==="matches"||type==="differs"){
+  const candidate=modelDigit(a);
+  const selected=type==="matches"?getMatchesLockedDigit(candidate):candidate;
+  $("target").value=String(selected);
+ }
+ $("engineSetup").textContent=r.setup;
+ $("engineSetupNote").textContent="Based on "+p.n+" ticks in the selected window.";
+ $("engineDriver").textContent="💚 "+p.high+" / ♥️ "+p.least;
+ $("engineDriverNote").textContent="High "+pct(p.c[p.high],p.n).toFixed(2)+"% • Low "+pct(p.c[p.least],p.n).toFixed(2)+"%";
+ $("engineParity").textContent=r.parity;
+ $("engineParityNote").textContent="Even "+p.evenRate.toFixed(2)+"% • Odd "+p.oddRate.toFixed(2)+"%";
+ $("engineDirection").textContent=r.direction;
+ $("engineDirectionNote").textContent=d.total?"Up "+d.upRate.toFixed(2)+"% • Down "+d.downRate.toFixed(2)+"%":"Waiting for price moves";
+ $("engineReasons").innerHTML="<b>Why this setup:</b> "+r.driver+" <span>•</span> 💙 2nd-highest "+p.secondHigh+" ("+pct(p.c[p.secondHigh],p.n).toFixed(2)+"%) <span>•</span> 🧡 2nd-lowest "+p.secondLeast+" ("+pct(p.c[p.secondLeast],p.n).toFixed(2)+"%)";
+ $("engineBadge").textContent="● LIVE ENGINE";
+ return r;
+}
+function walkForwardContract(a,type,barrier,windowSize=100,q){
+ const w=Math.max(20,Math.min(windowSize,a.length-1));
+ if(a.length<=w+1)return {rate:0,tests:0};
+ let hits=0,tests=0;
+ for(let i=w;i<a.length;i++){
+   const hist=a.slice(i-w,i);
+   let predicted=type;
+   if(type==="matches"||type==="differs") predicted=modelDigit(hist);
+   let win=false;
+   const d=a[i];
+   if(type==="matches") win=d===predicted;
+   else if(type==="differs") win=d!==predicted;
+   else if(type==="even") win=d%2===0;
+   else if(type==="odd") win=d%2!==0;
+   else if(type==="over") win=d>barrier;
+   else if(type==="under") win=d<barrier;
+   else if(type==="rise"||type==="upOnly") win=q[i]>q[i-1];
+   else if(type==="fall"||type==="downOnly") win=q[i]<q[i-1];
+   if(win)hits++;
+   tests++;
+ }
+ return {rate:tests?pct(hits,tests):0,tests};
+}
+let matchesLock={digit:null,until:0,symbol:"",window:""};
+const MATCHES_LOCK_MS=20000;
+function resetMatchesLock(){matchesLock={digit:null,until:0,symbol:"",window:""};}
+function getMatchesLockedDigit(candidate){
+ const symbol=$("symbol").value,win=$("window").value,now=Date.now();
+ if(matchesLock.until>now&&matchesLock.symbol===symbol&&matchesLock.window===win&&Number.isInteger(matchesLock.digit)) return matchesLock.digit;
+ resetMatchesLock();
+ return candidate;
+}
+function lockMatchesDigit(digit){
+ matchesLock={digit:Number(digit),until:Date.now()+MATCHES_LOCK_MS,symbol:$("symbol").value,window:$("window").value};
+}
+function analyze(a){
+ const n=a.length;if(n<20){return {signal:"WAIT",detail:"Need more ticks before generating a signal.",conf:0,evidence:0}}
+ const type=$("tradeType").value,p=distributionProfile(a),c=p.c;
+ if(type==="matches"){
+   const candidate=modelDigit(a);
+   const locked=getMatchesLockedDigit(candidate);
+   $("target").value=String(locked);
+ } else if(type==="differs") $("target").value=String(modelDigit(a));
+ const total=n, even=c.reduce((s,x,i)=>s+(i%2===0?x:0),0), odd=total-even;
+ const barrier=+$("barrier").value,target=+$("target").value;
+ const over=c.reduce((s,x,i)=>s+(i>barrier?x:0),0),under=total-over;
+ const q=quotes.slice(-n),ups=q.reduce((s,x,i)=>s+(i>0&&x>q[i-1]?1:0),0),downs=q.reduce((s,x,i)=>s+(i>0&&x<q[i-1]?1:0),0);
+ let signal="WAIT",detail="Evidence is below the selected confidence threshold.",ev=0;
+ if(type==="matches"){ev=pct(c[target],total);signal="MATCH "+target;detail="Suggested digit "+target+" • historical match rate "+ev.toFixed(2)+"%"}
+ if(type==="differs"){ev=100-pct(c[target],total);signal="DIFFER "+target;detail="Avoid digit "+target+" • historical differs rate "+ev.toFixed(2)+"%"}
+ if(type==="even"){ev=pct(even,total);signal="EVEN";detail="Even rate "+ev.toFixed(2)+"%"}
+ if(type==="odd"){ev=pct(odd,total);signal="ODD";detail="Odd rate "+ev.toFixed(2)+"%"}
+ if(type==="over"){ev=pct(over,total);signal="OVER "+barrier;detail="Over "+barrier+" rate "+ev.toFixed(2)+"%"}
+ if(type==="under"){ev=pct(under,total);signal="UNDER "+barrier;detail="Under "+barrier+" rate "+ev.toFixed(2)+"%"}
+ if(type==="rise"||type==="upOnly"){ev=pct(ups,Math.max(1,ups+downs));signal=type==="rise"?"RISE":"UP ONLY";detail="Upward tick share "+ev.toFixed(2)+"%"}
+ if(type==="fall"||type==="downOnly"){ev=pct(downs,Math.max(1,ups+downs));signal=type==="fall"?"FALL":"DOWN ONLY";detail="Downward tick share "+ev.toFixed(2)+"%"}
+ const recent=a.slice(-Math.min(50,n));
+ const recentC=Array(10).fill(0);recent.forEach(x=>recentC[x]++);
+ let recentEv=ev;
+ if(type==="matches") recentEv=pct(recentC[target],recent.length||1);
+ if(type==="differs") recentEv=100-pct(recentC[target],recent.length||1);
+ if(type==="even") recentEv=pct(recentC.reduce((s,x,i)=>s+(i%2===0?x:0),0),recent.length||1);
+ if(type==="odd") recentEv=pct(recentC.reduce((s,x,i)=>s+(i%2?x:0),0),recent.length||1);
+ if(type==="over") recentEv=pct(recentC.reduce((s,x,i)=>s+(i>barrier?x:0),0),recent.length||1);
+ if(type==="under") recentEv=pct(recentC.reduce((s,x,i)=>s+(i<barrier?x:0),0),recent.length||1);
+ if(type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){
+  const rq=quotes.slice(-Math.min(50,n));
+  let ru=0,rd=0;
+  for(let i=1;i<rq.length;i++){if(rq[i]>rq[i-1])ru++;else if(rq[i]<rq[i-1])rd++}
+  if(type==="rise"||type==="upOnly") recentEv=pct(ru,Math.max(1,ru+rd));
+  else recentEv=pct(rd,Math.max(1,ru+rd));
+ }
+ const conf=confidence(ev,recentEv,n,type);
+ const threshold=65; // Fixed TRADE NOW strength threshold
+
+ // Confidence alone is not enough: the observed edge must point in the
+ // direction of the selected contract. This prevents, for example,
+ // Over 5 at 39.8% from becoming TRADE NOW merely because it is far
+ // from the neutral baseline.
+ let baseline=50, directionOK=true;
+ if(type==="matches") baseline=10;
+ if(type==="differs") baseline=90;
+ if(type==="over") baseline=100*((9-barrier)/10);
+ if(type==="under") baseline=100*(barrier/10);
+ if(type==="matches"||type==="differs"||type==="even"||type==="odd"||type==="over"||type==="under"||
+    type==="rise"||type==="upOnly"||type==="fall"||type==="downOnly"){
+   directionOK=ev>baseline;
+ }
+
+ // Matches uses a stricter confirmation gate than the other contract types.
+ // Frequency alone is not enough: the candidate must have a meaningful edge
+ // over the 10% digit baseline, recent support, and separation from the runner-up.
+ let matchesOK=true,matchGap=0,matchRecent=recentEv;
+ if(type==="matches"){
+   const mp=matchModel(a);
+   matchGap=(mp.best.score-mp.runner.score)*100;
+   const candidateRecent=pct(recentC[target],recent.length||1);
+   matchRecent=candidateRecent;
+   matchesOK=ev>=12 && candidateRecent>=10 && matchGap>=0.5 && candidateRecent>=ev-6;
+ }
+ if(conf>=threshold && directionOK && matchesOK){
+   if(type==="matches") lockMatchesDigit(target);
+   return {signal,detail:"TRADE NOW • "+detail,conf,evidence:ev}
+ }
+ if(conf>=threshold && type==="matches" && directionOK && !matchesOK){
+   return {signal:"WAIT",detail:detail+" • Matches confirmation is incomplete (recent support "+matchRecent.toFixed(2)+"%, candidate gap "+matchGap.toFixed(2)+" pts).",conf,evidence:ev}
+ }
+ if(conf>=threshold && !directionOK){
+   return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% meets the threshold, but the evidence is not favorable for "+signal+".",conf,evidence:ev}
+ }
+ return {signal:"WAIT",detail:detail+" • confidence "+conf.toFixed(0)+"% is below your "+threshold+"% threshold.",conf,evidence:ev}
+}
+function tradeNowDecision(type,r){ return r.signal!=="WAIT"; }
+function renderTradeTypeCards(a){
+ window.__analysisTicks=a;
+ const list=$("tradeSignalList"); if(!list)return;
+ const types=[["matches","Matches"],["differs","Differs"],["even","Even"],["odd","Odd"],["over","Over"],["under","Under"],["rise","Rise"],["fall","Fall"],["upOnly","Up Only"],["downOnly","Down Only"]];
+ const loadingCards=()=>types.map(([type,label])=>'<div class="tradeSignalCard"><div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">WAIT</span></div><div class="tradeSignalValue">WAIT</div><div class="tradeSignalMeta"><b>Evidence 0.00%</b> • <b>Strength 0%</b></div><div class="tradeSignalNote">Collecting live market data… signal will update automatically.</div></div>').join("");
+ if(!Array.isArray(a)||a.length<20){list.innerHTML=loadingCards();return}
+ try{
+  const originalType=$("tradeType").value,originalTarget=$("target").value,results={};
+  types.forEach(([type,label])=>{$("tradeType").value=type;results[type]={label,r:analyze(a)}});
+  const cards=[];
+  types.forEach(([type,label])=>{
+   const r=results[type].r,isTrade=tradeNowDecision(type,r),action=isTrade?"TRADE NOW":"WAIT";
+   let extra="";
+   if(type==="matches"){
+    const mp=matchModel(a),best=mp.best,runner=mp.runner,gap=(best.fullRate-runner.fullRate)*100,movement=best.movement*100;
+    extra='<div class="tradeSignalNote"><b>Highest '+(best.fullRate*100).toFixed(2)+'%</b> • <b>2nd '+(runner.fullRate*100).toFixed(2)+'%</b> • <b>Gap '+gap.toFixed(2)+'%</b> • Recent movement '+(movement>=0?"+":"")+movement.toFixed(2)+' pts</div><div class="tradeSignalNote">'+(isTrade?"Matches criteria met • trade-now edge is present.":"WAIT • Candidate digit only. Matches requires evidence above the 10% digit baseline, sufficient strength, and candidate separation before TRADE NOW.")+'</div>';
+   }
+   const handoffValue=botHandoffValue(type);
+   const handoffButton=isTrade&&handoffValue!==null?'<button class="tradeTypeBotBtn" data-bot-type="'+type+'">🟢 Trade now</button><div class="tradeTypeBotNote" id="tradeTypeBotNote_'+type+'">This '+label+' signal is TRADE NOW. Loads a bot with your bot settings into Bot Builder. You press Run.</div>':"";
+   cards.push('<div class="tradeSignalCard '+(isTrade?"trade":"")+'"><div class="tradeSignalTop"><div class="tradeSignalName">'+label+'</div><span class="tradeSignalBadge">'+action+'</span></div><div class="tradeSignalValue">'+(type==="matches"&&!isTrade?"CANDIDATE "+r.signal:r.signal)+'</div><div class="tradeSignalMeta"><b>Evidence '+r.evidence.toFixed(2)+'%</b> • <b>Strength '+r.conf.toFixed(0)+'%</b></div>'+(type==="matches"?extra:'<div class="tradeSignalNote">'+(isTrade?r.detail:(r.detail.replace(/^TRADE NOW\s*•\s*/,"")+" • Decision: WAIT because the trade-now rules were not met."))+'</div>')+handoffButton+'</div>');
+  });
+  $("tradeType").value=originalType;$("target").value=originalTarget;list.innerHTML=cards.join("");
+   list.querySelectorAll(".tradeTypeBotBtn").forEach(btn=>btn.addEventListener("click",()=>{const type=btn.dataset.botType;const note=list.querySelector("#tradeTypeBotNote_"+type);sendTradeTypeToBot(type,note)}));
+   syncTradeTypeButtons();
+ }catch(err){list.innerHTML=loadingCards();}
+}
+function render(){
+ const n=Math.min(+$("window").value,ticks.length),a=ticks.slice(-n),total=a.length||1,c=Array(10).fill(0);a.forEach(d=>c[d]++);
+ $("loaded").textContent=a.length;$("last").textContent=a.at(-1)??"-";
+ $("even").textContent=pct(c.reduce((s,x,i)=>s+(i%2===0?x:0),0),total).toFixed(2)+"%";
+ $("odd").textContent=pct(c.reduce((s,x,i)=>s+(i%2?x:0),0),total).toFixed(2)+"%";
+ $("over").textContent=pct(c.reduce((s,x,i)=>s+(i>5?x:0),0),total).toFixed(2)+"%";
+ $("under").textContent=pct(c.reduce((s,x,i)=>s+(i<5?x:0),0),total).toFixed(2)+"%";
+ let u=0,d=0;for(let i=Math.max(1,quotes.length-n);i<quotes.length;i++){if(quotes[i]>quotes[i-1])u++;else if(quotes[i]<quotes[i-1])d++}
+ $("up").textContent=pct(u,u+d).toFixed(2)+"%";$("down").textContent=pct(d,u+d).toFixed(2)+"%";
+ const ranked=[...Array(10).keys()].sort((a,b)=>c[b]-c[a]||a-b);
+ const high=ranked[0],secondHigh=ranked[1],least=ranked[9],secondLeast=ranked[8];
+ const labels={};labels[high]={cls:"dist-high",status:"💚 Highest",key:"high"};labels[secondHigh]={cls:"dist-second-high",status:"💙 2nd Highest",key:"secondHigh"};labels[least]={cls:"dist-least",status:"♥️ Least",key:"least"};labels[secondLeast]={cls:"dist-second-least",status:"🧡 2nd Least",key:"secondLeast"};
+ $("digits").innerHTML=c.map((x,i)=>{const z=labels[i],freq=pct(x,total);return "<tr class='"+(z?z.cls:"")+"'><td><b style='font-size:18px'>"+i+"</b></td><td>"+x+"</td><td>"+freq.toFixed(2)+"%</td><td><div class='bar'><div class='fill' style='width:"+freq+"%'></div></div></td><td>"+(z?"<span class='distStatus "+z.key+"'>"+z.status+"</span>":"<span class='muted'>Normal</span>")+"</td></tr>"}).join("");
+ $("distLegend").innerHTML=[
+  ["high","💚 Highest",high],["secondHigh","💙 2nd Highest",secondHigh],
+  ["least","♥️ Least",least],["secondLeast","🧡 2nd Least",secondLeast]
+ ].map(x=>"<div class='distLegendItem "+x[0]+"'><small>"+x[1]+"</small><b>Digit "+x[2]+" ("+pct(c[x[2]],total).toFixed(2)+"%)</b></div>").join("");
+ const top=c.reduce((best,x,i)=>x>c[best]?i:best,0);
+ const minCount=Math.min(...c), leastTile=c.findIndex(x=>x===minCount);
+ $("tileLast").textContent=a.at(-1)??"—";
+ $("tileTop").textContent=top;
+ $("tileTopRate").textContent=pct(c[top],total).toFixed(2)+"% of window";
+ $("tileLeast").textContent=leastTile;
+ $("tileLeastRate").textContent=pct(c[least],total).toFixed(2)+"% of window";
+ const er=pct(c.reduce((s,x,i)=>s+(i%2===0?x:0),0),total),or=100-er;
+ $("tileParity").textContent=er>=or?"EVEN":"ODD";
+ $("tileParityRate").textContent=(er>=or?er:or).toFixed(2)+"% historical share";
+ const dr=u+d?u>=d?"UP":"DOWN":"—";
+ $("tileDirection").textContent=dr;
+ $("tileDirectionRate").textContent=u+d?pct(Math.max(u,d),u+d).toFixed(2)+"% of moves":"Waiting for moves";
+ updateSignalEngine(a);
+ renderTradeTypeCards(a);
+ let r=analyze(a);
+ const currentType=$("tradeType").value;
+ const currentTrade=tradeNowDecision(currentType,r);
+ const currentDisplay=currentTrade ? ("TRADE NOW • "+r.signal) : "WAIT";
+ $("signal").textContent=currentDisplay;$("signalDetail").textContent=r.detail;$("confidence").textContent=r.conf.toFixed(0)+"%";$("evidence").textContent=r.evidence.toFixed(2)+"%";syncManualExpectation(r);updateBridge();
+ 
+ $("signal").className="big "+(r.signal==="WAIT"?"warn":"ok");
+ updateBotHandoff(r);
+}
+let authWs=null;
+let authToken=null;
+let authAutoReconnect=false;
+let authReconnectTimer=null;
+let manualExpected=null;
+let manualLastTransactionId=null;
+let manualPendingContract=null;
+let bridgeReqId=12000;
+let profitLookupTimer=null;
+let profitLookupReqId=14000;
+const TOKEN_SESSION_KEY="deriv_analyzer_pat_session";
+function rememberTokenForSession(token){
+  try{
+    const t=String(token||"").trim();
+    if(t) sessionStorage.setItem(TOKEN_SESSION_KEY,t);
+    else sessionStorage.removeItem(TOKEN_SESSION_KEY);
+  }catch(e){}
+}
+function restoreTokenForSession(){
+  try{
+    const t=sessionStorage.getItem(TOKEN_SESSION_KEY)||"";
+    if(t) $("token").value=t;
+  }catch(e){}
+}
+function clearTokenForSession(){
+  try{sessionStorage.removeItem(TOKEN_SESSION_KEY)}catch(e){}
+}
+function bridgeContractForType(){
+  const type=$("tradeType").value, target=$("target").value, barrier=$("barrier").value;
+  if(type==="matches") return {contract_type:"DIGITMATCH",barrier:String(target),label:"Matches " + target};
+  if(type==="differs") return {contract_type:"DIGITDIFF",barrier:String(target),label:"Differs " + target};
+  if(type==="even") return {contract_type:"DIGITEVEN",label:"Even"};
+  if(type==="odd") return {contract_type:"DIGITODD",label:"Odd"};
+  if(type==="over") return {contract_type:"DIGITOVER",barrier:String(barrier),label:"Over " + barrier};
+  if(type==="under") return {contract_type:"DIGITUNDER",barrier:String(barrier),label:"Under " + barrier};
+  if(type==="rise"||type==="upOnly") return {contract_type:"CALL",label:type==="rise"?"Rise":"Up Only"};
+  if(type==="fall"||type==="downOnly") return {contract_type:"PUT",label:type==="fall"?"Fall":"Down Only"};
+  return null;
+}
+function updateBridge(){
+  const b=bridgeContractForType();
+  if(!b){$("bridgeContract").value="Unsupported";$("bridgeBadge").textContent="● REVIEW";return}
+  $("bridgeContract").value=b.label+" → "+b.contract_type;
+  const connected=authWs&&authWs.readyState===WebSocket.OPEN;
+  $("bridgeStatus").value=connected?"API monitoring active":"API not connected";
+  $("bridgeBadge").textContent=connected?"● MONITORING":"● STANDBY";
+}
+function manualSignalKey(){
+  return [$("symbol").value,$("tradeType").value,$("target").value,$("barrier").value].join("|");
+}
+function syncManualExpectation(r){
+  if(r.signal==="WAIT")return;
+  const b=bridgeContractForType();
+  if(!b)return;
+  const key=manualSignalKey();
+  if(!manualExpected || manualExpected.key!==key || (Date.now()-manualExpected.createdAt)>30000 || manualExpected.matched){
+    manualExpected={key,createdAt:Date.now(),symbol:$("symbol").value,contractType:b.contract_type,label:b.label,target:$("target").value,barrier:$("barrier").value,stake:1,matched:false};
+    $("monitorTrade").value="Waiting for "+b.label+" purchase";
+    $("monitorContractId").value="—";
+    $("monitorResult").value="—";
+  }
+}
+function requestPortfolioCheck(){
+  if(!authWs||authWs.readyState!==WebSocket.OPEN)return;
+  authWs.send(JSON.stringify({portfolio:1,req_id:++bridgeReqId}));
+}
+function requestProfitTableCheck(){
+  if(!authWs||authWs.readyState!==WebSocket.OPEN||!manualExpected||manualExpected.matched)return;
+  authWs.send(JSON.stringify({
+    profit_table:1,
+    limit:25,
+    sort:"DESC",
+    description:1,
+    req_id:++profitLookupReqId
+  }));
+}
+function scheduleClosedTradeLookup(){
+  if(profitLookupTimer)clearTimeout(profitLookupTimer);
+  profitLookupTimer=setTimeout(()=>{
+    profitLookupTimer=null;
+    requestProfitTableCheck();
+  },1200);
+}
+function profitRowMatchesExpectation(row){
+  if(!manualExpected||manualExpected.matched||!row)return false;
+  const symbol=row.underlying_symbol||row.symbol||"";
+  const ctype=row.contract_type||"";
+  const buyPrice=Number(row.buy_price);
+  const purchase=Number(row.purchase_time||row.buy_time||0)*1000;
+  const symbolMatch=!symbol||symbol===manualExpected.symbol;
+  const typeMatch=!ctype||ctype===manualExpected.contractType;
+  const amountMatch=!Number.isFinite(buyPrice)||Math.abs(Math.abs(buyPrice)-manualExpected.stake)<=0.02;
+  const timeMatch=!purchase||Math.abs(Date.now()-purchase)<=120000;
+  return symbolMatch&&typeMatch&&amountMatch&&timeMatch;
+}
+function processProfitTable(msg){
+  const rows=Array.isArray(msg?.profit_table?.transactions)?msg.profit_table.transactions:[];
+  const match=rows.find(profitRowMatchesExpectation);
+  if(!match||manualExpected?.matched)return;
+  const cid=String(match.contract_id||"");
+  if(!cid)return;
+  manualPendingContract=cid;
+  manualExpected.matched=true;
+  const profit=Number(match.profit);
+  const closed=match.is_sold===true||String(match.status||"").toLowerCase()==="sold"||Number.isFinite(profit);
+  $("monitorTrade").value=manualExpected.label+" detected";
+  $("monitorContractId").value=cid;
+  $("monitorResult").value=closed?(profit>0?"WIN":profit<0?"LOSS":"BREAK-EVEN"):"RUNNING";
+  $("bridgeStatus").value=closed?"Manual contract closed":"Manual trade matched • monitoring";
+  $("bridgeBadge").textContent=closed?(profit>0?"● WIN":profit<0?"● LOSS":"● CLOSED"):"● MATCHED";
+  $("bridgeNote").textContent=manualExpected.label+" was matched from Deriv's closed-contract history. Final P/L: "+(Number.isFinite(profit)?profit:"—")+". The analyzer did not place the trade.";
+}
+function contractMatchesExpectation(contract){
+  if(!manualExpected||!contract||manualExpected.matched)return false;
+  const symbol=contract.underlying_symbol||contract.symbol;
+  if(symbol && symbol!==manualExpected.symbol)return false;
+  if(manualExpected.contractType && contract.contract_type && contract.contract_type!==manualExpected.contractType)return false;
+  const buyPrice=Number(contract.buy_price);
+  if(Number.isFinite(buyPrice)&&Math.abs(buyPrice-manualExpected.stake)>0.02)return false;
+  const started=Number(contract.purchase_time||contract.start_time||0)*1000;
+  if(started && Math.abs(Date.now()-started)>45000)return false;
+  return true;
+}
+function monitorMatchedContract(contract){
+  const cid=String(contract.contract_id||"");
+  if(!cid)return;
+  manualPendingContract=cid;
+  manualExpected.matched=true;
+  $("monitorTrade").value=manualExpected.label+" detected";
+  $("monitorContractId").value=cid;
+  $("monitorResult").value="RUNNING";
+  $("bridgeStatus").value="Manual trade matched • monitoring";
+  $("bridgeBadge").textContent="● MATCHED";
+  $("bridgeNote").textContent=manualExpected.label+" was detected on the connected Deriv account. The analyzer did not place the trade.";
+  authWs.send(JSON.stringify({proposal_open_contract:1,contract_id:Number(cid),subscribe:1,req_id:++bridgeReqId}));
+}
+function processPortfolio(msg){
+  const contracts=Array.isArray(msg?.portfolio?.contracts)?msg.portfolio.contracts:[];
+  const match=contracts.find(contractMatchesExpectation);
+  if(match) monitorMatchedContract(match);
+}
+function processContractUpdate(c){
+  if(!c)return;
+  const cid=String(c.contract_id||"");
+  if(!manualPendingContract||cid!==String(manualPendingContract))return;
+  const profit=Number(c.profit);
+  const closed=Boolean(c.is_sold);
+  $("monitorResult").value=closed?(profit>0?"WIN":profit<0?"LOSS":"BREAK-EVEN"):"RUNNING";
+  if(closed){
+    $("bridgeStatus").value="Manual contract closed";
+    $("bridgeBadge").textContent=profit>0?"● WIN":profit<0?"● LOSS":"● CLOSED";
+    $("bridgeNote").textContent=manualExpected.label+" completed. Final P/L: "+(Number.isFinite(profit)?profit:"—")+".";
+    manualPendingContract=null;
+  }
+}
+async function connectAuthenticated(options){
+  const autoReconnect=Boolean(options&&options.autoReconnect);
+  const token=String($("token").value||"").trim();
+  const appId=String($("appId").value||"").trim();
+  let accountId=String($("accountId").value||"").trim();
+  if(!token||!appId){
+    authAutoReconnect=false;
+    $("authStatus").textContent="Token and App ID are required";
+    $("authStatus").className="status warn";
+    $("bridgeStatus").value="Waiting for credentials";
+    $("bridgeBadge").textContent="● REVIEW";
+    $("bridgeNote").textContent="Enter your private Trade-only PAT and Deriv App ID. The analyzer will load the selected Demo/Real account automatically.";
+    return;
+  }
+  if(authReconnectTimer){clearTimeout(authReconnectTimer);authReconnectTimer=null}
+  if(authWs){try{authWs.close()}catch(e){}authWs=null}
+  authToken=token;
+  authAutoReconnect=true;
+  try{sessionStorage.setItem("deriv_auth_auto_reconnect","1")}catch(e){}
+  rememberTokenForSession(token);
+  $("authStatus").textContent="Authorizing…";
+  $("authStatus").className="status warn";
+  $("bridgeStatus").value="Requesting secure connection…";
+  $("bridgeBadge").textContent="● CONNECTING";
+  $("bridgeNote").textContent="Requesting a short-lived authenticated WebSocket from Deriv. Your PAT stays in this browser session.";
+  try{
+    if(!accountId){
+      $("authStatus").textContent="Loading your Deriv accounts…";
+      $("authStatus").className="status warn";
+      const accountsResponse=await fetch("https://api.derivws.com/trading/v1/options/accounts",{
+        headers:{"Authorization":"Bearer "+token,"Deriv-App-ID":appId}
+      });
+      let accountsData=null;
+      try{accountsData=await accountsResponse.json()}catch(e){}
+      if(!accountsResponse.ok){
+        const msg=accountsData?.errors?.[0]?.message||accountsData?.error?.message||("HTTP "+accountsResponse.status);
+        throw new Error(msg);
+      }
+      const accounts=Array.isArray(accountsData?.data)?accountsData.data:(Array.isArray(accountsData?.data?.accounts)?accountsData.data.accounts:[]);
+      const wanted=$( "account").value;
+      const normalizedWanted=wanted==="demo";
+      const pick=accounts.find(a=>{
+        const type=String(a?.account_type||a?.type||a?.environment||"").toLowerCase();
+        const demoValue=a?.is_demo??a?.demo;
+        return type.includes(wanted)||String(demoValue).toLowerCase()===(normalizedWanted?"true":"false");
+      })||accounts[0];
+      accountId=String(pick?.account_id||pick?.id||pick?.accountId||"").trim();
+      if(!accountId)throw new Error("Deriv returned accounts, but no account ID could be read.");
+      $("accountId").value=accountId;
+      $("bridgeNote").textContent="Account "+accountId+" found automatically. Requesting the secure monitoring connection…";
+    }
+    const endpoint="https://api.derivws.com/trading/v1/options/accounts/"+encodeURIComponent(accountId)+"/otp";
+    const response=await fetch(endpoint,{
+      method:"POST",
+      headers:{"Authorization":"Bearer "+token,"Deriv-App-ID":appId}
+    });
+    let data=null;
+    try{data=await response.json()}catch(e){}
+    if(!response.ok){
+      const msg=data?.errors?.[0]?.message||data?.error?.message||("HTTP "+response.status);
+      throw new Error(msg);
+    }
+    const wsUrl=data?.data?.url;
+    if(!wsUrl)throw new Error("Deriv did not return an authenticated WebSocket URL.");
+    const socket=new WebSocket(wsUrl);
+    authWs=socket;
+    let opened=false;
+    socket.onopen=()=>{
+      opened=true;
+      $("authStatus").textContent="Connected";
+      $("authStatus").className="status ok";
+      $("bridgeStatus").value="API monitoring active";
+      $("bridgeBadge").textContent="● MONITORING";
+      $("bridgeNote").textContent="Connected to the selected Deriv account. Monitoring only — the analyzer will not place trades.";
+      setBotConnected(true);
+      socket.send(JSON.stringify({balance:1,subscribe:1,req_id:++bridgeReqId}));
+      socket.send(JSON.stringify({transaction:1,subscribe:1,req_id:++bridgeReqId}));
+      requestPortfolioCheck();
+      updateBridge();
+    };
+    socket.onmessage=e=>{
+      try{
+        const msg=JSON.parse(e.data);
+        if(msg.error){
+          const em=msg.error.message||"Authenticated API error";
+          $("authStatus").textContent=em;
+          $("authStatus").className="status bad";
+          $("bridgeStatus").value="API error";
+          $("bridgeBadge").textContent="● ERROR";
+          return;
+        }
+        if(msg.msg_type==="balance"&&msg.balance){
+          const bal=Number(msg.balance.balance);
+          $("authBalance").textContent=Number.isFinite(bal)?(bal.toFixed(2)+" "+(msg.balance.currency||"")):"Verified";
+          $("authBalance").className="status ok";
+        }
+        if(msg.msg_type==="transaction"&&msg.transaction){
+          const t=msg.transaction;
+          const txid=String(t.transaction_id||"");
+          if(txid&&txid===manualLastTransactionId)return;
+          if(t.action!=="buy")return;
+          const symbol=t.underlying_symbol||t.symbol||"";
+          const ctype=t.contract_type||"";
+          const amount=Math.abs(Number(t.amount));
+          const expected=manualExpected;
+          if(!expected||expected.matched)return;
+          const symbolMatch=!symbol||symbol===expected.symbol;
+          const typeMatch=!ctype||ctype===expected.contractType;
+          const amountMatch=!Number.isFinite(amount)||Math.abs(amount-expected.stake)<=0.02;
+          if(symbolMatch&&typeMatch&&amountMatch){
+            manualLastTransactionId=txid||manualLastTransactionId;
+            const txContractId=String(t.contract_id||"");
+            if(txContractId){
+              monitorMatchedContract({contract_id:txContractId});
+            }else{
+              requestPortfolioCheck();
+              setTimeout(requestPortfolioCheck,250);
+              setTimeout(requestPortfolioCheck,1000);
+              scheduleClosedTradeLookup();
+            }
+          }
+        }
+        if(msg.msg_type==="portfolio"){
+          processPortfolio(msg);
+          if(manualExpected&&!manualExpected.matched)scheduleClosedTradeLookup();
+        }
+        if(msg.msg_type==="profit_table")processProfitTable(msg);
+        if(msg.msg_type==="proposal_open_contract")processContractUpdate(msg.proposal_open_contract);
+      }catch(e){}
+    };
+    socket.onerror=()=>{
+      $("authStatus").textContent="Authenticated WebSocket error";
+      $("authStatus").className="status bad";
+      $("bridgeStatus").value="API connection error";
+      $("bridgeBadge").textContent="● ERROR";
+      setBotConnected(false);
+    };
+    socket.onclose=()=>{
+      if(authWs!==socket)return;
+      authWs=null;
+      $("authStatus").textContent=opened?"Disconnected":"Authentication failed";
+      $("authStatus").className="status warn";
+      $("bridgeStatus").value="API disconnected";
+      $("bridgeBadge").textContent="● STANDBY";
+      setBotConnected(false);
+      updateBridge();
+      if(authAutoReconnect && document.visibilityState==="visible"){
+        if(authReconnectTimer)clearTimeout(authReconnectTimer);
+        authReconnectTimer=setTimeout(()=>{
+          authReconnectTimer=null;
+          if(authAutoReconnect && document.visibilityState==="visible" && !authWs) connectAuthenticated({autoReconnect:true});
+        },3000);
+      }
+    };
+  }catch(e){
+    authWs=null;
+    $("authStatus").textContent="Connection failed";
+    $("authStatus").className="status bad";
+    $("bridgeStatus").value="API error";
+    $("bridgeBadge").textContent="● ERROR";
+    $("bridgeNote").textContent="Deriv API connection failed: "+(e?.message||"Unknown error");
+    setBotConnected(false);
+  }
+}
+function disconnectAuthenticated(){
+  authAutoReconnect=false;
+  if(authReconnectTimer){clearTimeout(authReconnectTimer);authReconnectTimer=null}
+  try{sessionStorage.removeItem("deriv_auth_auto_reconnect")}catch(e){}
+  authToken=null;manualExpected=null;manualPendingContract=null;manualLastTransactionId=null;
+  if(profitLookupTimer){clearTimeout(profitLookupTimer);profitLookupTimer=null}
+  if(authWs){try{authWs.close()}catch(e){}authWs=null}
+  $("authStatus").textContent="Not connected";$("authStatus").className="status warn";$("authBalance").textContent="Not verified";$("authBalance").className="status warn";
+  $("bridgeStatus").value="API disconnected";$("bridgeBadge").textContent="● STANDBY";
+  $("monitorTrade").value="Waiting for your trade";$("monitorContractId").value="—";$("monitorResult").value="—";
+}
+let publicWsAttempt=0;
+function connectPublic(){
+ if(ws)try{ws.close()}catch(e){}
+ const endpoint="wss://api.derivws.com/trading/v1/options/ws/public";
+ const socket=new WebSocket(endpoint);
+ ws=socket;
+ let pingTimer=null;
+ socket.onopen=()=>{
+  $("apiStatus").textContent="Live (public data)";$("apiStatus").className="status ok";
+  if(!(authWs&&authWs.readyState===WebSocket.OPEN)){$("authStatus").textContent="Not connected";$("authStatus").className="status warn";}
+  setHeroMarketStatus("Live","ok");
+  const sym=$("symbol").value,count=Math.max(20,+$("window").value||100);
+  socket.send(JSON.stringify({ping:1,req_id:8100}));
+  socket.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id:8101}));
+  socket.send(JSON.stringify({ticks:sym,subscribe:1,req_id:8102}));
+  pingTimer=setInterval(()=>{if(socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({ping:1,req_id:8103}))},30000);
+ };
+ socket.onmessage=e=>{
+  try{
+   const x=JSON.parse(e.data);
+   if(x.error){
+    $("apiStatus").textContent="Market data error: "+(x.error.message||"Request rejected");
+    $("apiStatus").className="status bad";return;
+   }
+   if(x.history?.prices){
+    quotes=x.history.prices.map(Number);
+    ticks=quotes.map(q=>digitFromQuote(q,x.pip_size));
+    lastAnalysis=Date.now();freshPending=false;
+    $("analyzeNow").textContent="Analyze Now";
+    if(freshTimer){clearTimeout(freshTimer);freshTimer=null}
+    render();
+   }
+   if(x.tick?.quote!==undefined){
+    const q=Number(x.tick.quote);
+    quotes.push(q);ticks.push(digitFromQuote(q,x.tick?.pip_size));
+    if(ticks.length>5000){ticks=ticks.slice(-5000);quotes=quotes.slice(-5000)}
+    render();
+   }
+  }catch(err){
+   $("apiStatus").textContent="Market data parse error";$("apiStatus").className="status bad";
+  }
+ };
+ socket.onerror=()=>{$("apiStatus").textContent="Current Deriv public endpoint could not be opened";$("apiStatus").className="status bad"};
+ socket.onclose=ev=>{
+  if(pingTimer)clearInterval(pingTimer);
+  if(ws!==socket)return;
+  $("apiStatus").textContent="Disconnected (code "+(ev?.code??"—")+")";
+  $("apiStatus").className="status bad";
+  setHeroMarketStatus("Disconnected","bad");
+  if(freshPending){$("analyzeNow").textContent="Analyze Now";freshPending=false}
+ };
+}
+$("connect").onclick=()=>{localStorage.setItem("deriv_app_id",$("appId").value);connectPublic();lastAnalysis=Date.now()};
+$("disconnect").onclick=()=>{if(ws)ws.close()};
+let freshReqId=9000,freshPending=false;
+let freshTimer=null;
+function finishFreshAnalysis(message){
+  freshPending=false;
+  if(freshTimer){clearTimeout(freshTimer);freshTimer=null}
+  $("analyzeNow").textContent="Analyze Now";
+  if(message){$("apiStatus").textContent=message;$("apiStatus").className="status bad"}
+}
+function requestFreshAnalysis(){
+  const sym=$("symbol").value;
+  if(!sym||freshPending)return;
+  const n=Math.min(+$("window").value||500,ticks.length);
+  if(n>=20){
+    const a=ticks.slice(-n),c=Array(10).fill(0);
+    a.forEach(d=>c[d]++);
+    const candidate=modelDigit(a);
+    // The model candidate uses both the full window and the most recent ticks.
+    // Most appearing is one input, not the only prediction rule.
+    if($("tradeType").value==="matches"||$("tradeType").value==="differs") $("target").value=String(candidate);
+    render();
+    $("apiStatus").textContent="Live (public data) — refreshing…";
+    $("apiStatus").className="status ok";
+  }
+  freshPending=true;
+  $("analyzeNow").textContent="Analyzing…";
+  if(freshTimer)clearTimeout(freshTimer);
+  freshTimer=setTimeout(()=>finishFreshAnalysis("Fresh analysis timed out — reconnecting to public market data"),10000);
+  if(!ws||ws.readyState!==WebSocket.OPEN){connectPublic();return}
+  const req_id=++freshReqId;
+  const count=Math.max(20,+$("window").value||100);
+  ws.send(JSON.stringify({ticks_history:sym,count,end:"latest",style:"ticks",req_id}));
+}
+
+function syncTradeTypeButtons(){
+  const v=$("tradeType").value;
+  document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.classList.toggle("active",btn.dataset.tradeType===v));
+}
+document.querySelectorAll(".tradeTypeBtn").forEach(btn=>btn.addEventListener("click",()=>{
+  $("tradeType").value=btn.dataset.tradeType;
+  syncTradeTypeButtons();
+  render();
+  updateBridge();
+}));
+syncTradeTypeButtons();
+$("symbol").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;lastAnalysis=Date.now();connectPublic();updateBridge()};$("window").onchange=()=>{resetMatchesLock();manualExpected=null;manualPendingContract=null;ticks=[];quotes=[];lastAnalysis=Date.now();connectPublic();updateBridge()};$("tradeType").onchange=()=>{syncTradeTypeButtons();manualExpected=null;render();updateBridge()};$("target").onchange=()=>{manualExpected=null;render();updateBridge()};$("barrier").onchange=()=>{manualExpected=null;render();updateBridge()};$("threshold").oninput=render;$("auto").onchange=()=>{lastAnalysis=Date.now();$("countdown").value=$("auto").value==="on"?"30s":"OFF"};$("analyzeNow").onclick=requestFreshAnalysis;$("connectAuth").onclick=connectAuthenticated;$("account").onchange=()=>{manualExpected=null;manualPendingContract=null;updateBridge();};$("tradeType").addEventListener("change",updateBridge);$("target").addEventListener("change",updateBridge);$("barrier").addEventListener("change",updateBridge);
+$("disconnect").addEventListener("click",disconnectAuthenticated);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible")return;
+  if(!authAutoReconnect)return;
+  if(authWs&&authWs.readyState===WebSocket.OPEN)return;
+  if(authReconnectTimer)clearTimeout(authReconnectTimer);
+  authReconnectTimer=setTimeout(()=>{
+    authReconnectTimer=null;
+    if(authAutoReconnect && document.visibilityState==="visible" && !authWs) connectAuthenticated({autoReconnect:true});
+  },500);
+});
+window.addEventListener("pageshow",()=>{
+  if(!authAutoReconnect)return;
+  if(authWs&&authWs.readyState===WebSocket.OPEN)return;
+  if(authReconnectTimer)clearTimeout(authReconnectTimer);
+  authReconnectTimer=setTimeout(()=>{
+    authReconnectTimer=null;
+    if(authAutoReconnect && !authWs) connectAuthenticated({autoReconnect:true});
+  },500);
+});
+try{authAutoReconnect=sessionStorage.getItem("deriv_auth_auto_reconnect")==="1"}catch(e){authAutoReconnect=false}
+
+$("appId").value=localStorage.getItem("deriv_app_id")||"";
+restoreTokenForSession();
+$("token").addEventListener("input",()=>rememberTokenForSession($("token").value));
+if($("botReady"))$("botReady").onclick=()=>setBotConnected(true);$("authStatus").textContent="Not connected";$("authStatus").className="status warn";
+const SUPABASE_URL="https://dokqudirgkwriduxxfjc.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_un4Phnjuu4O3Ob1ainOWnQ_pCnQYSVY";
+const SUPABASE_SCRIPT="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+const ANALYZER_LOGIN_REQUIRED=false; // Temporary: keep the analyzer open while Supabase login is repaired.
+let supabaseClient=null;
+let supabaseLoadPromise=null;
+let v3AuthListenerReady=false;
+
+function loadSupabase(){
+ if(supabaseClient)return Promise.resolve(supabaseClient);
+ if(supabaseLoadPromise)return supabaseLoadPromise;
+ supabaseLoadPromise=new Promise((resolve,reject)=>{
+  const make=()=>{
+   try{
+    if(!window.supabase)throw new Error("Secure login library did not load.");
+    supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
+     auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true,
+      storageKey:"deriv_analyzer_auth_v4",
+      storage:window.localStorage
+     }
+    });
+    resolve(supabaseClient);
+   }catch(e){supabaseLoadPromise=null;reject(e)}
+  };
+  if(window.supabase){make();return}
+  const s=document.createElement("script");
+  s.src=SUPABASE_SCRIPT;
+  s.async=true;
+  s.onload=make;
+  s.onerror=()=>{supabaseLoadPromise=null;reject(new Error("Could not load secure login service."))};
+  document.head.appendChild(s);
+ });
+ return supabaseLoadPromise;
+}
+
+function v3SyncLoginMode(){
+ const btn=$("v3LoginBtn");
+ if(btn)btn.innerHTML='Sign In <span>→</span>';
+}
+
+function v3ShowLogin(message){
+ if(!ANALYZER_LOGIN_REQUIRED){
+  $("v3Login").style.display="none";
+  $("v3AccountState").textContent="Analyzer open | Login temporarily disabled";
+  return;
+ }
+ $("v3Login").style.display="flex";
+ $("v3AccountState").textContent="Analyzer locked";
+ if(message){
+  const status=$("loginStatus");
+  if(status){status.style.display="block";status.style.color="#ffb4b4";status.textContent=message}
+ }
+}
+
+async function v3SetLoggedIn(email){
+ if(!email)return;
+ localStorage.setItem("v3_analyzer_session","1");
+ localStorage.setItem("v3_analyzer_user",email);
+ $("v3Login").style.display="none";
+ $("v3AccountState").textContent="Analyzer: "+email+" | Demo/Paper recommended";
+}
+
+async function v3InitAuth(){
+ if(!ANALYZER_LOGIN_REQUIRED){
+  $("v3Login").style.display="none";
+  $("v3AccountState").textContent="Analyzer open | Login temporarily disabled";
+  return;
+ }
+ try{
+  await loadSupabase();
+  if(!v3AuthListenerReady){
+   supabaseClient.auth.onAuthStateChange((event,nextSession)=>{
+    if(nextSession?.user?.email){
+     v3SetLoggedIn(nextSession.user.email);
+    }else if(event==="SIGNED_OUT"){
+     localStorage.removeItem("v3_analyzer_session");
+     localStorage.removeItem("v3_analyzer_user");
+     v3ShowLogin("Your analyzer session ended. Please sign in again.");
+    }
+   });
+   v3AuthListenerReady=true;
+  }
+  const r=await supabaseClient.auth.getSession();
+  const session=r.data?.session;
+  if(session?.user?.email){
+   await v3SetLoggedIn(session.user.email);
+  }else{
+   localStorage.removeItem("v3_analyzer_session");
+   localStorage.removeItem("v3_analyzer_user");
+   v3ShowLogin();
+  }
+ }catch(e){
+  localStorage.removeItem("v3_analyzer_session");
+  localStorage.removeItem("v3_analyzer_user");
+  v3ShowLogin("Secure login service could not be loaded. Please refresh and try again.");
+ }
+}
+
+$("v3LoginBtn").onclick=async()=>{
+ const btn=$("v3LoginBtn"),status=$("loginStatus");
+ const email=$("v3User").value.trim().toLowerCase(),pass=$("v3Pass").value;
+ const show=(msg,color)=>{if(status){status.style.display="block";status.style.color=color||"#8fdcff";status.textContent=msg}};
+ show("Connecting to secure login…","#8fdcff");
+ if(!email||!email.includes("@")||pass.length<8){
+  show("Enter your registered email and analyzer password (8+ characters).","#ffb4b4");
+  return;
+ }
+ btn.disabled=true;btn.style.opacity=".7";
+ try{
+  await loadSupabase();
+  const result=await Promise.race([
+   supabaseClient.auth.signInWithPassword({email,password:pass}),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Login timed out. Check your connection and try again.")),15000))
+  ]);
+  if(result.error)throw new Error(result.error.message||"Login failed.");
+  const userEmail=result.data?.user?.email||result.data?.session?.user?.email||email;
+  if(!result.data?.session)throw new Error("Supabase accepted the login but returned no session.");
+  await v3SetLoggedIn(userEmail);
+  show("Login successful. Opening analyzer…","#67efbd");
+ }catch(e){
+  show("Login failed: "+(e?.message||"Unknown authentication error"),"#ff9d9d");
+ }finally{
+  btn.disabled=false;
+  btn.style.opacity="1";
+ }
+};
+$("v3Logout").onclick=async()=>{
+ if(!ANALYZER_LOGIN_REQUIRED){
+  $("v3AccountState").textContent="Analyzer open | Login temporarily disabled";
+  return;
+ }
+ try{if(!supabaseClient)await loadSupabase();if(supabaseClient)await supabaseClient.auth.signOut({scope:"local"})}catch(e){}
+ localStorage.removeItem("v3_analyzer_session");
+ localStorage.removeItem("v3_analyzer_user");
+ clearTokenForSession();
+ authToken=null;
+ $("token").value="";
+ $("v3User").value="";
+ $("v3Pass").value="";
+ v3ShowLogin();
+};
+$("forgotPassword").onclick=async()=>{
+ const email=$("v3User").value.trim().toLowerCase();
+ if(!email||!email.includes("@")){alert("Enter your registered email first, then tap Forgot password.");$("v3User").focus();return}
+ try{
+  await loadSupabase();
+  const redirectTo=window.location.origin+window.location.pathname;
+  const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo});
+  if(error){alert("Password reset could not be sent: "+error.message);return}
+  alert("Password reset email sent. Check your email and follow the link to create a new analyzer password.");
+ }catch(e){alert("Password reset service error. Please try again.");}
+};
+(function(){
+ const url=new URL(window.location.href),type=url.searchParams.get("type");
+ if(type==="recovery"||url.hash.includes("type=recovery")){
+  setTimeout(async()=>{
+   try{
+    await loadSupabase();
+    const pass=prompt("Enter your new analyzer password (8+ characters):");
+    if(!pass||pass.length<8){alert("Password must be at least 8 characters.");return}
+    const {error}=await supabaseClient.auth.updateUser({password:pass});
+    if(error){alert("Password update failed: "+error.message);return}
+    alert("Password updated successfully. You can now sign in with your new password.");
+    history.replaceState({},document.title,window.location.pathname);
+   }catch(e){alert("Password reset session could not be completed. Please open the reset email link again.");}
+  },600);
+ }
+})();
+v3SyncLoginMode();
+restoreTokenForSession();
+v3InitAuth();
+setTimeout(()=>{try{connectPublic()}catch(e){}},300);
+
+function botHandoffValue(type){
+ const digit=Number($("target").value),digitType=type==="matches"||type==="differs";
+ if(digitType){if(!Number.isInteger(digit)||digit<0||digit>9)return null;return String(digit)}
+ return type==="even"?"Even":type==="odd"?"Odd":type==="over"?"Over "+$("barrier").value:type==="under"?"Under "+$("barrier").value:type==="rise"?"Rise":type==="fall"?"Fall":type==="upOnly"?"Up Only":"Down Only";
+}
+const DA_CONTRACT={matches:"DIGITMATCH",differs:"DIGITDIFF",even:"DIGITEVEN",odd:"DIGITODD",over:"DIGITOVER",under:"DIGITUNDER",rise:"CALL",fall:"PUT",upOnly:"RUNHIGH",downOnly:"RUNLOW"};
+function daLoad(){try{return JSON.parse(localStorage.getItem("da.bot")||"{}")}catch(e){return {}}}
+function daSave(){try{localStorage.setItem("da.bot",JSON.stringify({stake:$("daStake").value,mult:$("daMult").value,tp:$("daTp").value,sl:$("daSl").value,runs:$("daRuns").value}))}catch(e){}}
+(function(){const s=daLoad();[["daStake","stake"],["daMult","mult"],["daTp","tp"],["daSl","sl"],["daRuns","runs"]].forEach(([id,k])=>{if(s[k]!==undefined&&s[k]!=="")$(id).value=s[k];$(id).addEventListener("input",daSave)})})();
+async function sendTradeTypeToBot(type,targetNote){
+ const contract=DA_CONTRACT[type];if(!contract)return;
+ const a=window.__analysisTicks,digitType=type==="matches"||type==="differs";
+ let barrier=null;
+ if(digitType){barrier=Array.isArray(a)&&a.length>=20?modelDigit(a):Number($("target").value)}
+ else if(type==="over"||type==="under")barrier=Number($("barrier").value);
+ if((digitType||type==="over"||type==="under")&&!Number.isInteger(barrier))return;
+ const num=(id,d,min)=>{const v=parseFloat($(id).value);return Number.isFinite(v)&&v>=min?v:d};
+ const sel=$("symbol"),name=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:sel.value;
+ const r=Math.max(1,Math.round(num("daRuns",10,1)));
+ if(window.parent===window){if(targetNote)targetNote.textContent="Open this page from the Joytrader site to load the bot.";return}
+ window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:sel.value,name:name,contract:contract,kind:type,barrier:barrier,trigger:[],runs:r,stake:num("daStake",0.35,0.35),mult:num("daMult",1,1),tp:num("daTp",0,0),sl:num("daSl",0,0),ticks:contract.startsWith("RUN")?2:1,rate:0,base:0,at:Date.now()}},window.location.origin);
+ if(targetNote)targetNote.textContent="Opening Bot Builder…";
+}
+function updateBotHandoff(signalResult){
+ const box=$("botHandoff"),btn=$("sendDigitToBot"),note=$("botHandoffNote");if(!box||!btn)return;
+ const type=$("tradeType").value,tradeNow=tradeNowDecision(type,signalResult),value=botHandoffValue(type),canSend=tradeNow&&value!==null;
+ box.classList.toggle("show",canSend);
+ if(canSend){const digitType=type==="matches"||type==="differs";const label=type==="matches"?"Matches":type==="differs"?"Differs":type==="even"?"Even":type==="odd"?"Odd":type==="over"?"Over":type==="under"?"Under":type==="rise"?"Rise":type==="fall"?"Fall":type==="upOnly"?"Up Only":"Down Only";
+ btn.textContent=digitType?"🟢 Deriv Trade Now — digit "+value:"🟢 Deriv Trade Now — "+label;
+ note.textContent=digitType?"Digit "+value+" will be copied and Deriv Bot opened. You still press Run manually.":label+" is TRADE NOW. Deriv Bot will open; select the same contract type there, then press Run manually.";
+ btn.onclick=()=>sendTradeTypeToBot(type,note);}
+}
+
+$("v3BotBtn").onclick=()=>{const on=$("v3BotBtn").dataset.on==="1";setBotConnected(!on)};
+setBotConnected(false);
+setHeroMarketStatus("Loading…","warn");
+function showConnectionDiagnostic(){
+ const existing=document.getElementById("connectionDiagnostic");
+ if(existing)existing.remove();
+ const card=document.createElement("div");
+ card.id="connectionDiagnostic";card.className="card";
+ card.innerHTML='<div class="sectionHead"><div><h2>Deriv Connection Diagnostic</h2><div class="muted">Testing the public market WebSocket only. Manual API is not used.</div></div><span id="diagBadge" class="liveChip">● TESTING</span></div><div id="diagSteps" class="note">1. Opening WebSocket…</div>';
+ const target=document.querySelector("#apiStatus")?.closest(".card")||document.body.firstElementChild;
+ if(target?.parentNode)target.parentNode.insertBefore(card,target);else document.body.prepend(card);
+ const steps=document.getElementById("diagSteps"),badge=document.getElementById("diagBadge");
+ const set=(t,ok=false)=>{steps.textContent=t;badge.textContent=ok?"● CONNECTED":"● TESTING"};
+ const w=new WebSocket("wss://ws.binaryws.com/websockets/v3");
+ let done=false;
+ w.onopen=()=>{set("1. WebSocket opened ✓\n2. Sending ping…");w.send(JSON.stringify({ping:1,req_id:9901}));};
+ w.onmessage=e=>{try{const d=JSON.parse(e.data);
+   if(d.error){done=true;steps.textContent="Deriv returned an API error: "+(d.error.message||"Unknown error");badge.textContent="● ERROR";w.close();return}
+   if(d.msg_type==="ping"){set("1. WebSocket opened ✓\n2. Ping response received ✓\n3. Requesting 1HZ100V tick…");w.send(JSON.stringify({ticks:"1HZ100V",req_id:9902}));return}
+   if(d.msg_type==="tick"&&d.tick?.quote!==undefined){done=true;set("1. WebSocket opened ✓\n2. Ping response received ✓\n3. Live tick received ✓\nQuote: "+d.tick.quote,true);w.close();}
+ }catch(e){done=true;steps.textContent="Received data could not be parsed.";badge.textContent="● ERROR"}};
+ w.onerror=()=>{if(!done){done=true;steps.textContent="1. WebSocket failed before a successful connection. Browser/network returned a WebSocket error.";badge.textContent="● FAILED"}};
+ w.onclose=ev=>{if(!done){done=true;steps.textContent="1. WebSocket closed before completion. Close code: "+(ev?.code??"—")+".";badge.textContent="● FAILED"}};
+ setTimeout(()=>{if(!done){done=true;steps.textContent="1. WebSocket test timed out after 10 seconds.";badge.textContent="● TIMEOUT";try{w.close()}catch(e){}}},10000);
+}
+
+// Connection diagnostic disabled after the live market feed was restored.\n// The main Market Data status is now the authoritative connection indicator.
+// Public market connection diagnostic: isolated Deriv WebSocket check.
+function runMarketConnectionDiagnostic(){
+ const box=$("apiStatus");
+ if(!box)return;
+ box.textContent="Testing Deriv market connection…";box.className="status warn";
+ const testWs=new WebSocket("wss://ws.binaryws.com/websockets/v3");
+ let finished=false;
+ const finish=(text,cls)=>{if(finished)return;finished=true;try{testWs.close()}catch(e){}box.textContent=text;box.className="status "+cls};
+ testWs.onopen=()=>{
+   box.textContent="Deriv WebSocket connected — requesting test tick…";
+   try{
+    testWs.send(JSON.stringify({ping:1,req_id:8801}));
+    testWs.send(JSON.stringify({ticks:"1HZ100V",req_id:8802}));
+   }catch(e){finish("Test send failed: "+e.message,"bad")}
+ };
+ testWs.onmessage=e=>{
+   try{
+    const d=JSON.parse(e.data);
+    if(d.error){finish("Deriv test error: "+(d.error.message||"Request rejected"),"bad");return}
+    if(d.msg_type==="tick"&&d.tick?.quote!==undefined){
+      finish("Deriv connection OK — live tick received","ok");
+    }else if(d.msg_type==="ping"){
+      box.textContent="Deriv connected — ping received; waiting for tick…";
+      box.className="status ok";
+    }
+   }catch(e){finish("Diagnostic response could not be read","bad")}
+ };
+ testWs.onerror=()=>finish("Deriv WebSocket blocked/failed in this browser or network","bad");
+ testWs.onclose=ev=>{if(!finished)finish("Deriv diagnostic closed (code "+(ev?.code??"—")+")","bad")};
+ setTimeout(()=>{if(!finished)finish("Deriv diagnostic timed out after 8 seconds","bad")},8000);
+}
+
+setHeroMarketsLoaded(0,true);
+render();
+setInterval(()=>{if($("auto").value==="off"){$("countdown").value="OFF";return}const left=Math.max(0,30-Math.floor((Date.now()-lastAnalysis)/1000));$("countdown").value=left+"s";if(left===0){requestFreshAnalysis()}},1000);
+</script>
+<script>
+(function(){
+ const WS="wss://api.derivws.com/trading/v1/options/ws/public";
+ const sel=document.getElementById("symbol"),status=document.getElementById("marketStatus");
+ const fallback=[
+  ["Volatility 10 Index","R_10"],["Volatility 25 Index","R_25"],["Volatility 50 Index","R_50"],
+  ["Volatility 75 Index","R_75"],["Volatility 100 Index","R_100"],
+  ["Volatility 10 (1s) Index","1HZ10V"],["Volatility 25 (1s) Index","1HZ25V"],
+  ["Volatility 50 (1s) Index","1HZ50V"],["Volatility 75 (1s) Index","1HZ75V"],
+  ["Volatility 100 (1s) Index","1HZ100V"],
+  ["Jump 10 Index","JD10"],["Jump 25 Index","JD25"],["Jump 50 Index","JD50"],
+  ["Jump 75 Index","JD75"],["Jump 100 Index","JD100"]
+ ];
+ function add(list){
+  sel.innerHTML="";
+  list=list.map(x=>Array.isArray(x)?{n:x[0],v:x[1]}:x);
+  list.forEach(x=>{const o=document.createElement("option");o.value=x.v;o.textContent=x.n+" ("+x.v+")";sel.appendChild(o)});
+  status.textContent=list.length+" Volatility/Synthetic Markets loaded";
+ }
+ function load(){
+  // Show the built-in synthetic market list immediately, so the card never stays on Loading.
+  add(fallback);
+  if(typeof setHeroMarketsLoaded==="function")setHeroMarketsLoaded(fallback.length);
+  const w=new WebSocket(WS);
+  let done=false;
+  w.onopen=()=>w.send(JSON.stringify({active_symbols:"brief",req_id:7001}));
+  w.onmessage=e=>{
+   try{
+    const d=JSON.parse(e.data);
+    if(d.error){add(fallback);status.textContent="Using available Volatility markets";w.close();return}
+    if(d.msg_type==="active_symbols"){
+     const a=(d.active_symbols||[]).filter(s=>{
+      const n=String(s.underlying_symbol_name||"").toLowerCase();
+      const t=String(s.underlying_symbol_type||"").toLowerCase();
+      const m=String(s.market||"").toLowerCase();
+      const sym=String(s.underlying_symbol||"").toUpperCase();
+      return t.includes("synthetic")||m.includes("synthetic")||/volatility|crash|boom|jump|step|range break|drift|daily reset|multi step/i.test(n)||/^(R_|1HZ|BOOM|CRASH|JUMP|STEP|DRIFT|RB)/.test(sym);
+     }).map(s=>({v:s.underlying_symbol,n:s.underlying_symbol_name||s.underlying_symbol})).filter(x=>x.v);
+     if(a.length){add(a);done=true}else add(fallback);
+     w.close();
+     if(sel.options.length&&typeof connectPublic==="function")setTimeout(connectPublic,50);
+    }
+   }catch(_){}
+  };
+  w.onerror=()=>{if(!done)add(fallback);status.textContent="Using available Volatility markets"};
+  setTimeout(()=>{if(!done){add(fallback);try{w.close()}catch(_){}}},5000);
+ }
+ window.DerivSyntheticMarketsV2={refresh:load,endpoint:WS};
+ load();
+})();
+</script>
+<script>
+(function(){const p=document.getElementById("v3Pass"),b=document.getElementById("showPass");if(b&&p)b.onclick=()=>{p.type=p.type==="password"?"text":"password"};})();
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script></body></html>

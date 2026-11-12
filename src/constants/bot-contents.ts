@@ -21,12 +21,14 @@ export const DBOT_TABS: TDashboardTabIndex = Object.freeze({
     HEDGING: 6,
     COPY_TRADING: 7,
     CHART: 8,
+    ANALYZER: 9,
+    SCANNER: 10,
     // Deriv's tutorials tab was removed; old links to it open the dashboard
     TUTORIAL: 0,
 });
 
 export const MAX_STRATEGIES = 10;
 
-export const TAB_IDS = ['id-dbot-dashboard', 'id-bot-builder', 'id-free-bots', 'id-analysis', 'id-signals', 'id-derivscope', 'id-hedging', 'id-copy-trading', 'id-charts'];
+export const TAB_IDS = ['id-dbot-dashboard', 'id-bot-builder', 'id-free-bots', 'id-analysis', 'id-signals', 'id-derivscope', 'id-hedging', 'id-copy-trading', 'id-charts', 'id-analyzer', 'id-scanner'];
 
 export const DEBOUNCE_INTERVAL_TIME = 500;
