@@ -22,6 +22,7 @@ export type TTickdeskSignal = {
     side?: '+' | '-';
     hedge?: string;
     tradetype?: string;
+    scan?: boolean; // from the Market Scanner page: live bot follows the scanner's own board
     gap?: boolean; // Matches gap strategy: search digit = most frequent digit, trade digit = second most frequent
     live?: boolean; // sent by DerivScope: the bot follows DerivScope's live signal instead of fixed trigger digits
     eo_mode?: 'follow' | 'even' | 'odd';
@@ -339,8 +340,9 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     hedge: signal.hedge,
                     live_signal: signal.live === true && tradetype === 'matchesdiffers' && signal.contract === 'DIGITMATCH',
                     live_search: signal.live === true && signal.gap === true,
+                    live_scan: signal.live === true && signal.scan === true,
                     live_mode:
-                        signal.live === true && tradetype === 'evenodd' ? (signal.eo_mode === 'even' || signal.eo_mode === 'odd' ? signal.eo_mode : 'follow') : undefined,
+                        signal.live === true && (tradetype === 'evenodd' || (signal.scan === true && tradetype === 'overunder')) ? (signal.eo_mode === 'even' || signal.eo_mode === 'odd' ? signal.eo_mode : 'follow') : undefined,
                     multiplier_value: signal.multiplier_value,
                     growth_rate: signal.growth_rate,
                     tick_count: signal.tick_count,

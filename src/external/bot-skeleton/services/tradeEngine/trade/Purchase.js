@@ -4,7 +4,7 @@ import { contractStatus, info, log } from '../utils/broadcast';
 import { doUntilDone, getUUID, recoverFromError, tradeOptionToBuy } from '../utils/helpers';
 import { purchaseSuccessful } from './state/actions';
 import { BEFORE_PURCHASE } from './state/constants';
-import { getSignalDigit } from '../Interface/TicksInterface';
+import { getSignalDigit, isScanBot } from '../Interface/TicksInterface';
 
 let delayIndex = 0;
 let purchase_reference;
@@ -143,7 +143,7 @@ export default Engine =>
                 const live = vars.some(v => String(v.name ?? (v.getName ? v.getName() : '')) === 'LIVE|SIGNAL');
                 const m = globalThis.__tdMatch;
                 globalThis.__tdMatch = undefined;
-                const d = live ? (m && Date.now() - m.at < 5000 ? m.d : getSignalDigit()) : -1;
+                const d = live ? (m && Date.now() - m.at < 5000 ? m.d : getSignalDigit(Date.now(), globalThis.localStorage, undefined, isScanBot() ? 'sc.signal' : 'td.signal')) : -1;
                 return d >= 0 ? { ...options, prediction: d } : options;
             } catch (e) {
                 return options;

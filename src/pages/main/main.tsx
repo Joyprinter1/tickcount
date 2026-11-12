@@ -76,7 +76,7 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS, COPY_TRADING, HEDGING, ANALYZER } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, ANALYSIS, SIGNALS, DERIVSCOPE, FREE_BOTS, COPY_TRADING, HEDGING, ANALYZER, SCANNER } = DBOT_TABS;
     const init_render = React.useRef(true);
     const hash = ['dashboard', 'bot_builder', 'free_bots', 'analysis', 'signals', 'derivscope', 'hedging', 'copy_trading', 'chart'];
     const { isDesktop } = useDevice();
@@ -628,6 +628,29 @@ const AppWrapper = observer(() => {
                                             className='signals-frame'
                                             src='/digit-analyzer.html'
                                             title='Digit analyzer'
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='24px'
+                                            width='24px'
+                                            fill='var(--text-general)'
+                                        />
+                                        <Localize i18n_default_text='Scanner' />
+                                    </>
+                                }
+                                id='id-scanner'
+                            >
+                                <div className='signals-wrapper'>
+                                    {active_tab === SCANNER && (
+                                        <iframe
+                                            className='signals-frame'
+                                            src='/market-scanner.html'
+                                            title='Market scanner'
                                         />
                                     )}
                                 </div>
