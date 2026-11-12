@@ -19,7 +19,7 @@ function tdHL(){
 function tdCfg(){let c={};try{c=JSON.parse(localStorage.getItem("tickdesk.bot"))||{}}catch(e){}
   const n0=(v,d)=>v===undefined||v===null||v===""||!isFinite(+v)?d:+v;
   const pk=(v,lo,hi)=>v===undefined||v===null||v===""||!isFinite(+v)||+v<lo||+v>hi?null:Math.round(+v);
-  return{stake:n0(c.stake,1)>0?n0(c.stake,1):1,mult:n0(c.mult,1)>=1?n0(c.mult,1):1,tp:Math.max(0,n0(c.tp,10)),sl:Math.max(0,n0(c.sl,10)),pickO:pk(c.pickO,0,8),pickU:pk(c.pickU,1,9),eoMode:c.eoMode==="even"||c.eoMode==="odd"?c.eoMode:"follow",grey:c.grey!==!1,gapN:[50,100,250,1e3].includes(+c.gapN)?+c.gapN:1e3,gap:[0,.1,.2,.3,.5,1].includes(+c.gap)&&c.gap!==undefined&&c.gap!==null&&c.gap!==""?+c.gap:.3}}
+  return{stake:n0(c.stake,1)>0?n0(c.stake,1):1,mult:n0(c.mult,1)>=1?n0(c.mult,1):1,tp:Math.max(0,n0(c.tp,10)),sl:Math.max(0,n0(c.sl,10)),runs:Math.max(1,Math.round(n0(c.runs,10))),dur:Math.min(10,Math.max(0,Math.round(n0(c.dur,0)))),pickO:pk(c.pickO,0,8),pickU:pk(c.pickU,1,9),eoMode:c.eoMode==="even"||c.eoMode==="odd"?c.eoMode:"follow",grey:c.grey!==!1,gapN:[50,100,250,1e3].includes(+c.gapN)?+c.gapN:1e3,gap:[0,.1,.2,.3,.5,1].includes(+c.gap)&&c.gap!==undefined&&c.gap!==null&&c.gap!==""?+c.gap:.3}}
 function tdCfgSave(k,v){let c={};try{c=JSON.parse(localStorage.getItem("tickdesk.bot"))||{}}catch(e){}c[k]=v;try{localStorage.setItem("tickdesk.bot",JSON.stringify(c))}catch(e){}}
 function tdCfgNote(c){return`A win returns the stake to ${c.stake}. A loss multiplies it by ${c.mult}`+(c.tp>0?`. Stops at +${c.tp}`:"")+(c.sl>0?` or -${c.sl}`:"")+"."}
 function tdGap(){const W=tdCfg().gapN,t=n.ticks.slice(-W);if(t.length<W*.9)return null;const c=Array(10).fill(0);t.forEach(p=>{c[Q(p)]++});const o=[0,1,2,3,4,5,6,7,8,9].sort((x,y)=>c[y]-c[x]||x-y),N=t.length;return{d1:o[0],d2:o[1],p1:c[o[0]]/N*100,p2:c[o[1]]/N*100,gap:(c[o[0]]-c[o[1]])/N*100,n:N}}
@@ -28,7 +28,7 @@ function tdGapRow(c){return`<div class="td-bar" data-row="gap"><span>Matches gap
 function tdEoRow(c){return`<div class="td-bar" data-row="eoMode"><span>Even/Odd bot</span><div class="td-chips">`+[["follow","Follow signal"],["even","Only Even"],["odd","Only Odd"]].map(([v,l])=>`<button type="button" data-eo="${v}" aria-pressed="${c.eoMode===v}">${l}</button>`).join("")+`</div></div><p class="td-cfg-note">Follow signal trades Even when the read says Even and Odd when it says Odd. Only Even or Only Odd waits and ignores the other side.</p>`}
 function tdRow(key,lo,hi,c){return`<div class="td-bar" data-row="${key}"><span>${key==="pickO"?"Over barrier":"Under barrier"}</span><div class="td-chips"><button type="button" data-pick="${key}" data-p="" aria-pressed="${c[key]===null}">Scan</button>`+Array.from({length:hi-lo+1},(_,i)=>lo+i).map(d=>`<button type="button" data-pick="${key}" data-p="${d}" aria-pressed="${c[key]===d}">${d}</button>`).join("")+`</div></div>`}
 function tdPanel(){const c=tdCfg();
-  return`<section class="td-cfg panel-surface" aria-label="Bot settings"><div class="td-cfg-grid">`+[["stake","Stake",".01",.35],["mult","Martingale",".1",1],["tp","Take profit",".01",0],["sl","Stop loss",".01",0]].map(([k,l,st,mn])=>`<label>${l}<input data-cfg="${k}" type="number" inputmode="decimal" min="${mn}" step="${st}" value="${c[k]}"></label>`).join("")+`</div>${tdGreyRow(c)}${tdGapRow(c)}${tdEoRow(c)}${TD_OU?tdRow("pickO",0,8,c)+tdRow("pickU",1,9,c)+`<p class="td-cfg-note">Pick a lower Over or a higher Under barrier and Trade now loads that safer barrier, even when the signal shows another digit.</p>`:""}<p class="td-cfg-note">${tdCfgNote(c)}</p><p class="td-cfg-note">Set once. Every Trade now below loads the bot with these numbers. Use 0 to turn take profit or stop loss off.</p></section>`}
+  return`<section class="td-cfg panel-surface" aria-label="Bot settings"><div class="td-cfg-grid">`+[["stake","Stake",".01",.35],["mult","Martingale",".1",1],["tp","Take profit",".01",0],["sl","Stop loss",".01",0],["runs","Runs","1",1],["dur","Ticks (0 = auto)","1",0]].map(([k,l,st,mn])=>`<label>${l}<input data-cfg="${k}" type="number" inputmode="decimal" min="${mn}" step="${st}" value="${c[k]}"></label>`).join("")+`</div>${tdGreyRow(c)}${tdGapRow(c)}${tdEoRow(c)}${TD_OU?tdRow("pickO",0,8,c)+tdRow("pickU",1,9,c)+`<p class="td-cfg-note">Pick a lower Over or a higher Under barrier and Trade now loads that safer barrier, even when the signal shows another digit.</p>`:""}<p class="td-cfg-note">${tdCfgNote(c)}</p><p class="td-cfg-note">Set once. Every Trade now below loads the bot with these numbers. Use 0 to turn take profit or stop loss off.</p></section>`}
 function tdSearch(c,b){
   const st=V(),d=st.digits||[],cnt=st.digitCounts||[],cn=x=>cnt[x]||0,D=[0,1,2,3,4,5,6,7,8,9];
   const top=a=>a.length?[a.slice().sort((x,y)=>cn(y)-cn(x)||x-y)[0]]:[];
@@ -162,7 +162,7 @@ function tdTrade(key){
   const sig=j()[key],t=tdInfo(key,sig);
   if(!t||!t.ok){q(t&&t.note||"No trade signal right now.");return}
   const m=k[n.market];
-  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:n.market,name:m?m.label:n.market,contract:t.contract,kind:key,barrier:t.barrier,trigger:tdSearch(t.contract,t.barrier),runs:10,stake:tdCfg().stake,mult:tdCfg().mult,tp:tdCfg().tp,sl:tdCfg().sl,ticks:t.contract.startsWith("TICK")||t.contract.startsWith("RESET")||t.contract.startsWith("ASIAN")||t.contract.endsWith("TOUCH")?5:t.contract.startsWith("RUN")?2:1,...(t.extra||{}),...(key==="evenOdd"?{eo_mode:tdCfg().eoMode}:{}),...(key==="evenOdd"||key==="matchesDiffers"?{live:!0}:{}),rate:sig.strength,base:0,at:Date.now()}},window.location.origin);
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:n.market,name:m?m.label:n.market,contract:t.contract,kind:key,barrier:t.barrier,trigger:tdSearch(t.contract,t.barrier),runs:tdCfg().runs,stake:tdCfg().stake,mult:tdCfg().mult,tp:tdCfg().tp,sl:tdCfg().sl,ticks:tdCfg().dur>0?tdCfg().dur:t.contract.startsWith("TICK")||t.contract.startsWith("RESET")||t.contract.startsWith("ASIAN")||t.contract.endsWith("TOUCH")?5:t.contract.startsWith("RUN")?2:1,...(t.extra||{}),...(key==="evenOdd"?{eo_mode:tdCfg().eoMode}:{}),...(key==="evenOdd"||key==="matchesDiffers"?{live:!0}:{}),rate:sig.strength,base:0,at:Date.now()}},window.location.origin);
   q("Opening Deriv bot builder…")
 }
 function tdSel(){
@@ -203,7 +203,7 @@ function tdSel(){
     inp.addEventListener("blur",()=>{tdF=!1;tdRelease()});
     inp.addEventListener("input",()=>{
       const k=inp.dataset.cfg;let v=parseFloat(inp.value);if(!isFinite(v))return;
-      if(k==="stake")v=Math.max(.35,v);else if(k==="mult")v=Math.max(1,v);else v=Math.max(0,v);
+      if(k==="stake")v=Math.max(.35,v);else if(k==="mult")v=Math.max(1,v);else if(k==="runs")v=Math.max(1,Math.round(v));else if(k==="dur")v=Math.min(10,Math.max(0,Math.round(v)));else v=Math.max(0,v);
       tdCfgSave(k,v);const el=document.querySelector(".td-cfg-note");if(el)el.textContent=tdCfgNote(tdCfg())});
   });
   if(!window.__tdPtr){window.__tdPtr=1;
