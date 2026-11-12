@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#5A3CF0">
 <title>Scanner</title>
 <style>
-:root{--bg:#0B1117;--surface:#131B23;--raise:#1A242E;--line:#26323E;--fg:#E7EDF2;--muted:#8997A6;--accent:#8B7CFF;--accent-fg:#0E0A26;--win:#3DDC97;--loss:#FF6B6B;--warn:#F2B544}
+:root{--bg:#EEEBFF;--surface:#fff;--raise:#F4F2FF;--line:#D9D3FA;--fg:#1B1446;--muted:#6B6591;--accent:#5A3CF0;--accent-fg:#fff;--win:#0E9F6E;--loss:#D6455D;--warn:#B7791F}
 *{box-sizing:border-box}[hidden]{display:none!important}
 html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 body{padding:12px 16px 40px;max-width:760px;margin:0 auto}
 h1{font-size:20px;margin:6px 0 2px}h2{font-size:15px;margin:0 0 8px}
 .muted{color:var(--muted);font-size:12.5px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin:0 0 3px}
@@ -23,10 +24,18 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
 .tabs button{flex:1;min-width:90px}.tabs button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:700}
 .best{border-color:var(--accent)}
 .pick{font-size:22px;font-weight:800}
-.m{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
-.m:first-child{border-top:0}.m b{font-size:14px}
+.mk{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0;position:relative}
+.mk .nm{font-size:18px;font-weight:800}.mk .sy{color:var(--muted);font-size:13px;margin-top:2px}
+.dot{position:absolute;right:14px;top:14px;width:14px;height:14px;border-radius:50%;background:#12B886;box-shadow:0 0 0 5px #D6F5EA}
+.mid{display:flex;gap:14px;align-items:center;margin:12px 0}
+.ring{--v:0;width:64px;height:64px;flex:none;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--v)*1%),#E4E0FA 0);display:grid;place-items:center}
+.ring i{font-style:normal;width:48px;height:48px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-weight:800;font-size:18px}
+.mid .tx{flex:1;min-width:0}.mid .big{font-size:18px;font-weight:800}
+.bar{height:8px;border-radius:99px;background:#E4E0FA;margin:8px 0 6px;overflow:hidden}.bar b{display:block;height:100%;background:var(--accent)}
+.chips{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden}.chips span{flex:1 1 0;min-width:0;max-width:30px;height:30px;border-radius:7px;background:#ECE9FF;display:grid;place-items:center;font-weight:700;font-size:13px}.chips span:last-child{background:#1B1446;color:#fff}
+.mk button{margin-top:10px;width:100%}
 .tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:11.5px;font-weight:700}
-.tag.s{background:#16382b;color:var(--win)}.tag.w{background:#3a3016;color:var(--warn)}
+.tag.s{background:#D9F5E9;color:#0B7A55}.tag.w{background:#FBEFD2;color:#8A5A0B}
 .empty{color:var(--muted);padding:6px 0}
 .status{font-size:12.5px}.ok{color:var(--win)}.bad{color:var(--loss)}
 .note{color:var(--muted);font-size:12px;margin-top:6px}
@@ -143,22 +152,27 @@ function cand(m,type){
 var shown=null,lastDraw=0;
 function luck(p){if(p>=1)return"1 in 1";var x=1/p;return"1 in "+(x>=10000?"10,000+":Math.round(x).toLocaleString())}
 function rowHtml(r,i){
-  return '<div class="m"><div><b>'+r.m.name+'</b> <span class="tag '+(r.c.ok?"s":"w")+'">'+(r.c.ok?"Strong":"Waiting")+'</span><div class="muted">'+r.c.pick+' · '+r.c.share.toFixed(0)+'% of '+r.c.n+' ticks · by luck '+luck(r.c.p)+'</div></div>'
-   +'<button type="button" class="p" data-i="'+i+'">Trade now</button></div>';
+  var c=r.c,need=15,ready=c.n>=need,pct=ready?Math.round(c.share):Math.round(c.n/need*100);
+  var chips=r.m.d.slice(-14).map(function(d){return"<span>"+d+"</span>"}).join("");
+  var mid=ready
+    ?'<div class="tx"><div class="big">'+c.pick+' <span class="tag '+(c.ok?"s":"w")+'">'+(c.ok?"Strong":"Waiting")+'</span></div><div class="muted">'+c.share.toFixed(0)+'% of '+c.n+' ticks · by luck '+luck(c.p)+'</div></div>'
+    :'<div class="tx"><div class="big">Scanning…</div><div class="bar"><b style="width:'+pct+'%"></b></div><div class="muted">'+c.n+' of '+need+' ticks needed</div></div>';
+  return '<div class="mk"><span class="dot"></span><div class="nm">'+r.m.name+'</div><div class="sy">'+r.m.sym+'</div><div class="mid"><div class="ring" style="--v:'+pct+'"><i>'+(ready?Math.round(c.share)+"%":c.n)+'</i></div>'+mid+'</div><div class="chips">'+chips+'</div>'
+   +(ready?'<button type="button" class="p" data-i="'+i+'">Trade now</button>':'')+'</div>';
 }
 function draw(force){
   if(set.pause&&!force)return;
   var now=Date.now();
   if(!force&&now-lastDraw<(+set.spd)-200)return;
   lastDraw=now;
-  var rows=MK.map(function(x){var m=st[x[1]];return{m:m,c:cand(m,set.type)}}).filter(function(r){return r.c.n>=2});
+  var rows=MK.map(function(x){var m=st[x[1]];return{m:m,c:cand(m,set.type)}}).filter(function(r){return true});
   rows.sort(function(a,b){return a.c.p-b.c.p});
   var S=rows.filter(function(r){return r.c.ok}),W=rows.filter(function(r){return !r.c.ok});
   shown=S.concat(W);
   $("nS").textContent=S.length;$("nW").textContent=W.length;
   $("strong").innerHTML=S.length?S.map(function(r,i){return rowHtml(r,i)}).join(""):'<div class="empty">No market has reached the chosen strength yet.</div>';
   $("waiting").innerHTML=W.length?W.map(function(r,i){return rowHtml(r,S.length+i)}).join(""):'<div class="empty">Nothing waiting.</div>';
-  var top=S[0]||W[0];
+  var top=S[0]||W.filter(function(r){return r.c.n>=15})[0];
   $("best").className=top?"":"empty";
   $("best").innerHTML=top?'<div class="pick">'+top.c.pick+'</div><div><b>'+top.m.name+'</b> <span class="tag '+(top.c.ok?"s":"w")+'">'+(top.c.ok?"Strong":"Waiting")+'</span></div><div class="muted">'+top.c.share.toFixed(0)+'% of '+top.c.n+' ticks · by luck '+luck(top.c.p)+'</div><div class="row" style="margin-top:8px"><button type="button" class="p" data-i="0">Trade now</button></div>':"Scanning…";
 }
