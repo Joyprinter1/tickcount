@@ -26,6 +26,7 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
 .pick{font-size:22px;font-weight:800}
 .mk{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0;position:relative}
 .mk .nm{font-size:18px;font-weight:800}.mk .sy{color:var(--muted);font-size:13px;margin-top:2px}
+.dot.off{background:#B9B3D6;box-shadow:0 0 0 5px #E4E0FA}
 .dot{position:absolute;right:14px;top:14px;width:14px;height:14px;border-radius:50%;background:#12B886;box-shadow:0 0 0 5px #D6F5EA}
 .mid{display:flex;gap:14px;align-items:center;margin:12px 0}
 .ring{--v:0;width:64px;height:64px;flex:none;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--v)*1%),#E4E0FA 0);display:grid;place-items:center}
@@ -155,26 +156,34 @@ function rowHtml(r,i){
   var c=r.c,need=15,ready=c.n>=need,pct=ready?Math.round(c.share):Math.round(c.n/need*100);
   var chips=r.m.d.slice(-14).map(function(d){return"<span>"+d+"</span>"}).join("");
   var mid=ready
-    ?'<div class="tx"><div class="big">'+c.pick+' <span class="tag '+(c.ok?"s":"w")+'">'+(c.ok?"Strong":"Waiting")+'</span></div><div class="muted">'+c.share.toFixed(0)+'% of '+c.n+' ticks · by luck '+luck(c.p)+'</div></div>'
+    ?'<div class="tx"><div class="big">'+c.pick+' <span class="tag '+(c.shownStrong?"s":"w")+'">'+(c.shownStrong?"Strong":"Waiting")+'</span></div><div class="muted">'+c.share.toFixed(0)+'% of '+c.n+' ticks · by luck '+luck(c.p)+'</div></div>'
     :'<div class="tx"><div class="big">Scanning…</div><div class="bar"><b style="width:'+pct+'%"></b></div><div class="muted">'+c.n+' of '+need+' ticks needed</div></div>';
-  return '<div class="mk"><span class="dot"></span><div class="nm">'+r.m.name+'</div><div class="sy">'+r.m.sym+'</div><div class="mid"><div class="ring" style="--v:'+pct+'"><i>'+(ready?Math.round(c.share)+"%":c.n)+'</i></div>'+mid+'</div><div class="chips">'+chips+'</div>'
+  return '<div class="mk"><span class="dot'+(Date.now()-(r.m.last||0)>20000?" off":"")+'"></span><div class="nm">'+r.m.name+'</div><div class="sy">'+r.m.sym+'</div><div class="mid"><div class="ring" style="--v:'+pct+'"><i>'+(ready?Math.round(c.share)+"%":c.n)+'</i></div>'+mid+'</div><div class="chips">'+chips+'</div>'
    +(ready?'<button type="button" class="p" data-i="'+i+'">Trade now</button>':'')+'</div>';
 }
+var order=null,orderAt=0;
 function draw(force){
   if(set.pause&&!force)return;
   var now=Date.now();
-  if(!force&&now-lastDraw<(+set.spd)-200)return;
+  if(!force&&now-lastDraw<900)return;
   lastDraw=now;
-  var rows=MK.map(function(x){var m=st[x[1]];return{m:m,c:cand(m,set.type)}}).filter(function(r){return true});
-  rows.sort(function(a,b){return a.c.p-b.c.p});
-  var S=rows.filter(function(r){return r.c.ok}),W=rows.filter(function(r){return !r.c.ok});
+  var live={};MK.forEach(function(x){live[x[1]]={m:st[x[1]],c:cand(st[x[1]],set.type)}});
+  // The order of the markets (and which are Strong) is refreshed at the chosen signal speed. Digits, rings and numbers always stay live.
+  if(force||!order||now-orderAt>=(+set.spd)){
+    var rows=MK.map(function(x){return live[x[1]]});
+    rows.sort(function(a,b){return a.c.p-b.c.p});
+    order={S:rows.filter(function(r){return r.c.ok}).map(function(r){return r.m.sym}),W:rows.filter(function(r){return !r.c.ok}).map(function(r){return r.m.sym})};
+    orderAt=now;
+  }
+  var S=order.S.map(function(y){return live[y]}),W=order.W.map(function(y){return live[y]});
+  S.forEach(function(r){r.c.shownStrong=true});
   shown=S.concat(W);
   $("nS").textContent=S.length;$("nW").textContent=W.length;
-  $("strong").innerHTML=S.length?S.map(function(r,i){return rowHtml(r,i)}).join(""):'<div class="empty">No market has reached the chosen strength yet.</div>';
+  $("strong").innerHTML=S.length?S.map(function(r,i){return rowHtml(r,i)}).join(""):'<div class="empty">No market has reached the chosen strength yet. Scanning continues, and markets appear here automatically.</div>';
   $("waiting").innerHTML=W.length?W.map(function(r,i){return rowHtml(r,S.length+i)}).join(""):'<div class="empty">Nothing waiting.</div>';
   var top=S[0]||W.filter(function(r){return r.c.n>=15})[0];
   $("best").className=top?"":"empty";
-  $("best").innerHTML=top?'<div class="pick">'+top.c.pick+'</div><div><b>'+top.m.name+'</b> <span class="tag '+(top.c.ok?"s":"w")+'">'+(top.c.ok?"Strong":"Waiting")+'</span></div><div class="muted">'+top.c.share.toFixed(0)+'% of '+top.c.n+' ticks · by luck '+luck(top.c.p)+'</div><div class="row" style="margin-top:8px"><button type="button" class="p" data-i="0">Trade now</button></div>':"Scanning…";
+  $("best").innerHTML=top?'<div class="pick">'+top.c.pick+'</div><div><b>'+top.m.name+'</b> <span class="tag '+(top.c.shownStrong?"s":"w")+'">'+(top.c.shownStrong?"Strong":"Waiting")+'</span></div><div class="muted">'+top.c.share.toFixed(0)+'% of '+top.c.n+' ticks · by luck '+luck(top.c.p)+'</div><div class="row" style="margin-top:8px"><button type="button" class="p" data-i="0">Trade now</button></div>':"Scanning…";
 }
 document.body.addEventListener("click",function(e){var b=e.target.closest("button[data-i]");if(!b||!shown)return;var r=shown[+b.dataset.i];if(r)trade(r)});
 
@@ -190,8 +199,8 @@ function trade(r){
 }
 
 /* ---------- data ---------- */
-var sock=null,tries=0,pingT=null;
-function push(m,epoch,q,pip){if(pip!==undefined)m.pip=pip;var l=m.t.length?m.t[m.t.length-1]:0;if(epoch<=l&&m.t.length)return;m.t.push(epoch);m.d.push(digitOf(q,m.pip));if(m.t.length>600){m.t.splice(0,m.t.length-600);m.d.splice(0,m.d.length-600)}}
+var sock=null,tries=0,pingT=null,lastMsg=Date.now();
+function push(m,epoch,q,pip){m.last=Date.now();if(pip!==undefined)m.pip=pip;var l=m.t.length?m.t[m.t.length-1]:0;if(epoch<=l&&m.t.length)return;m.t.push(epoch);m.d.push(digitOf(q,m.pip));if(m.t.length>600){m.t.splice(0,m.t.length-600);m.d.splice(0,m.d.length-600)}}
 function connect(){
   try{sock=new WebSocket(WS)}catch(e){retry();return}
   var s=sock;
@@ -199,11 +208,11 @@ function connect(){
     MK.forEach(function(x,i){s.send(JSON.stringify({ticks_history:x[1],count:150,end:"latest",style:"ticks",req_id:100+i}));s.send(JSON.stringify({ticks:x[1],subscribe:1,req_id:200+i}))});
     clearInterval(pingT);pingT=setInterval(function(){if(s.readyState===1)s.send(JSON.stringify({ping:1}))},30000)};
   s.onmessage=function(ev){
-    var x;try{x=JSON.parse(ev.data)}catch(e){return}
+    lastMsg=Date.now();var x;try{x=JSON.parse(ev.data)}catch(e){return}
     if(x.error)return;
     if(x.history&&x.history.prices){var sym=x.echo_req&&x.echo_req.ticks_history,m=st[sym];if(!m)return;m.pip=x.pip_size!==undefined?x.pip_size:m.pip;m.t=[];m.d=[];
       x.history.prices.forEach(function(q,i){push(m,x.history.times[i],q)});draw(true)}
-    if(x.tick){var m2=st[x.tick.symbol];if(m2){push(m2,x.tick.epoch,x.tick.quote,x.tick.pip_size);draw(false)}}
+    if(x.tick){$("conn").textContent="Live (public market data)";$("conn").className="status ok";var m2=st[x.tick.symbol];if(m2){push(m2,x.tick.epoch,x.tick.quote,x.tick.pip_size);draw(false)}}
   };
   s.onclose=function(){if(s!==sock)return;$("conn").textContent="Disconnected. Reconnecting…";$("conn").className="status bad";retry()};
   s.onerror=function(){};
@@ -211,6 +220,7 @@ function connect(){
 function retry(){tries++;setTimeout(connect,Math.min(15000,1000*tries))}
 connect();
 setInterval(function(){draw(false)},1000);
+setInterval(function(){if(sock&&sock.readyState===1&&Date.now()-lastMsg>25000){try{sock.close()}catch(e){}}if(sock&&sock.readyState===1&&Date.now()-lastMsg>10000)$("conn").textContent="Waiting for ticks…"},5000);
 })();
 </script>
 </body>
