@@ -5,6 +5,7 @@ import { DBOT_TABS } from '@/constants/bot-contents';
 import { useStore } from '@/hooks/useStore';
 import { useDevice } from '@deriv-com/ui';
 import ResultsCard from './results-card';
+import { SOCIAL_ICONS, SOCIAL_LABELS } from './social-icons';
 import DashboardBotList from './bot-list/dashboard-bot-list';
 import './home.scss';
 
@@ -68,6 +69,54 @@ const I = {
             <path d='M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2' />
         </svg>
     ),
+};
+
+// Follow-us row: the links you save in the admin page (Settings, Social links). Shows only the ones that are filled in.
+const SocialRow = () => {
+    const [links, setLinks] = React.useState<Record<string, string>>(() => {
+        try {
+            return JSON.parse(localStorage.getItem('td.socials') || 'null') || {};
+        } catch (e) {
+            return {};
+        }
+    });
+    React.useEffect(() => {
+        let alive = true;
+        fetch('/api/settings', { cache: 'no-store' })
+            .then(r => (r.ok ? r.json() : null))
+            .then(j => {
+                if (!alive || !j?.socials) return;
+                setLinks(j.socials);
+                try {
+                    localStorage.setItem('td.socials', JSON.stringify(j.socials));
+                } catch (e) {
+                    /* ignore */
+                }
+            })
+            .catch(() => {});
+        return () => {
+            alive = false;
+        };
+    }, []);
+    const items = ['whatsapp', 'telegram', 'youtube', 'tiktok'].filter(k => typeof links[k] === 'string' && /^https:\/\//.test(links[k]));
+    if (!items.length) return null;
+    return (
+        <div className='td-social'>
+            <span className='td-social__label'>FOLLOW US</span>
+            <div className='td-social__row'>
+                {items.map(k => (
+                    <a
+                        key={k}
+                        href={links[k]}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        aria-label={SOCIAL_LABELS[k]}
+                        dangerouslySetInnerHTML={{ __html: SOCIAL_ICONS[k] }}
+                    />
+                ))}
+            </div>
+        </div>
+    );
 };
 
 const HomeCards = observer(() => {
@@ -164,6 +213,7 @@ const HomeCards = observer(() => {
                     </button>
                 ))}
             </div>
+            <SocialRow />
             <ResultsCard />
             <div className='td-home__list'>
                 <DashboardBotList />
