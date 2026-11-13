@@ -70,3 +70,33 @@
         }
     }
 }
+
+.summary-rotation {
+    padding: 6px 10px 2px;
+    font-size: 12px;
+    &__line {
+        margin-bottom: 4px;
+    }
+    &__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        span {
+            padding: 1px 7px;
+            border-radius: 10px;
+            border: 1px solid var(--general-section-2, #ccc);
+            font-size: 11px;
+            opacity: 0.75;
+            &.is-now {
+                background: #6c3ad6;
+                border-color: #6c3ad6;
+                color: #fff;
+                opacity: 1;
+            }
+            &.is-next {
+                border-color: #6c3ad6;
+                opacity: 1;
+            }
+        }
+    }
+}
