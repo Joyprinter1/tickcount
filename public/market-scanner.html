@@ -167,10 +167,10 @@ function draw(force){
   var now=Date.now();
   if(!force&&now-lastDraw<900)return;
   lastDraw=now;
-  var live={};MK.forEach(function(x){live[x[1]]={m:st[x[1]],c:cand(st[x[1]],set.type)}});
+  var live={};MK.forEach(function(x){if(set.type!=="match"&&/^JD/.test(x[1]))return;live[x[1]]={m:st[x[1]],c:cand(st[x[1]],set.type)}});
   // The order of the markets (and which are Strong) is refreshed at the chosen signal speed. Digits, rings and numbers always stay live.
   if(force||!order||now-orderAt>=(+set.spd)){
-    var rows=MK.map(function(x){return live[x[1]]});
+    var rows=MK.filter(function(x){return live[x[1]]}).map(function(x){return live[x[1]]});
     rows.sort(function(a,b){return a.c.p-b.c.p});
     order={S:rows.filter(function(r){return r.c.ok}).map(function(r){return r.m.sym}),W:rows.filter(function(r){return !r.c.ok}).map(function(r){return r.m.sym})};
     orderAt=now;
