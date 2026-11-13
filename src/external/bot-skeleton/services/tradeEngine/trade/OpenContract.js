@@ -81,6 +81,7 @@ export default Engine =>
             broadcastContract({ accountID: api_base.account_info.loginid, ...raw });
 
             if (this.isSold) {
+                if (this.switchState) this.switchState.loss = Number(contract.profit) < 0;
                 this.contractId = '';
                 this.hedgeContractId = '';
                 this.hedgeData = null;
