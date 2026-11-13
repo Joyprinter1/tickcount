@@ -32,6 +32,9 @@ export type TSignalBotOptions = {
     take_profit?: number;
     stop_loss?: number;
     martingale_level?: number;
+    rotate?: string[]; // buy each trade on the next market in this list (variable ROTATE|..., see Purchase.js)
+    recover?: string[]; // after a lost trade buy these contracts in turn, one per consecutive loss (variable RECOVER|..., e.g. DIGITEVEN, DIGITODD)
+    random_prediction?: [number, number]; // Over/Under: barrier is a random digit between these two (inclusive) for every trade
     hedge?: string; // 'HEDGE|TYPE|digit|barrier|barrier2': second contract bought with every trade (see Purchase.js)
 };
 
@@ -182,7 +185,7 @@ ${field('DURATIONTYPE_LIST', is_inout ? 'm' : 't')}${field('CURRENCY_LIST', 'USD
 <value name="DURATION"><shadow type="math_number" id="${id()}">${field('NUM', uses_duration ? duration : 1)}</shadow>${uses_duration ? get(dur_name) : ''}</value>
 <value name="AMOUNT"><shadow type="math_number" id="${id()}">${field('NUM', 1)}</shadow>${get('Stake')}</value>
 ${is_touch || is_hl ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}${is_inout ? `<value name="BARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value><value name="SECONDBARRIEROFFSET"><shadow type="math_number" id="${id()}">${field('NUM', offset)}</shadow>${get('Barrier Offset')}</value>` : ''}
-${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow>${get('Prediction')}</value>` : ''}
+${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive" id="${id()}">${field('NUM', 0)}</shadow>${o.random_prediction ? `<block type="math_random_int" id="${id()}"><value name="FROM"><shadow type="math_number" id="${id()}">${field('NUM', o.random_prediction[0])}</shadow></value><value name="TO"><shadow type="math_number" id="${id()}">${field('NUM', o.random_prediction[1])}</shadow></value></block>` : get('Prediction')}</value>` : ''}
 </block>`;
 
     // ---- Before purchase: wait for the trigger digit(s), then buy ----
@@ -312,6 +315,8 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 <block type="before_purchase" id="${id()}" x="0" y="640"><statement name="BEFOREPURCHASE_STACK">${before_purchase_stack}</statement></block>${is_accu ? accu_extra : ''}`;
 
     if (o.hedge) v(o.hedge);
+    if (o.rotate && o.rotate.length) v('ROTATE|' + o.rotate.join(','));
+    if (o.recover && o.recover.length) v('RECOVER|' + o.recover.join(','));
     if (live && o.tradetype === 'matchesdiffers') v('LIVE|SIGNAL');
     if (o.live_scan === true && (live || live_eo)) v('LIVE|SCAN'); // tells Purchase.js to buy Matches on the live signal digit
     const variables = Object.entries(vars)

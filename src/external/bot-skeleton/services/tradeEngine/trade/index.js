@@ -82,6 +82,7 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         const { symbol } = options;
 
         this.initArgs = args;
+        this.switchState = undefined; // market rotation / recovery restart with every bot run
         this.options = options;
         this.startPromise = this.loginAndGetBalance(token);
 

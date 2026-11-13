@@ -21,6 +21,16 @@ export default Engine =>
             this.hedgeData = null;
             this.hedgeWaiting = null;
 
+            // Market rotation / recovery contract (variables "ROTATE|..." and "RECOVER|..."), see getSwitch.
+            let trade_options = this.tradeOptions;
+            if (!this.is_proposal_subscription_required) {
+                const sw = this.getSwitch(contract_type, this.tradeOptions);
+                if (sw) {
+                    contract_type = sw.type;
+                    trade_options = sw.options;
+                }
+            }
+
             const onSuccess = response => {
                 // Don't unnecessarily send a forget request for a purchased contract.
                 const { buy } = response;
@@ -38,7 +48,7 @@ export default Engine =>
                 try {
                     if (typeof window !== 'undefined' && window.__tickdeskCopy) {
                         window.__tickdeskCopy({
-                            parameters: tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, this.tradeOptions)).parameters,
+                            parameters: tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, trade_options)).parameters,
                             isVirtual: /^VR/i.test(String(this.accountInfo?.loginid ?? '')),
                             masterContractId: buy.contract_id,
                         });
@@ -101,7 +111,7 @@ export default Engine =>
                     delayIndex++
                 ).then(onSuccess);
             }
-            const trade_option = tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, this.tradeOptions));
+            const trade_option = tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, trade_options));
             const action = () => api_base.api.send(trade_option);
 
             this.isSold = false;
@@ -133,6 +143,38 @@ export default Engine =>
                 delayIndex++
             ).then(onSuccess);
         }
+        // Rotating / recovery bots. Variable "ROTATE|SYM1,SYM2,..." makes every purchase use the next market in the list;
+        // variable "RECOVER|DIGITEVEN,DIGITODD" makes the purchase after a lost trade use the next contract in that list (no barrier).
+        // Both are applied here, at purchase time, by buying with a fresh request (no proposal needed).
+        getSwitch(contract_type, options) {
+            try {
+                const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
+                const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
+                let rotate = null;
+                let recover = null;
+                for (const v of vars) {
+                    const name = String(v.name ?? (v.getName ? v.getName() : ''));
+                    if (name.startsWith('ROTATE|')) rotate = name.slice(7).split(',').filter(x => /^[A-Za-z0-9_]+$/.test(x));
+                    if (name.startsWith('RECOVER|')) recover = name.slice(8).split(',').filter(x => /^[A-Z]+$/.test(x));
+                }
+                if (!(rotate && rotate.length) && !(recover && recover.length)) return null;
+                const st = (this.switchState = this.switchState || { i: 0, loss: false, rec: 0 });
+                const next = { ...options };
+                let type = contract_type;
+                if (rotate && rotate.length) next.symbol = rotate[st.i++ % rotate.length];
+                if (!st.loss) st.rec = 0;
+                if (recover && recover.length && st.loss) {
+                    // consecutive losses walk through the list: e.g. DIGITEVEN, then DIGITODD, then DIGITEVEN...
+                    type = recover[st.rec++ % recover.length];
+                    delete next.prediction;
+                    delete next.barrierOffset;
+                }
+                return { type, options: next };
+            } catch (e) {
+                return null;
+            }
+        }
+
         // Live Matches bots (variable "LIVE|SIGNAL"): the trade options are fixed when the run starts, so the digit to
         // match is read from the live signal at the moment of purchase instead of the fixed Prediction.
         withLiveDigit(contract_type, options) {
