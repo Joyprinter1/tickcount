@@ -11,12 +11,12 @@ import './home.scss';
 
 const QUOTES = [
     'Believe you can and you’re halfway there.',
-    'Discipline beats excitement every time.',
-    'Small, steady stakes keep you in the game.',
-    'Plan the trade, then trade the plan.',
-    'Protect your balance first. Profit follows.',
-    'Patience is also a position.',
-    'A good stop loss is a good night’s sleep.',
+    'Today is a fresh chance to trade smart.',
+    'Every great trader started with one good decision.',
+    'Stay focused. Your next win is closer than you think.',
+    'Good things come to those who trade with a plan.',
+    'You’ve got this. Trade with confidence today.',
+    'Small steps, big results. Keep going!',
 ];
 
 const greeting = () => {
