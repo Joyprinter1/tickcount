@@ -144,7 +144,7 @@ export default Engine =>
             ).then(onSuccess);
         }
         // Rotating / recovery bots. Variable "ROTATE|SYM1,SYM2,..." makes every purchase use the next market in the list;
-        // variable "RECOVER|DIGITEVEN" makes the purchase after a lost trade use that contract instead (no barrier).
+        // variable "RECOVER|DIGITEVEN,DIGITODD" makes the purchase after a lost trade use the next contract in that list (no barrier).
         // Both are applied here, at purchase time, by buying with a fresh request (no proposal needed).
         getSwitch(contract_type, options) {
             try {
@@ -155,15 +155,17 @@ export default Engine =>
                 for (const v of vars) {
                     const name = String(v.name ?? (v.getName ? v.getName() : ''));
                     if (name.startsWith('ROTATE|')) rotate = name.slice(7).split(',').filter(x => /^[A-Za-z0-9_]+$/.test(x));
-                    if (name.startsWith('RECOVER|') && /^[A-Z]+$/.test(name.slice(8))) recover = name.slice(8);
+                    if (name.startsWith('RECOVER|')) recover = name.slice(8).split(',').filter(x => /^[A-Z]+$/.test(x));
                 }
-                if (!(rotate && rotate.length) && !recover) return null;
-                const st = (this.switchState = this.switchState || { i: 0, loss: false });
+                if (!(rotate && rotate.length) && !(recover && recover.length)) return null;
+                const st = (this.switchState = this.switchState || { i: 0, loss: false, rec: 0 });
                 const next = { ...options };
                 let type = contract_type;
                 if (rotate && rotate.length) next.symbol = rotate[st.i++ % rotate.length];
-                if (recover && st.loss) {
-                    type = recover;
+                if (!st.loss) st.rec = 0;
+                if (recover && recover.length && st.loss) {
+                    // consecutive losses walk through the list: e.g. DIGITEVEN, then DIGITODD, then DIGITEVEN...
+                    type = recover[st.rec++ % recover.length];
                     delete next.prediction;
                     delete next.barrierOffset;
                 }
