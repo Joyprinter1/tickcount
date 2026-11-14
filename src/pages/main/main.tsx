@@ -663,7 +663,7 @@ const AppWrapper = observer(() => {
                                             width='24px'
                                             fill='var(--text-general)'
                                         />
-                                        <Localize i18n_default_text='Strategy' />
+                                        <Localize i18n_default_text='Reversal Strategy' />
                                     </>
                                 }
                                 id='id-strategy'

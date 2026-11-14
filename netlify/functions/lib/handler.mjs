@@ -50,6 +50,10 @@ export function normalizeTheme(t) {
     const accent2 = hex(t.accent2);
     if (!accent || !accent2 || !THEME_SURFACES.includes(t.surface)) return null;
     const out = { accent, accent2, surface: t.surface };
+    const tabBg = hex(t.tabBg);
+    const tabActive = hex(t.tabActive);
+    if (tabBg) out.tabBg = tabBg;
+    if (tabActive) out.tabActive = tabActive;
     if (typeof t.preset === 'string' && /^[a-z0-9-]{1,24}$/.test(t.preset)) out.preset = t.preset;
     return out;
 }

@@ -1074,7 +1074,7 @@ function renderStrat(){
   $('#st-bar').hidden=!on;
   if(!on)return;
   const eo=sigTab==='eo';
-  $('#st-title').textContent=eo?'Even/Odd reversal strategy':'Over/Under winning-side strategy';
+  $('#st-title').textContent=eo?'Reversal Strategy':'Reversal Strategy (winning side)';
   $('#st-pick').innerHTML=[[true,'Strategy on'],[false,'Original']].map(([v,l])=>'<button type="button" data-s="'+v+'" aria-pressed="'+(!!set.strat===v)+'">'+l+'</button>').join('');
   const lines=(set.strat?'<span class="sub">Hottest digit at least:</span> '+[10,11,12,13,14,15].map(v=>'<button type="button" data-th="'+v+'" aria-pressed="'+((set.sthr||12)===v)+'">'+v+'%</button>').join(''):'');
   $('#st-thr').innerHTML=lines;

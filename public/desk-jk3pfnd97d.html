@@ -108,6 +108,11 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
         <input type="color" id="th-a" class="th-color" value="#F2B544">
         <label for="th-b">Second colour (tabs, accents)</label>
         <input type="color" id="th-b" class="th-color" value="#17608F">
+        <label for="th-tb">Tab bar colour (the row of page tabs)</label>
+        <input type="color" id="th-tb" class="th-color" value="#131B23">
+        <label for="th-ta">Selected tab colour</label>
+        <input type="color" id="th-ta" class="th-color" value="#F2B544">
+        <button class="btn sec" id="th-tclr" type="button">Use the default tab colours</button>
         <label>Dark background style</label>
         <div class="th-grid" id="th-surf"></div>
         <div class="th-prev" aria-label="Preview"><span class="th-btn">Trade now</span><span class="th-pill">READY</span><span class="th-txt">This page shows your colours live. Save to publish them.</span></div>
@@ -352,12 +357,16 @@ function thRender(){
   $('#th-presets').innerHTML=TH_PRESETS.map(p=>'<button type="button" class="th-chip" data-p="'+p.id+'" aria-pressed="'+(th.preset===p.id)+'"><i><b style="background:'+p.accent+'"></b><b style="background:'+p.accent2+'"></b></i>'+p.name+'</button>').join('');
   $('#th-surf').innerHTML=TH_SURF.map(x=>{const c=window.tdTheme.surfaces[x[0]];return '<button type="button" class="th-chip" data-s="'+x[0]+'" aria-pressed="'+(th.surface===x[0])+'"><i><b style="background:'+c[0]+'"></b><b style="background:'+c[2]+'"></b></i>'+x[1]+'</button>';}).join('');
   $('#th-a').value=th.accent;$('#th-b').value=th.accent2;
+  $('#th-tb').value=th.tabBg||window.tdTheme.surfaces[th.surface][1];$('#th-ta').value=th.tabActive||th.accent;
   window.tdTheme.apply(th);
 }
 $('#th-presets').addEventListener('click',e=>{const b=e.target.closest('[data-p]');if(!b)return;const p=TH_PRESETS.find(x=>x.id===b.dataset.p);th={accent:p.accent,accent2:p.accent2,surface:p.surface,preset:p.id};thRender();});
 $('#th-surf').addEventListener('click',e=>{const b=e.target.closest('[data-s]');if(!b)return;th.surface=b.dataset.s;th.preset='custom';thRender();});
 $('#th-a').addEventListener('input',e=>{th.accent=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
 $('#th-b').addEventListener('input',e=>{th.accent2=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
+$('#th-tb').addEventListener('input',e=>{th.tabBg=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
+$('#th-ta').addEventListener('input',e=>{th.tabActive=e.target.value.toUpperCase();th.preset='custom';window.tdTheme.apply(th);});
+$('#th-tclr').addEventListener('click',()=>{delete th.tabBg;delete th.tabActive;thRender();});
 $('#th-a').addEventListener('change',thRender);$('#th-b').addEventListener('change',thRender);
 $('#th-save').onclick=async()=>{
   try{const j=await api('POST','settings',{theme:th});th=j.theme;try{localStorage.setItem('td.theme',JSON.stringify(th));}catch(e){}thRender();msg($('#th-msg'),'Saved. Every page of the site now uses these colours.',true);}catch(e){msg($('#th-msg'),e.message);}

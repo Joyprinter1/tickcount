@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#5A3CF0">
-<title>Strategy</title>
+<title>Reversal Strategy</title>
 <style>
 :root{--bg:#EEEBFF;--surface:#fff;--raise:#F4F2FF;--line:#D9D3FA;--fg:#1B1446;--muted:#6B6591;--accent:#5A3CF0;--accent-fg:#fff;--win:#0E9F6E;--loss:#D6455D;--warn:#B7791F}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -42,18 +42,22 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
 .note{color:var(--muted);font-size:12px;margin-top:6px}
 .chk{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:13.5px}.chk input{width:18px;min-height:18px;height:18px}
 .hot{display:inline-block;min-width:26px;text-align:center;border-radius:8px;padding:1px 6px;font-weight:800;background:#ECE9FF}.hot.g{background:#D9F5E9;color:#0B7A55}.hot.r{background:#FBE1E6;color:#A3243B}
-.why{font-size:12.5px;margin-top:4px}
+.why{font-size:12px;margin-top:2px;line-height:1.35}
+.mk{padding:9px 11px;margin:8px 0;border-radius:14px}.mk .nm{font-size:15px}.mk .sy{font-size:11.5px;margin-top:0}.dot{right:11px;top:11px;width:10px;height:10px;box-shadow:0 0 0 4px #D6F5EA}.dot.off{box-shadow:0 0 0 4px #E4E0FA}
+.mid{margin:6px 0;gap:10px}.ring{width:46px;height:46px}.ring i{width:35px;height:35px;font-size:13px}.mid .big{font-size:15px}
+.chips{margin-top:2px}.chips span{height:22px;max-width:24px;font-size:11px;border-radius:6px}.mk button{margin-top:6px;min-height:34px;padding:5px 10px;font-size:13px}
+#strong,#waiting{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:0 10px}
 </style>
 </head>
 <body>
-<h1>Strategy</h1>
+<h1>Reversal Strategy</h1>
 <div class="muted">Two digit strategies, checked on every Volatility market nonstop. A market is Ready only when its rule is met. Jump markets are left out because Deriv does not sell these contracts there.</div>
 <div class="status" id="conn">Connecting…</div>
 
 <div class="card best" id="bestCard"><div class="muted">Best Ready market right now</div><div id="best" class="empty">Scanning…</div></div>
 
 <div class="card">
-  <h2>Strategy</h2>
+  <h2>Reversal Strategy</h2>
   <div class="row tabs" id="types">
     <button type="button" data-t="ou" aria-pressed="true">Over / Under</button>
     <button type="button" data-t="eo" aria-pressed="false">Even / Odd</button>
