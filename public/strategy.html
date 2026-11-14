@@ -70,7 +70,7 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
 
 <div class="card" id="botCard">
   <h2>Bot settings</h2>
-  <div class="muted">Used by Trade now on this page only, separate from Signals, DerivScope, Scanner and Digit Analyzer. Set them before you tap Trade now. The bot has no entry digit: it buys as soon as you press Run.</div>
+  <div class="muted">Used by Trade now on this page only, separate from Signals, DerivScope, Scanner and Digit Analyzer. Set them before you tap Trade now. The bot waits for its entry digit (set below) and then buys.</div>
   <div class="grid" style="margin-top:8px">
     <div><label for="stake">Stake</label><input id="stake" type="number" min="0.35" step="0.01" value="0.35"></div>
     <div><label for="mult">Martingale (x after a loss)</label><input id="mult" type="number" min="1" step="0.1" value="1"></div>
@@ -78,6 +78,7 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
     <div><label for="sl">Stop loss</label><input id="sl" type="number" min="0" step="0.1" value="5"></div>
     <div><label for="runs">Number of runs</label><input id="runs" type="number" min="1" step="1" value="10"></div>
     <div><label for="dur">Duration (ticks)</label><input id="dur" type="number" min="1" max="10" step="1" value="1"></div>
+    <div><label for="ent">Entry digit</label><select id="ent"><option value="one">Hottest digit</option><option value="two">Both hot digits</option><option value="none">None (buy at once)</option></select></div>
   </div>
   <div class="note" id="botNote">Saved automatically on this device.</div>
 </div>
@@ -102,7 +103,7 @@ var EL_SET=["win","thr","spd","barrier"];
 function load(k,d){try{return JSON.parse(localStorage.getItem(k)||"")||d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 Object.assign(set,load("st.set",{}));
-var BOT_IDS=["stake","mult","tp","sl","runs","dur"],bot=load("st.bot",{});
+var BOT_IDS=["stake","mult","tp","sl","runs","dur","ent"],bot=load("st.bot",{});
 BOT_IDS.forEach(function(id){if(bot[id]!==undefined&&bot[id]!=="")$(id).value=bot[id];$(id).addEventListener("input",function(){bot[id]=$(id).value;save("st.bot",bot)})});
 EL_SET.forEach(function(id){$(id).value=set[id];$(id).addEventListener("change",function(){set[id]=$(id).value;save("st.set",set);draw(true)})});
 $("pause").checked=!!set.pause;$("pause").addEventListener("change",function(){set.pause=$("pause").checked;save("st.set",set);draw(true)});
@@ -128,7 +129,7 @@ function cand(m){
     var side=even1?"Odd":"Even";
     var ready=okT&&okP;
     var why=hotChip(d1,p1,okT)+' is the top digit, '+hotChip(d2,p2,null)+' second. '+(ready?'Top is '+(even1?'even':'odd')+' and second is '+(even1?'odd':'even')+': expect a reversal.':(!okT?'Top digit needs '+thr+'% or more.':'Both top digits are '+(even1?'even':'odd')+', no reversal signal.'));
-    return{ok:true,ready:ready,n:n,pick:side,share:p1,why:why,tag:{c:side==="Even"?"DIGITEVEN":"DIGITODD",b:null,k:side.toLowerCase()},score:p1};
+    return{ok:true,ready:ready,n:n,pick:side,share:p1,why:why,tag:{c:side==="Even"?"DIGITEVEN":"DIGITODD",b:null,k:side.toLowerCase()},score:p1,d1:d1,d2:d2};
   }
   var lo=Math.min(d1,d2),hi=Math.max(d1,d2),bs=set.barrier==="auto"?null:+set.barrier,best=null;
   function consider(label,ct,kind,b,winf,base){
@@ -139,7 +140,7 @@ function cand(m){
   for(var b=hi+1;b<=9;b++)consider("Under "+b,"DIGITUNDER","under",b,function(d){return d<b},b*10);
   for(var b2=0;b2<lo;b2++)(function(b){consider("Over "+b,"DIGITOVER","over",b,function(d){return d>b},(9-b)*10)})(b2);
   var thr2=+set.thr,okH=p1>=thr2,ready=!!best&&best.edge>=0&&okH;
-  if(ready)return{ok:true,ready:true,n:n,pick:best.label,share:best.rate,tag:best.tag,score:best.edge,
+  if(ready)return{ok:true,ready:true,n:n,pick:best.label,share:best.rate,tag:best.tag,score:best.edge,d1:d1,d2:d2,
     why:hotChip(d1,p1,true)+' and '+hotChip(d2,p2,true)+' are the two most common digits, both on the winning side of '+best.label+'. It won '+best.rate.toFixed(0)+'% of the last '+n+' ticks.'};
   if(best&&best.edge>=0&&!okH)return{ok:true,ready:false,n:n,pick:best.label,share:best.rate,score:-50,why:hotChip(d1,p1,false)+' is the hottest digit but needs '+thr2+'% or more. '+hotChip(d2,p2,true)+' second. Both are on the winning side of '+best.label+'.'};
   return{ok:true,ready:false,n:n,pick:"No safe barrier",share:Math.max(p1,0),score:-99,
@@ -153,7 +154,7 @@ function rowHtml(r,i){
   var c=r.c,pct=c.ok?Math.round(c.share):Math.round(c.n/c.need*100);
   var chips=r.m.d.slice(-14).map(function(d){return"<span>"+d+"</span>"}).join("");
   var mid=c.ok
-    ?'<div class="tx"><div class="big">'+c.pick+' <span class="tag '+(c.ready?"s":"w")+'">'+(c.ready?"Ready":"Waiting")+'</span></div><div class="why">'+c.why+'</div></div>'
+    ?'<div class="tx"><div class="big">'+c.pick+' <span class="tag '+(c.ready?"s":"w")+'">'+(c.ready?"Ready":"Waiting")+'</span></div><div class="why">'+c.why+(c.ready?' <b>Entry digit: '+(entry(c).length?entry(c).join(" or "):"none, buys at once")+'.</b>':'')+'</div></div>'
     :'<div class="tx"><div class="big">Collecting…</div><div class="bar"><b style="width:'+pct+'%"></b></div><div class="muted">'+c.n+' of '+c.need+' ticks</div></div>';
   return '<div class="mk"><span class="dot'+(Date.now()-(r.m.last||0)>20000?" off":"")+'"></span><div class="nm">'+r.m.name+'</div><div class="sy">'+r.m.sym+'</div><div class="mid"><div class="ring" style="--v:'+pct+'"><i>'+(c.ok?Math.round(c.share)+"%":c.n)+'</i></div>'+mid+'</div><div class="chips">'+chips+'</div>'
    +(c.ready?'<button type="button" class="p" data-i="'+i+'">Trade now</button>':'')+'</div>';
@@ -183,11 +184,17 @@ document.body.addEventListener("click",function(e){var b=e.target.closest("butto
 
 /* ---------- Trade now: loads a bot into Bot Builder with this page's own settings ---------- */
 function num(id,d,min){var v=parseFloat($(id).value);return isFinite(v)&&v>=min?v:d}
+function entry(c){
+  var m=$("ent").value;
+  if(m==="none"||c.d1===undefined)return[];
+  // Both hot digits are on the winning side for Over/Under, so either can start the trade. For Even/Odd the hottest digit starts it.
+  return m==="two"?[c.d1,c.d2].sort(function(a,b){return a-b}):[c.d1];
+}
 function trade(r){
   var t=r.c.tag;if(!t||!r.c.ready)return;
   if(window.parent===window){$("botNote").textContent="Open this page from the Joytrader site to load the bot.";return}
   var runs=Math.max(1,Math.round(num("runs",10,1)));
-  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:t.c,kind:t.k,barrier:t.b,trigger:[],runs:runs,
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:t.c,kind:t.k,barrier:t.b,trigger:entry(r.c),runs:runs,
     stake:num("stake",0.35,0.35),mult:num("mult",1,1),tp:num("tp",0,0),sl:num("sl",0,0),ticks:Math.max(1,Math.min(10,Math.round(num("dur",1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
   $("botNote").textContent="Opening Bot Builder with "+r.c.pick+" on "+r.m.name+"…";
 }
