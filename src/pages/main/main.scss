@@ -71,11 +71,20 @@
             }
 
             &__active {
-                background: var(--general-main-1);
+                background: var(--td-tab-active, var(--general-main-1));
+                color: var(--td-tab-active-text, inherit);
+            }
+
+            &__item {
+                color: var(--td-tab-text, var(--text-general));
+            }
+
+            &__item.dc-tabs__active {
+                color: var(--td-tab-active-text, var(--td-tab-text, var(--text-general)));
             }
 
             &__list {
-                background: var(--general-section-1);
+                background: var(--td-tab-bg, var(--general-section-1));
                 justify-content: start;
 
                 @include mobile-or-tablet-screen {

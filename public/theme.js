@@ -29,6 +29,8 @@
     o += '@media (prefers-color-scheme:dark){:root:root:not([data-theme="light"]){' + dark + '}}:root:root[data-theme="dark"]{' + dark + '}';
     if (amberIsAccent) o += ':root:root{' + dark + '}';
     o += '.theme--dark.theme--dark{--general-main-1:' + S[0] + ';--general-main-2:' + S[1] + ';--general-section-1:' + S[1] + ';--general-section-2:' + S[0] + ';--border-normal:' + S[3] + ';--brand-red-coral:' + A + ';--brand-secondary:' + B + '}';
+    if (HEX.test(t.tabBg || '')) o += ':root:root{--td-tab-bg:' + t.tabBg + ';--td-tab-text:' + on(t.tabBg) + '}';
+    if (HEX.test(t.tabActive || '')) o += ':root:root{--td-tab-active:' + t.tabActive + ';--td-tab-active-text:' + on(t.tabActive) + '}';
     o += '.theme--light.theme--light{--brand-red-coral:' + A + ';--brand-secondary:' + B + '}';
     return o;
   }

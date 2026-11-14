@@ -283,6 +283,13 @@ details .inner{display:flex;flex-direction:column;gap:12px;padding-top:12px}
         <div class="bar-pick" id="q-bar-u" role="group" aria-label="Under barrier digit"></div>
         <p class="hint" id="q-bar-note"></p>
       </div>
+      <div class="panel qs" id="st-bar" hidden>
+        <label id="st-title">Strategy rules</label>
+        <div class="bar-pick" id="st-pick" role="group" aria-label="Strategy rules"></div>
+        <div class="bar-pick" id="st-thr" role="group" aria-label="Hottest digit share"></div>
+        <div class="bar-pick" id="st-n" role="group" aria-label="Ticks to analyse"></div>
+        <p class="hint" id="st-note"></p>
+      </div>
       <div class="panel qs" id="gap-bar" hidden>
         <label>Matches gap (top digit vs second digit)</label>
         <div class="bar-pick" id="gap-pick" role="group" aria-label="Matches gap"></div>
@@ -483,8 +490,40 @@ function gapEval(digits,gap,n){
   const signal=g<=gap+1e-9;
   return {ct:'MATCH',b:d2,key:'MATCH'+d2,rate:gap,base:10,edge:0,signal,trigger:[d1],minEdge:0,need:Math.max(g,gap)||gap,n,runs:8,gapMode:true,d1,d2,p1,p2,gapPct:g,gapNeed:gap};
 }
-function evaluate(tab,digits,sens,prevKey,gapSet,gapN){
+/* Strategy rules (Over/Under and Even/Odd), see the Strategy tab:
+   Over/Under: the two most common digits must both be on the winning side of the barrier, and the hottest one must reach `thr`%.
+   Even/Odd: the hottest digit needs `thr`%; if it is even and the second is odd, trade Odd (and the other way round).
+   The hottest digit is the entry digit. */
+function stratEval(tab,digits,st){
+  const N=[50,100,250,1000].includes(st.n)?st.n:100;
+  if(digits.length<N*0.9)return null;
+  const f=freq(digits,N),n=Math.min(N,digits.length),o=[0,1,2,3,4,5,6,7,8,9].sort((x,y)=>f[y]-f[x]||x-y);
+  const d1=o[0],d2=o[1],p1=f[d1]/n*100,p2=f[d2]/n*100,thr=st.thr;
+  const hot=(d,p)=>'<b>'+d+'</b> '+p.toFixed(0)+'%';
+  const base={strat:true,d1,d2,p1,p2,n,minEdge:0,runs:8,trigger:[d1],rate:p1,need:thr,base:0,edge:0};
+  if(tab==='eo'){
+    const okT=p1>=thr,okP=(d1%2)!==(d2%2),ct=d1%2===0?'ODD':'EVEN',ready=okT&&okP;
+    const why=hot(d1,p1)+' top, '+hot(d2,p2)+' second. '+(ready?'Top is '+(d1%2===0?'even':'odd')+', second is '+(d2%2===0?'even':'odd')+': expect a reversal.':!okT?'Top digit needs '+thr+'%.':'Both top digits are '+(d1%2===0?'even':'odd')+', no reversal.');
+    return Object.assign(base,{ct,b:null,key:ct,signal:ready,why});
+  }
+  const lo=Math.min(d1,d2),hi=Math.max(d1,d2);
+  let best=null;
+  const consider=(ct,b)=>{
+    if(cfg[ct==='OVER'?'pickO':'pickU']!=null&&b!==cfg[ct==='OVER'?'pickO':'pickU'])return;
+    const w=rate(digits,ct,b,N)*100,edge=w-CT[ct].p(b)*100;
+    if(!best||edge>best.edge)best={ct,b,w,edge};
+  };
+  for(let b=hi+1;b<=9;b++)consider('UNDER',b);
+  for(let b=0;b<lo;b++)consider('OVER',b);
+  const okH=p1>=thr;
+  if(best&&best.edge>=0&&okH)return Object.assign(base,{ct:best.ct,b:best.b,key:best.ct+best.b,signal:true,rate:best.w,need:best.w,base:CT[best.ct].p(best.b)*100,edge:best.edge,
+    why:hot(d1,p1)+' and '+hot(d2,p2)+' are the top digits, both on the winning side of '+ctName(best.ct,best.b)+'.'});
+  const why=best&&best.edge>=0?hot(d1,p1)+' is the top digit but needs '+thr+'%.':hot(d1,p1)+' and '+hot(d2,p2)+' are the top digits and leave no safe Over/Under barrier.';
+  return Object.assign(base,{ct:best?best.ct:'OVER',b:best?best.b:4,key:'x',signal:false,why});
+}
+function evaluate(tab,digits,sens,prevKey,gapSet,gapN,strat){
   const T=TABS[tab];
+  if(strat&&strat.on&&(tab==='ou'||tab==='eo'))return stratEval(tab,digits,strat);
   if(tab==='dm'&&gapSet>0)return gapEval(digits,gapSet,gapN);
   if(digits.length<T.win)return null;
   const minEdge=T.edge[sens];
@@ -521,7 +560,7 @@ function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('on
 
 /* ---------- state ---------- */
 const MKT={};MARKETS.forEach(m=>{MKT[m.key]=m;});
-const DEF_SET={family:'all',sens:'normal',theme:'auto',forceDemo:false,sigTab:'ou',gap:0.3,gapN:1000};
+const DEF_SET={family:'all',sens:'normal',theme:'auto',forceDemo:false,sigTab:'ou',gap:0.3,gapN:1000,strat:true,sthr:12,sn:100};
 const EMBEDDED=window.parent!==window;
 if(EMBEDDED)document.documentElement.classList.add('embedded');
 const DEF_BOT={sdur:1,volKey:'R_25',ct:'OVER',barrier:5,stake:1,runs:10,useTrigger:true,trigger:[1,2,3],tp:10,sl:10,mult:1,maxStake:20,fast:true,mlevel:9,target:'paper',pickO:null,pickU:null};
@@ -832,7 +871,7 @@ function buildCards(){
     cards[m.key]={el,code:$('.code',el),arc:$('.arc',el),rd:$('.rd',el),state:$('.state',el),sigline:$('.sigline',el),sub:$('.sub',el),clock:$('.clock',el),chips:$('.chiprow',el),meta:$('.meta',el),go:$('.go',el),tape:$('.tape',el)};
   });
 }
-const needTicks=tab=>tab==='dm'&&set.gap>0?(set.gapN||1000):TABS[tab].win;
+const needTicks=tab=>tab==='dm'&&set.gap>0?(set.gapN||1000):(tab==='ou'||tab==='eo')&&set.strat?Math.ceil((set.sn||100)*0.9):TABS[tab].win;
 const chips=(d,ev)=>d.map(x=>'<span class="dg'+(ev?(CT[ev.ct].win(x,ev.b)?' w':' l'):'')+'">'+x+'</span>').join('');
 function fmtClock(sec){return sec<60?sec+'s':Math.floor(sec/60)+':'+pad(sec%60);}
 /* Seconds left before the signal is re-checked: one scan window long (ticks in the window x seconds per tick
@@ -882,7 +921,7 @@ function paintCard(key){
   c.code.textContent=symOf(MKT[key]);
   const last=d.length?d[d.length-1]:null;
   c.rd.textContent=last===null?'–':last;
-  const ev=evaluate(sigTab,d,set.sens,sticky[sigTab+key],set.gap,set.gapN);
+  const ev=evaluate(sigTab,d,set.sens,sticky[sigTab+key],set.gap,set.gapN,{on:set.strat,thr:set.sthr||12,n:set.sn||100});
   evs[key]=ev;
   sticky[sigTab+key]=ev&&ev.signal?ev.key:null;
   if(!ev){
@@ -901,7 +940,7 @@ function paintCard(key){
   if(ev.signal){
     c.state.textContent=trig?'ENTER NOW':'WAIT TO ENTER';
     c.sigline.innerHTML='<span class="sigpill">'+nm+'</span>';
-    c.sub.innerHTML=ev.gapMode?'Top <b>'+ev.d1+'</b> '+ev.p1.toFixed(1)+'% · 2nd <b>'+ev.d2+'</b> '+ev.p2.toFixed(1)+'% · gap <b>'+ev.gapPct.toFixed(1)+'%</b>':'<b>'+Math.round(ev.rate)+'%</b> hit rate · base '+Math.round(ev.base)+'% · last '+ev.n;
+    c.sub.innerHTML=ev.strat?ev.why:ev.gapMode?'Top <b>'+ev.d1+'</b> '+ev.p1.toFixed(1)+'% · 2nd <b>'+ev.d2+'</b> '+ev.p2.toFixed(1)+'% · gap <b>'+ev.gapPct.toFixed(1)+'%</b>':'<b>'+Math.round(ev.rate)+'%</b> hit rate · base '+Math.round(ev.base)+'% · last '+ev.n;
     c.meta.hidden=false;
     const tl=ev.trigger.length>1?ev.trigger.slice(0,-1).join(', ')+' or '+ev.trigger[ev.trigger.length-1]:String(ev.trigger[0]);
     c.meta.innerHTML=ev.ct==='MATCH'
@@ -909,7 +948,7 @@ function paintCard(key){
       :'Enter when the last digit is <b>'+tl+'</b> · <b>'+ev.runs+'</b> runs';
   }else{
     c.state.textContent='SCANNING';c.sigline.innerHTML='';
-    c.sub.innerHTML=ev.gapMode?'Gap <b>'+ev.d1+'</b> vs <b>'+ev.d2+'</b> is <b>'+ev.gapPct.toFixed(1)+'%</b> · needs ≤ '+ev.gapNeed+'%':'Closest: <b>'+nm+'</b> at '+Math.round(ev.rate)+'% · needs '+Math.round(ev.need)+'%';
+    c.sub.innerHTML=ev.strat?ev.why:ev.gapMode?'Gap <b>'+ev.d1+'</b> vs <b>'+ev.d2+'</b> is <b>'+ev.gapPct.toFixed(1)+'%</b> · needs ≤ '+ev.gapNeed+'%':'Closest: <b>'+nm+'</b> at '+Math.round(ev.rate)+'% · needs '+Math.round(ev.need)+'%';
     c.meta.hidden=true;
   }
   c.go.disabled=!ev.signal;
@@ -1030,6 +1069,20 @@ function applyTheme(){
 }
 
 /* ---------- quick settings (stake, martingale, take profit, stop loss, barrier) ---------- */
+function renderStrat(){
+  const on=sigTab==='ou'||sigTab==='eo';
+  $('#st-bar').hidden=!on;
+  if(!on)return;
+  const eo=sigTab==='eo';
+  $('#st-title').textContent=eo?'Reversal Strategy':'Reversal Strategy (winning side)';
+  $('#st-pick').innerHTML=[[true,'Strategy on'],[false,'Original']].map(([v,l])=>'<button type="button" data-s="'+v+'" aria-pressed="'+(!!set.strat===v)+'">'+l+'</button>').join('');
+  const lines=(set.strat?'<span class="sub">Hottest digit at least:</span> '+[10,11,12,13,14,15].map(v=>'<button type="button" data-th="'+v+'" aria-pressed="'+((set.sthr||12)===v)+'">'+v+'%</button>').join(''):'');
+  $('#st-thr').innerHTML=lines;
+  $('#st-n').innerHTML=set.strat?'<span class="sub">Ticks:</span> '+[50,100,250,1000].map(v=>'<button type="button" data-sn="'+v+'" aria-pressed="'+((set.sn||100)===v)+'">'+v+'</button>').join(''):'';
+  $('#st-note').textContent=!set.strat?'Original signal rules are used.':eo
+    ?'Signals when the hottest digit reaches '+(set.sthr||12)+'% (last '+(set.sn||100)+' ticks). Even hottest with an odd second means trade Odd, odd hottest with an even second means trade Even. The hottest digit is the entry digit.'
+    :'Signals when the two most common digits (last '+(set.sn||100)+' ticks) are both on the winning side of the barrier and the hottest reaches '+(set.sthr||12)+'%. The hottest digit is the entry digit.';
+}
 function renderGap(){
   const on=sigTab==='dm';
   $('#gap-bar').hidden=!on;
@@ -1045,7 +1098,7 @@ function renderQS(){
   $('#q-note').textContent='A win returns the stake to '+cfg.stake+'. A loss multiplies it by '+m+(cfg.tp>0?'. Stops at +'+cfg.tp:'')+(cfg.sl>0?' or -'+cfg.sl:'')+'.';
   const ou=sigTab==='ou';
   $('#qs-bar').hidden=!ou;
-  renderGap();
+  renderGap();renderStrat();
   if(ou){
     const row=(id,key,lo,hi)=>{$(id).innerHTML='<button type="button" data-k="'+key+'" data-p="" aria-pressed="'+(cfg[key]==null)+'">Scan</button>'+Array.from({length:hi-lo+1},(_,i)=>lo+i).map(d=>'<button type="button" data-k="'+key+'" data-p="'+d+'" aria-pressed="'+(cfg[key]===d)+'">'+d+'</button>').join('');};
     row('#q-bar-o','pickO',0,8);row('#q-bar-u','pickU',1,9);
@@ -1061,6 +1114,11 @@ function bindAll(){
     let v=numOr(e.target.value,a[2]);if(a[1]==='mult')v=Math.max(1,v);if(a[1]==='stake')v=Math.max(0.35,v);if(a[1]==='runs')v=Math.max(1,Math.round(v));if(a[1]==='sdur')v=Math.min(10,Math.max(1,Math.round(v)));if(v<0)v=0;
     cfg[a[1]]=v;saveCfg();renderQS();syncForm();
   }));
+  $('#st-bar').addEventListener('click',e=>{
+    const a=e.target.closest('button[data-s]'),t=e.target.closest('button[data-th]'),n=e.target.closest('button[data-sn]');
+    if(a)set.strat=a.dataset.s==='true';else if(t)set.sthr=+t.dataset.th;else if(n)set.sn=+n.dataset.sn;else return;
+    saveSet();renderStrat();Object.keys(cards).forEach(paintCard);renderSum();
+  });
   $('#gap-bar').addEventListener('click',e=>{const nb=e.target.closest('button[data-n]');if(nb){set.gapN=+nb.dataset.n;saveSet();renderGap();Object.keys(cards).forEach(paintCard);renderSum();return;}const b=e.target.closest('button[data-g]');if(!b)return;set.gap=+b.dataset.g;saveSet();renderGap();Object.keys(cards).forEach(paintCard);renderSum();});
   $('#qs-bar').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;cfg[b.dataset.k]=b.dataset.p===''?null:+b.dataset.p;saveCfg();renderQS();});
   $('.nav-in').addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTab(b.dataset.tab);});
