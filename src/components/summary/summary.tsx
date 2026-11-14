@@ -27,6 +27,29 @@ const getRotation = (): string[] => {
     return [];
 };
 const label = (sym: string) => MARKET_NAMES[sym] ?? sym;
+const shortLabel = (sym: string) => {
+    const m = /^1HZ(\d+)V$/.exec(sym);
+    if (m) return `V${m[1]}·1s`;
+    const r = /^R_(\d+)$/.exec(sym);
+    return r ? `V${r[1]}` : sym;
+};
+
+// Small chip for the top bar of the run panel (next to the arrow): current market and the next one.
+export const RotationChip = observer(() => {
+    const { summary_card } = useStore();
+    const info = summary_card.contract_info as any;
+    const current: string | undefined = info?.underlying_symbol ?? info?.underlying;
+    const list = getRotation();
+    if (!list.length) return null;
+    const at = current ? list.indexOf(current) : -1;
+    const next = list[(at + 1) % list.length];
+    return (
+        <div className='rotation-chip' data-testid='rotation-chip' title={`Trading: ${label(current ?? list[0])} · Next: ${label(next)}`}>
+            <b>{shortLabel(current ?? list[0])}</b>
+            <span>next {shortLabel(next)}</span>
+        </div>
+    );
+});
 
 const RotationStrip = ({ current }: { current?: string }) => {
     const list = getRotation();
@@ -75,7 +98,9 @@ const Summary = observer(({ is_drawer_open }: TSummary) => {
             })}
             data-testid='mock-summary'
         >
-            <RotationStrip current={(contract_info as any)?.underlying_symbol ?? (contract_info as any)?.underlying} />
+            {isDesktop && (
+                <RotationStrip current={(contract_info as any)?.underlying_symbol ?? (contract_info as any)?.underlying} />
+            )}
             <ThemedScrollbars
                 className={classnames({
                     summary: (!is_contract_loading && !contract_info) || is_bot_running,
