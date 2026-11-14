@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#5A3CF0">
+<title>Strategy</title>
+<style>
+:root{--bg:#EEEBFF;--surface:#fff;--raise:#F4F2FF;--line:#D9D3FA;--fg:#1B1446;--muted:#6B6591;--accent:#5A3CF0;--accent-fg:#fff;--win:#0E9F6E;--loss:#D6455D;--warn:#B7791F}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:12px 16px 40px;max-width:760px;margin:0 auto}
+h1{font-size:20px;margin:6px 0 2px}h2{font-size:15px;margin:0 0 8px}
+.muted{color:var(--muted);font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin:0 0 3px}
+input,select{width:100%;background:var(--raise);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:8px 10px;min-height:40px;font:inherit}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--raise);color:var(--fg);border-radius:9px;padding:8px 12px;min-height:40px}
+button.p{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:700}
+.tabs button{flex:1;min-width:90px}.tabs button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:700}
+.best{border-color:var(--accent)}
+.pick{font-size:22px;font-weight:800}
+.mk{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0;position:relative}
+.mk .nm{font-size:18px;font-weight:800}.mk .sy{color:var(--muted);font-size:13px;margin-top:2px}
+.dot.off{background:#B9B3D6;box-shadow:0 0 0 5px #E4E0FA}
+.dot{position:absolute;right:14px;top:14px;width:14px;height:14px;border-radius:50%;background:#12B886;box-shadow:0 0 0 5px #D6F5EA}
+.mid{display:flex;gap:14px;align-items:center;margin:12px 0}
+.ring{--v:0;width:64px;height:64px;flex:none;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--v)*1%),#E4E0FA 0);display:grid;place-items:center}
+.ring i{font-style:normal;width:48px;height:48px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-weight:800;font-size:18px}
+.mid .tx{flex:1;min-width:0}.mid .big{font-size:18px;font-weight:800}
+.bar{height:8px;border-radius:99px;background:#E4E0FA;margin:8px 0 6px;overflow:hidden}.bar b{display:block;height:100%;background:var(--accent)}
+.chips{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden}.chips span{flex:1 1 0;min-width:0;max-width:30px;height:30px;border-radius:7px;background:#ECE9FF;display:grid;place-items:center;font-weight:700;font-size:13px}.chips span:last-child{background:#1B1446;color:#fff}
+.mk button{margin-top:10px;width:100%}
+.tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:11.5px;font-weight:700}
+.tag.s{background:#D9F5E9;color:#0B7A55}.tag.w{background:#FBEFD2;color:#8A5A0B}
+.empty{color:var(--muted);padding:6px 0}
+.status{font-size:12.5px}.ok{color:var(--win)}.bad{color:var(--loss)}
+.note{color:var(--muted);font-size:12px;margin-top:6px}
+.chk{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:13.5px}.chk input{width:18px;min-height:18px;height:18px}
+.hot{display:inline-block;min-width:26px;text-align:center;border-radius:8px;padding:1px 6px;font-weight:800;background:#ECE9FF}.hot.g{background:#D9F5E9;color:#0B7A55}.hot.r{background:#FBE1E6;color:#A3243B}
+.why{font-size:12.5px;margin-top:4px}
+</style>
+</head>
+<body>
+<h1>Strategy</h1>
+<div class="muted">Two digit strategies, checked on every Volatility market nonstop. A market is Ready only when its rule is met. Jump markets are left out because Deriv does not sell these contracts there.</div>
+<div class="status" id="conn">Connecting…</div>
+
+<div class="card best" id="bestCard"><div class="muted">Best Ready market right now</div><div id="best" class="empty">Scanning…</div></div>
+
+<div class="card">
+  <h2>Strategy</h2>
+  <div class="row tabs" id="types">
+    <button type="button" data-t="ou" aria-pressed="true">Over / Under</button>
+    <button type="button" data-t="eo" aria-pressed="false">Even / Odd</button>
+  </div>
+  <div class="note" id="rule"></div>
+  <div class="grid" style="margin-top:10px">
+    <div><label for="win">Look at the last</label><select id="win"><option value="50">50 ticks</option><option value="100">100 ticks</option><option value="250">250 ticks</option><option value="1000">1000 ticks</option></select></div>
+    <div id="barBox"><label for="barrier">Over / Under barrier</label><select id="barrier"><option value="auto">Auto (best)</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
+    <div id="thrBox"><label for="thr">Hottest digit needs at least</label><select id="thr"><option value="10">10%</option><option value="11">11%</option><option value="12">12%</option><option value="13">13%</option><option value="14">14%</option><option value="15">15%</option></select></div>
+    <div><label for="spd">Signal speed</label><select id="spd"><option value="3000">Fast (every 3 s)</option><option value="20000">Steady (every 20 s)</option><option value="45000">Slow (every 45 s)</option></select></div>
+  </div>
+  <label class="chk"><input type="checkbox" id="pause"> Pause the screen</label>
+</div>
+
+<div class="card" id="botCard">
+  <h2>Bot settings</h2>
+  <div class="muted">Used by Trade now on this page only, separate from Signals, DerivScope, Scanner and Digit Analyzer. Set them before you tap Trade now. The bot has no entry digit: it buys as soon as you press Run.</div>
+  <div class="grid" style="margin-top:8px">
+    <div><label for="stake">Stake</label><input id="stake" type="number" min="0.35" step="0.01" value="0.35"></div>
+    <div><label for="mult">Martingale (x after a loss)</label><input id="mult" type="number" min="1" step="0.1" value="1"></div>
+    <div><label for="tp">Take profit</label><input id="tp" type="number" min="0" step="0.1" value="5"></div>
+    <div><label for="sl">Stop loss</label><input id="sl" type="number" min="0" step="0.1" value="5"></div>
+    <div><label for="runs">Number of runs</label><input id="runs" type="number" min="1" step="1" value="10"></div>
+    <div><label for="dur">Duration (ticks)</label><input id="dur" type="number" min="1" max="10" step="1" value="1"></div>
+  </div>
+  <div class="note" id="botNote">Saved automatically on this device.</div>
+</div>
+
+<div class="card"><h2>Ready (<span id="nS">0</span>)</h2><div id="strong"><div class="empty">No market meets the rule yet.</div></div></div>
+<div class="card"><h2>Waiting (<span id="nW">0</span>)</h2><div class="muted" style="margin-bottom:4px">The rule is not met yet. Each one shows why.</div><div id="waiting"></div></div>
+
+<div class="card muted">
+  Last digits are random and independent, so no rule can promise wins. These strategies only choose when to trade; each trade is still a gamble. Test on a demo account first.
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)};
+var MK=[["Volatility 10 Index","R_10"],["Volatility 25 Index","R_25"],["Volatility 50 Index","R_50"],["Volatility 75 Index","R_75"],["Volatility 100 Index","R_100"],
+["Volatility 10 (1s) Index","1HZ10V"],["Volatility 25 (1s) Index","1HZ25V"],["Volatility 50 (1s) Index","1HZ50V"],["Volatility 75 (1s) Index","1HZ75V"],["Volatility 100 (1s) Index","1HZ100V"]];
+var WS="wss://api.derivws.com/trading/v1/options/ws/public";
+var st={};MK.forEach(function(x){st[x[1]]={name:x[0],sym:x[1],pip:2,d:[],last:0}});
+var set={type:"ou",win:"100",thr:"12",spd:"20000",barrier:"auto",pause:false};
+var EL_SET=["win","thr","spd","barrier"];
+function load(k,d){try{return JSON.parse(localStorage.getItem(k)||"")||d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+Object.assign(set,load("st.set",{}));
+var BOT_IDS=["stake","mult","tp","sl","runs","dur"],bot=load("st.bot",{});
+BOT_IDS.forEach(function(id){if(bot[id]!==undefined&&bot[id]!=="")$(id).value=bot[id];$(id).addEventListener("input",function(){bot[id]=$(id).value;save("st.bot",bot)})});
+EL_SET.forEach(function(id){$(id).value=set[id];$(id).addEventListener("change",function(){set[id]=$(id).value;save("st.set",set);draw(true)})});
+$("pause").checked=!!set.pause;$("pause").addEventListener("change",function(){set.pause=$("pause").checked;save("st.set",set);draw(true)});
+var RULE={ou:"Over/Under: the two most common digits must both be on the winning side of the barrier. For Under 7 both must be below 7, for Over 3 both must be above 3. The hottest digit must also reach the chosen share. The barrier with the highest win rate that passes is chosen.",
+ eo:"Even/Odd reversal: the most common digit needs the chosen share or more. If it is even and the second most common is odd, trade Odd. If it is odd and the second is even, trade Even."};
+function syncTabs(){document.querySelectorAll("#types button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===set.type?"true":"false")});$("barBox").hidden=set.type!=="ou";$("thrBox").hidden=false;$("rule").textContent=RULE[set.type]}
+document.querySelectorAll("#types button").forEach(function(b){b.addEventListener("click",function(){set.type=b.dataset.t;save("st.set",set);syncTabs();draw(true)})});
+syncTabs();
+
+function digitOf(q,pip){var s=Number(q).toFixed(Math.max(0,Math.min(12,Math.trunc(pip||2))));var p=s.split(".");return +((p.length>1?p[1]:p[0]).slice(-1)||"0")}
+function hotChip(d,pc,good){return'<span class="hot '+(good===null?"":good?"g":"r")+'">'+d+'</span> '+pc.toFixed(0)+'%'}
+
+/* ---------- the two strategies ---------- */
+function cand(m){
+  var N=+set.win,a=m.d.slice(-N),n=a.length;
+  if(n<Math.min(N,50)||n<N*0.9)return{ok:false,ready:false,n:n,need:N,pick:"…",share:0};
+  var c=new Array(10).fill(0);a.forEach(function(d){c[d]++});
+  var o=[0,1,2,3,4,5,6,7,8,9].sort(function(x,y){return c[y]-c[x]||x-y});
+  var d1=o[0],d2=o[1],p1=c[d1]/n*100,p2=c[d2]/n*100;
+  if(set.type==="eo"){
+    var thr=+set.thr,even1=d1%2===0,odd2=d2%2===1;
+    var okT=p1>=thr,okP=(d1%2)!==(d2%2);
+    var side=even1?"Odd":"Even";
+    var ready=okT&&okP;
+    var why=hotChip(d1,p1,okT)+' is the top digit, '+hotChip(d2,p2,null)+' second. '+(ready?'Top is '+(even1?'even':'odd')+' and second is '+(even1?'odd':'even')+': expect a reversal.':(!okT?'Top digit needs '+thr+'% or more.':'Both top digits are '+(even1?'even':'odd')+', no reversal signal.'));
+    return{ok:true,ready:ready,n:n,pick:side,share:p1,why:why,tag:{c:side==="Even"?"DIGITEVEN":"DIGITODD",b:null,k:side.toLowerCase()},score:p1};
+  }
+  var lo=Math.min(d1,d2),hi=Math.max(d1,d2),bs=set.barrier==="auto"?null:+set.barrier,best=null;
+  function consider(label,ct,kind,b,winf,base){
+    if(bs!==null&&b!==bs)return;
+    var w=a.filter(winf).length/n*100,edge=w-base;
+    if(!best||edge>best.edge)best={label:label,tag:{c:ct,b:b,k:kind},rate:w,edge:edge};
+  }
+  for(var b=hi+1;b<=9;b++)consider("Under "+b,"DIGITUNDER","under",b,function(d){return d<b},b*10);
+  for(var b2=0;b2<lo;b2++)(function(b){consider("Over "+b,"DIGITOVER","over",b,function(d){return d>b},(9-b)*10)})(b2);
+  var thr2=+set.thr,okH=p1>=thr2,ready=!!best&&best.edge>=0&&okH;
+  if(ready)return{ok:true,ready:true,n:n,pick:best.label,share:best.rate,tag:best.tag,score:best.edge,
+    why:hotChip(d1,p1,true)+' and '+hotChip(d2,p2,true)+' are the two most common digits, both on the winning side of '+best.label+'. It won '+best.rate.toFixed(0)+'% of the last '+n+' ticks.'};
+  if(best&&best.edge>=0&&!okH)return{ok:true,ready:false,n:n,pick:best.label,share:best.rate,score:-50,why:hotChip(d1,p1,false)+' is the hottest digit but needs '+thr2+'% or more. '+hotChip(d2,p2,true)+' second. Both are on the winning side of '+best.label+'.'};
+  return{ok:true,ready:false,n:n,pick:"No safe barrier",share:Math.max(p1,0),score:-99,
+    why:hotChip(d1,p1,false)+' and '+hotChip(d2,p2,false)+' are the two most common digits'+(bs!==null?(hotsOk(bs,d1,d2)?', but the barrier win rate is below its base chance.':', and at least one is on the losing side of barrier '+bs+'.'):', and they sit on both sides of any barrier ('+lo+' and '+hi+' leave no safe Over or Under).')};
+}
+function hotsOk(b,d1,d2){return(Math.max(d1,d2)<b)||(Math.min(d1,d2)>b)}
+
+/* ---------- screen ---------- */
+var shown=null,lastDraw=0,order=null,orderAt=0;
+function rowHtml(r,i){
+  var c=r.c,pct=c.ok?Math.round(c.share):Math.round(c.n/c.need*100);
+  var chips=r.m.d.slice(-14).map(function(d){return"<span>"+d+"</span>"}).join("");
+  var mid=c.ok
+    ?'<div class="tx"><div class="big">'+c.pick+' <span class="tag '+(c.ready?"s":"w")+'">'+(c.ready?"Ready":"Waiting")+'</span></div><div class="why">'+c.why+'</div></div>'
+    :'<div class="tx"><div class="big">Collecting…</div><div class="bar"><b style="width:'+pct+'%"></b></div><div class="muted">'+c.n+' of '+c.need+' ticks</div></div>';
+  return '<div class="mk"><span class="dot'+(Date.now()-(r.m.last||0)>20000?" off":"")+'"></span><div class="nm">'+r.m.name+'</div><div class="sy">'+r.m.sym+'</div><div class="mid"><div class="ring" style="--v:'+pct+'"><i>'+(c.ok?Math.round(c.share)+"%":c.n)+'</i></div>'+mid+'</div><div class="chips">'+chips+'</div>'
+   +(c.ready?'<button type="button" class="p" data-i="'+i+'">Trade now</button>':'')+'</div>';
+}
+function draw(force){
+  if(set.pause&&!force)return;
+  var now=Date.now();
+  if(!force&&now-lastDraw<900)return;
+  lastDraw=now;
+  var live={};MK.forEach(function(x){live[x[1]]={m:st[x[1]],c:cand(st[x[1]])}});
+  if(force||!order||now-orderAt>=(+set.spd)){
+    var rows=MK.map(function(x){return live[x[1]]});
+    rows.sort(function(a,b){return (b.c.score||-99)-(a.c.score||-99)});
+    order={S:rows.filter(function(r){return r.c.ready}).map(function(r){return r.m.sym}),W:rows.filter(function(r){return !r.c.ready}).map(function(r){return r.m.sym})};
+    orderAt=now;
+  }
+  var S=order.S.map(function(y){return live[y]}),W=order.W.map(function(y){return live[y]});
+  shown=S.concat(W);
+  $("nS").textContent=S.length;$("nW").textContent=W.length;
+  $("strong").innerHTML=S.length?S.map(function(r,i){return rowHtml(r,i)}).join(""):'<div class="empty">No market meets the rule yet. Scanning continues, and markets appear here automatically.</div>';
+  $("waiting").innerHTML=W.length?W.map(function(r,i){return rowHtml(r,S.length+i)}).join(""):'<div class="empty">Nothing waiting.</div>';
+  var top=S[0];
+  $("best").className=top?"":"empty";
+  $("best").innerHTML=top?'<div class="pick">'+top.c.pick+'</div><div><b>'+top.m.name+'</b> <span class="tag s">Ready</span></div><div class="why">'+top.c.why+'</div><div class="row" style="margin-top:8px"><button type="button" class="p" data-i="0">Trade now</button></div>':"No market meets the rule right now.";
+}
+document.body.addEventListener("click",function(e){var b=e.target.closest("button[data-i]");if(!b||!shown)return;var r=shown[+b.dataset.i];if(r)trade(r)});
+
+/* ---------- Trade now: loads a bot into Bot Builder with this page's own settings ---------- */
+function num(id,d,min){var v=parseFloat($(id).value);return isFinite(v)&&v>=min?v:d}
+function trade(r){
+  var t=r.c.tag;if(!t||!r.c.ready)return;
+  if(window.parent===window){$("botNote").textContent="Open this page from the Joytrader site to load the bot.";return}
+  var runs=Math.max(1,Math.round(num("runs",10,1)));
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:t.c,kind:t.k,barrier:t.b,trigger:[],runs:runs,
+    stake:num("stake",0.35,0.35),mult:num("mult",1,1),tp:num("tp",0,0),sl:num("sl",0,0),ticks:Math.max(1,Math.min(10,Math.round(num("dur",1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
+  $("botNote").textContent="Opening Bot Builder with "+r.c.pick+" on "+r.m.name+"…";
+}
+
+/* ---------- data ---------- */
+var sock=null,tries=0,pingT=null,lastMsg=Date.now();
+function connect(){
+  try{sock=new WebSocket(WS)}catch(e){retry();return}
+  var s=sock;
+  s.onopen=function(){tries=0;$("conn").textContent="Live (public market data)";$("conn").className="status ok";
+    MK.forEach(function(x,i){s.send(JSON.stringify({ticks_history:x[1],count:1000,end:"latest",style:"ticks",req_id:100+i}));s.send(JSON.stringify({ticks:x[1],subscribe:1,req_id:200+i}))});
+    clearInterval(pingT);pingT=setInterval(function(){if(s.readyState===1)s.send(JSON.stringify({ping:1}))},30000)};
+  s.onmessage=function(ev){
+    lastMsg=Date.now();var x;try{x=JSON.parse(ev.data)}catch(e){return}
+    if(x.error)return;
+    if(x.history&&x.history.prices){var sym=x.echo_req&&x.echo_req.ticks_history,m=st[sym];if(!m)return;m.pip=x.pip_size!==undefined?x.pip_size:m.pip;m.last=Date.now();m.ep=x.history.times[x.history.times.length-1];
+      m.d=x.history.prices.map(function(q){return digitOf(q,m.pip)});draw(true)}
+    if(x.tick){$("conn").textContent="Live (public market data)";$("conn").className="status ok";var m2=st[x.tick.symbol];
+      if(m2){if(x.tick.pip_size!==undefined)m2.pip=x.tick.pip_size;if(!(m2.ep&&x.tick.epoch<=m2.ep)){m2.ep=x.tick.epoch;m2.last=Date.now();m2.d.push(digitOf(x.tick.quote,m2.pip));if(m2.d.length>1200)m2.d.splice(0,m2.d.length-1200);draw(false)}}}
+  };
+  s.onclose=function(){if(s!==sock)return;$("conn").textContent="Disconnected. Reconnecting…";$("conn").className="status bad";retry()};
+  s.onerror=function(){};
+}
+function retry(){tries++;setTimeout(connect,Math.min(15000,1000*tries))}
+connect();
+setInterval(function(){draw(false)},1000);
+setInterval(function(){if(sock&&sock.readyState===1&&Date.now()-lastMsg>25000){try{sock.close()}catch(e){}}if(sock&&sock.readyState===1&&Date.now()-lastMsg>10000)$("conn").textContent="Waiting for ticks…"},5000);
+})();
+</script>
+</body>
+</html>
