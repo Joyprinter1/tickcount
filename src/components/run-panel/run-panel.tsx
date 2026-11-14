@@ -10,6 +10,7 @@ import Money from '@/components/shared_ui/money';
 import Tabs from '@/components/shared_ui/tabs';
 import Text from '@/components/shared_ui/text';
 import Summary from '@/components/summary';
+import { RotationChip } from '@/components/summary/summary';
 import TradeAnimation from '@/components/trade-animation';
 import Transactions from '@/components/transactions';
 import { DBOT_TABS } from '@/constants/bot-contents';
@@ -119,14 +120,17 @@ export const StatisticsSummary = ({
 const DrawerHeader = ({ is_clear_stat_disabled, is_mobile, is_drawer_open, onClearStatClick }: TDrawerHeader) =>
     is_mobile &&
     is_drawer_open && (
-        <Button
-            id='db-run-panel__clear-button'
-            className='run-panel__clear-button'
-            disabled={is_clear_stat_disabled}
-            text={localize('Reset')}
-            onClick={onClearStatClick}
-            secondary
-        />
+        <>
+            <RotationChip />
+            <Button
+                id='db-run-panel__clear-button'
+                className='run-panel__clear-button'
+                disabled={is_clear_stat_disabled}
+                text={localize('Reset')}
+                onClick={onClearStatClick}
+                secondary
+            />
+        </>
     );
 
 const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTabIndex, ...props }: TDrawerContent) => {

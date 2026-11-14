@@ -451,3 +451,37 @@
         }
     }
 }
+
+.rotation-chip {
+    @include mobile-or-tablet-screen {
+        position: absolute;
+        top: 0.4rem;
+        right: 10.4rem;
+        height: 2.8rem;
+        max-width: 6.4rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-end;
+        line-height: 1.15;
+        pointer-events: none;
+        color: var(--text-general);
+
+        b {
+            font-size: 1.2rem;
+            font-weight: 800;
+            white-space: nowrap;
+            color: var(--brand-red-coral, #6c3ad6);
+        }
+
+        span {
+            font-size: 0.95rem;
+            white-space: nowrap;
+            opacity: 0.8;
+        }
+    }
+
+    @include desktop-screen {
+        display: none;
+    }
+}
