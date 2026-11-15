@@ -306,6 +306,30 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
         });
     };
 
+    // Change only the market/symbol of the bot already in the builder (stake, trade type etc. stay as they are).
+    setMarketOnly = async (symbol: string): Promise<{ ok: boolean; msg: string }> => {
+        const ws = window.Blockly?.derivWorkspace;
+        if (!ws) return { ok: false, msg: 'Open the Bot Builder and load a bot first.' };
+        if (this.root_store.run_panel.is_running) return { ok: false, msg: 'Stop the bot first, then pick a volatility.' };
+        const block = ws.getAllBlocks(false).find((b: any) => b.type === 'trade_definition_market');
+        if (!block) return { ok: false, msg: 'No bot is loaded. Load a bot first, then tap a volatility.' };
+        const { contracts_for } = ApiHelpers?.instance ?? {};
+        const market = await contracts_for?.getMarketBySymbol(symbol);
+        const submarket = await contracts_for?.getSubmarketBySymbol(symbol);
+        if (!market || !submarket) return { ok: false, msg: 'That volatility is not available right now.' };
+        const { active_symbols } = ApiHelpers.instance;
+        const mf = block.getField('MARKET_LIST');
+        const sf = block.getField('SUBMARKET_LIST');
+        const yf = block.getField('SYMBOL_LIST');
+        mf.updateOptions(active_symbols.getMarketDropdownOptions(), { default_value: market, should_pretend_empty: true });
+        mf.setValue(market);
+        sf.updateOptions(active_symbols.getSubmarketDropdownOptions(market), { default_value: submarket, should_pretend_empty: true });
+        sf.setValue(submarket);
+        yf.updateOptions(active_symbols.getSymbolDropdownOptions(submarket), { default_value: symbol, should_pretend_empty: true });
+        yf.setValue(symbol);
+        return { ok: true, msg: 'Bot market set to ' + symbol };
+    };
+
     loadSignal = async (signal: TTickdeskSignal) => {
         const tradetype = signal.tradetype === 'higherlower' ? 'higherlower' : SIGNAL_TRADE_TYPES[signal.contract];
         if (!tradetype) throw new Error(`Unsupported contract ${signal.contract}`);
