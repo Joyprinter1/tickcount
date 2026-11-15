@@ -34,6 +34,8 @@ export type TSignalBotOptions = {
     martingale_level?: number;
     rotate?: string[]; // buy each trade on the next market in this list (variable ROTATE|..., see Purchase.js)
     recover?: string[]; // after a lost trade buy these contracts in turn, one per consecutive loss (variable RECOVER|..., e.g. DIGITEVEN, DIGITODD)
+    cycle?: string[]; // buy these contracts in turn, one per trade (variable CYCLE|..., entries like DIGITOVER:0-2)
+    parity_recover?: boolean; // after a loss buy Even/Odd matching the losing last digit (variable PARITY|RECOVER)
     random_prediction?: [number, number]; // Over/Under: barrier is a random digit between these two (inclusive) for every trade
     hedge?: string; // 'HEDGE|TYPE|digit|barrier|barrier2': second contract bought with every trade (see Purchase.js)
 };
@@ -317,6 +319,8 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
     if (o.hedge) v(o.hedge);
     if (o.rotate && o.rotate.length) v('ROTATE|' + o.rotate.join(','));
     if (o.recover && o.recover.length) v('RECOVER|' + o.recover.join(','));
+    if (o.cycle && o.cycle.length) v('CYCLE|' + o.cycle.join(','));
+    if (o.parity_recover) v('PARITY|RECOVER');
     if (live && o.tradetype === 'matchesdiffers') v('LIVE|SIGNAL');
     if (o.live_scan === true && (live || live_eo)) v('LIVE|SCAN'); // tells Purchase.js to buy Matches on the live signal digit
     const variables = Object.entries(vars)

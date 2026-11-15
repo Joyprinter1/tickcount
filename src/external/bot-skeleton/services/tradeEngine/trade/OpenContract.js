@@ -81,7 +81,12 @@ export default Engine =>
             broadcastContract({ accountID: api_base.account_info.loginid, ...raw });
 
             if (this.isSold) {
-                if (this.switchState) this.switchState.loss = Number(contract.profit) < 0;
+                if (this.switchState) {
+                    this.switchState.loss = Number(contract.profit) < 0;
+                    const ex = String(contract.exit_tick_display_value ?? contract.exit_tick ?? '');
+                    const dg = parseInt(ex.slice(-1), 10);
+                    this.switchState.digit = Number.isNaN(dg) ? -1 : dg;
+                }
                 this.contractId = '';
                 this.hedgeContractId = '';
                 this.hedgeData = null;
