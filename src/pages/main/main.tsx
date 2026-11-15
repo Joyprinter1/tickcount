@@ -359,6 +359,18 @@ const AppWrapper = observer(() => {
                 }
                 return;
             }
+            if (data && data.type === 'tickdesk:market' && typeof data.symbol === 'string') {
+                let res = { ok: false, msg: 'Open the Bot Builder and load a bot first.' };
+                try {
+                    res = await quick_strategy.setMarketOnly(data.symbol);
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error(e);
+                    res = { ok: false, msg: 'Could not change the volatility.' };
+                }
+                (event.source as Window | null)?.postMessage({ type: 'tickdesk:market-result', symbol: data.symbol, ...res }, '*');
+                return;
+            }
             if (!data || data.type !== 'tickdesk:signal' || !data.signal) return;
             const signal = data.signal;
             if (signal.live === true && ['DIGITMATCH', 'DIGITEVEN', 'DIGITODD'].includes(String(signal.contract))) setKeepSignalAlive(true);
