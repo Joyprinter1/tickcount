@@ -232,3 +232,29 @@
         width: 31.2rem !important;
     }
 }
+
+.animation__fast-button {
+    flex: 0 0 auto;
+    height: 3.2rem;
+    margin: 0 0.6rem;
+    padding: 0 0.8rem;
+    border: 1px solid var(--general-section-2, #888);
+    border-radius: 1.6rem;
+    background: transparent;
+    color: var(--text-general);
+    font-size: 1.2rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &--on {
+        background: #f2b544;
+        border-color: #f2b544;
+        color: #1b1b1b;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+}

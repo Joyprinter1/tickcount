@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import ContractResultOverlay from '@/components/contract-result-overlay';
 import { DBOT_TABS } from '@/constants/bot-contents';
+import { applyFastMode } from '@/utils/fast-mode';
 import { contract_stages } from '@/constants/contract-stage';
 import { useStore } from '@/hooks/useStore';
 import { LabelPairedPlayLgFillIcon, LabelPairedSquareLgFillIcon } from '@deriv/quill-icons/LabelPaired';
@@ -32,6 +33,31 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
         run_panel;
     const [shouldDisable, setShouldDisable] = React.useState(false);
     const is_unavailable_for_payment_agent = false;
+
+    // Fast mode: shortest tick duration for the loaded bot (see utils/fast-mode.ts)
+    const [is_fast, setIsFast] = React.useState<boolean>(() => {
+        try {
+            return localStorage.getItem('td.fast') === '1';
+        } catch (e) {
+            return false;
+        }
+    });
+    const [fast_note, setFastNote] = React.useState('');
+    const toggleFast = () => {
+        const next = !is_fast;
+        const result = applyFastMode(next);
+        if (!result.ok && next) {
+            setFastNote(result.message || '');
+            setTimeout(() => setFastNote(''), 3500);
+            return;
+        }
+        setIsFast(next);
+        try {
+            localStorage.setItem('td.fast', next ? '1' : '0');
+        } catch (e) {
+            // ignore
+        }
+    };
 
     // Get the load_modal store to monitor strategy deletions
     const { load_modal } = useStore();
@@ -204,6 +230,7 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
                             onStopBotClick();
                             return;
                         }
+                        if (is_fast) applyFastMode(true);
                         onRunButtonClick();
                         /* [AI] - Analytics event tracking removed - see migrate-docs/MONITORING_PACKAGES.md for re-implementation guide */
                         /* [/AI] */
@@ -215,6 +242,19 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
                 >
                     {button_props.text}
                 </Button>
+            )}
+            {!should_show_tooltip && (
+                <button
+                    type='button'
+                    id='db-fast-button'
+                    className={classNames('animation__fast-button', { 'animation__fast-button--on': is_fast })}
+                    aria-pressed={is_fast}
+                    disabled={is_stop_button_visible}
+                    title={fast_note || localize('Fast mode: trade the shortest tick duration')}
+                    onClick={toggleFast}
+                >
+                    {fast_note ? 'Not for this bot' : '⚡ Fast'}
+                </button>
             )}
             <div
                 className={classNames('animation__container', className, {
