@@ -152,22 +152,42 @@ export default Engine =>
                 const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
                 let rotate = null;
                 let recover = null;
+                let cycle = null;
+                let parity = false;
+                const entry = x => /^[A-Z]+(:\d(-\d)?)?$/.test(x);
                 for (const v of vars) {
                     const name = String(v.name ?? (v.getName ? v.getName() : ''));
                     if (name.startsWith('ROTATE|')) rotate = name.slice(7).split(',').filter(x => /^[A-Za-z0-9_]+$/.test(x));
-                    if (name.startsWith('RECOVER|')) recover = name.slice(8).split(',').filter(x => /^[A-Z]+$/.test(x));
+                    if (name.startsWith('RECOVER|')) recover = name.slice(8).split(',').filter(entry);
+                    if (name.startsWith('CYCLE|')) cycle = name.slice(6).split(',').filter(entry);
+                    if (name === 'PARITY|RECOVER') parity = true;
                 }
-                if (!(rotate && rotate.length) && !(recover && recover.length)) return null;
-                const st = (this.switchState = this.switchState || { i: 0, loss: false, rec: 0 });
+                const has = a => a && a.length;
+                if (!has(rotate) && !has(recover) && !has(cycle) && !parity) return null;
+                const st = (this.switchState = this.switchState || { i: 0, loss: false, rec: 0, c: 0, digit: -1 });
                 const next = { ...options };
                 let type = contract_type;
-                if (rotate && rotate.length) next.symbol = rotate[st.i++ % rotate.length];
-                if (!st.loss) st.rec = 0;
-                if (recover && recover.length && st.loss) {
-                    // consecutive losses walk through the list: e.g. DIGITEVEN, then DIGITODD, then DIGITEVEN...
-                    type = recover[st.rec++ % recover.length];
+                // "TYPE" or "TYPE:3" (fixed barrier) or "TYPE:0-2" (random barrier between the two digits)
+                const apply = e => {
+                    const [t, r] = e.split(':');
+                    type = t;
                     delete next.prediction;
                     delete next.barrierOffset;
+                    if (r !== undefined) {
+                        const [a, b] = r.split('-').map(Number);
+                        next.prediction = b === undefined || Number.isNaN(b) ? a : a + Math.floor(Math.random() * (b - a + 1));
+                    }
+                };
+                if (has(rotate)) next.symbol = rotate[st.i++ % rotate.length];
+                if (!st.loss) st.rec = 0;
+                if (st.loss && parity && st.digit >= 0) {
+                    // recover with Even when the losing digit was even, Odd when it was odd
+                    apply(st.digit % 2 === 0 ? 'DIGITEVEN' : 'DIGITODD');
+                } else if (st.loss && has(recover)) {
+                    // consecutive losses walk through the list: e.g. DIGITEVEN, then DIGITODD, then DIGITEVEN...
+                    apply(recover[st.rec++ % recover.length]);
+                } else if (has(cycle)) {
+                    apply(cycle[st.c++ % cycle.length]);
                 }
                 return { type, options: next };
             } catch (e) {
