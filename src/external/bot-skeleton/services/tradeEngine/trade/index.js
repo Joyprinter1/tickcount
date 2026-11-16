@@ -106,6 +106,10 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         // is bought right after the previous one finishes instead of one tick later.
         try {
             this.fastSkip = typeof localStorage !== 'undefined' && localStorage.getItem('td.fast') === '1';
+            // Live signal bots (DerivScope Matches, scanner...) must wait for a fresh tick to read their signal, so they keep their own timing.
+            const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
+            const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
+            if (vars.some(v => String(v.name ?? (v.getName ? v.getName() : '')).startsWith('LIVE|'))) this.fastSkip = false;
         } catch (e) {
             this.fastSkip = false;
         }
