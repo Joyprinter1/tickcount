@@ -37,6 +37,7 @@ export type TSignalBotOptions = {
     cycle?: string[]; // buy these contracts in turn, one per trade (variable CYCLE|..., entries like DIGITOVER:0-2)
     parity_recover?: boolean; // after a loss buy Even/Odd matching the losing last digit (variable PARITY|RECOVER)
     random_prediction?: [number, number]; // Over/Under: barrier is a random digit between these two (inclusive) for every trade
+    turbo?: boolean; // live bot may buy right after a trade ends when the Fast pill is on (variable FAST|TURBO)
     hedge?: string; // 'HEDGE|TYPE|digit|barrier|barrier2': second contract bought with every trade (see Purchase.js)
 };
 
@@ -317,6 +318,7 @@ ${has_prediction ? `<value name="PREDICTION"><shadow type="math_number_positive"
 <block type="before_purchase" id="${id()}" x="0" y="640"><statement name="BEFOREPURCHASE_STACK">${before_purchase_stack}</statement></block>${is_accu ? accu_extra : ''}`;
 
     if (o.hedge) v(o.hedge);
+    if (o.turbo) v('FAST|TURBO');
     if (o.rotate && o.rotate.length) v('ROTATE|' + o.rotate.join(','));
     if (o.recover && o.recover.length) v('RECOVER|' + o.recover.join(','));
     if (o.cycle && o.cycle.length) v('CYCLE|' + o.cycle.join(','));

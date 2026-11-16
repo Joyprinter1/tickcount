@@ -21,6 +21,7 @@ export type TTickdeskSignal = {
     offset?: number;
     side?: '+' | '-';
     hedge?: string;
+    turbo?: boolean;
     tradetype?: string;
     scan?: boolean; // from the Market Scanner page: live bot follows the scanner's own board
     gap?: boolean; // Matches gap strategy: search digit = most frequent digit, trade digit = second most frequent
@@ -362,6 +363,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     offset: signal.offset,
                     side: signal.side,
                     hedge: signal.hedge,
+                    turbo: signal.turbo === true,
                     live_signal: signal.live === true && tradetype === 'matchesdiffers' && signal.contract === 'DIGITMATCH',
                     live_search: signal.live === true && signal.gap === true,
                     live_scan: signal.live === true && signal.scan === true,

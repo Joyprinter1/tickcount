@@ -102,6 +102,18 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         this.store.dispatch(start());
         this.checkLimits(validated_trade_options);
 
+        // Fast mode: the first "before purchase" check of this trade does not wait for the next tick, so the new trade
+        // is bought right after the previous one finishes instead of one tick later.
+        try {
+            this.fastSkip = typeof localStorage !== 'undefined' && localStorage.getItem('td.fast') === '1';
+            // Live signal bots (DerivScope Matches, scanner...) keep their own timing unless the bot was made with the Fast chip (variable FAST|TURBO).
+            const ws = typeof window !== 'undefined' && window.Blockly?.derivWorkspace;
+            const vars = ws && ws.getAllVariables ? ws.getAllVariables() : [];
+            const names = vars.map(v => String(v.name ?? (v.getName ? v.getName() : '')));
+            if (names.some(n => n.startsWith('LIVE|')) && !names.includes('FAST|TURBO')) this.fastSkip = false;
+        } catch (e) {
+            this.fastSkip = false;
+        }
         this.makeDirectPurchaseDecision();
     }
 
@@ -147,6 +159,11 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
 
     watch(watchName) {
         if (watchName === 'before') {
+            if (this.fastSkip) {
+                this.fastSkip = false;
+                const { scope, proposalsReady } = this.store.getState();
+                if (scope === constants.BEFORE_PURCHASE && proposalsReady) return Promise.resolve(true);
+            }
             return watchBefore(this.store);
         }
         return watchDuring(this.store);
