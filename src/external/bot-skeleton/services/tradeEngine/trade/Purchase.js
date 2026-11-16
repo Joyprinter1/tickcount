@@ -2,6 +2,7 @@ import { LogTypes } from '../../../constants/messages';
 import { api_base } from '../../api/api-base';
 import { contractStatus, info, log } from '../utils/broadcast';
 import { doUntilDone, getUUID, recoverFromError, tradeOptionToBuy } from '../utils/helpers';
+import { observer as globalObserver } from '../../../utils/observer';
 import { purchaseSuccessful } from './state/actions';
 import { BEFORE_PURCHASE } from './state/constants';
 import { getSignalDigit, isScanBot } from '../Interface/TicksInterface';
@@ -188,6 +189,14 @@ export default Engine =>
                     apply(recover[st.rec++ % recover.length]);
                 } else if (has(cycle)) {
                     apply(cycle[st.c++ % cycle.length]);
+                }
+                try {
+                    globalObserver.emit('ui.log.notify', {
+                        className: 'journal__text--info',
+                        message: 'Next trade: ' + type + (next.prediction !== undefined ? ' ' + next.prediction : '') + ' on ' + next.symbol,
+                    });
+                } catch (e) {
+                    // ignore
                 }
                 return { type, options: next };
             } catch (e) {
