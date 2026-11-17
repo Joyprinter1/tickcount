@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#5A3CF0">
+<title>Scanner AI</title>
+<style>
+/* Layout: one column. Scan button on top, a plain log while it works, a ranked table, then the best setup with its Load bot sheet. */
+:root{--bg:#EEEBFF;--surface:#fff;--raise:#F4F2FF;--line:#D9D3FA;--fg:#1B1446;--muted:#6B6591;--accent:#5A3CF0;--accent-fg:#fff;--win:#0E9F6E;--loss:#D6455D;--warn:#B7791F;--ink:#16123A;--ink-fg:#CFC9F7}
+*{box-sizing:border-box}[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:12px 16px 40px;max-width:760px;margin:0 auto}
+h1{font-size:20px;margin:6px 0 2px}h2{font-size:15px;margin:0 0 8px}
+.muted{color:var(--muted);font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin:0 0 3px}
+input,select{width:100%;background:var(--raise);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:8px 10px;min-height:40px;font:inherit}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--raise);color:var(--fg);border-radius:9px;padding:8px 12px;min-height:40px}
+button.p{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:700}
+button:disabled{opacity:.55;cursor:default}
+.tabs button{flex:1;min-width:90px}.tabs button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:700}
+.scan{display:block;width:100%;min-height:64px;font-size:18px;letter-spacing:.06em;border-radius:16px}
+.status{font-size:12.5px}.ok{color:var(--win)}.bad{color:var(--loss)}
+.log{background:var(--ink);color:var(--ink-fg);border-radius:12px;padding:10px 12px;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:190px;overflow:auto;white-space:pre-wrap}
+.log b{color:#fff}.log .g{color:#6EE7B7}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:11.5px;font-weight:700}
+.tag.s{background:#D9F5E9;color:#0B7A55}.tag.w{background:#FBEFD2;color:#8A5A0B}
+.best{border-color:var(--accent)}
+.pick{font-size:24px;font-weight:800}
+.dgs{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:10px 0}
+.dgs div{border:1px solid var(--line);border-radius:8px;padding:3px 0;text-align:center;font-weight:800;background:var(--raise);font-size:13px}
+.dgs small{display:block;font-weight:600;font-size:9.5px;color:var(--muted)}
+.dgs .on{border-color:var(--win);background:#E9FAF3}.dgs .en{outline:2px solid var(--accent)}
+.note{color:var(--muted);font-size:12px;margin-top:6px}
+.banner{background:#FBEFD2;color:#6B4A0B;border-radius:12px;padding:8px 12px;font-size:12.5px;margin:10px 0}
+.empty{color:var(--muted);padding:6px 0}
+@media (max-width:420px){.dgs{grid-template-columns:repeat(5,1fr)}}
+</style>
+</head>
+<body>
+<h1>Scanner AI</h1>
+<div class="muted">Press Scan. It reads the last 1,000 ticks of every Volatility market, ranks the Even/Odd and Over/Under setups, and loads the best one into the bot. It counts digits. It cannot know the next digit.</div>
+<div class="status" id="conn">Ready</div>
+<div class="banner" id="preview" hidden>Preview with sample ticks, not live markets. Open Scanner AI inside Joytrader for live data.</div>
+
+<div class="card">
+  <h2>Look for</h2>
+  <div class="row tabs" id="modes">
+    <button type="button" data-m="both" aria-pressed="true">Both</button>
+    <button type="button" data-m="eo" aria-pressed="false">Even / Odd</button>
+    <button type="button" data-m="ou" aria-pressed="false">Over / Under</button>
+  </div>
+  <button type="button" class="p scan" id="scan" style="margin-top:12px">SCAN</button>
+  <div class="note" id="rules">Even/Odd is ready when 4 of the 5 Even (or Odd) digits are each at 10% or more. Over/Under is ready when the two most common digits are both on the winning side and the top digit is at 12% or more.</div>
+</div>
+
+<div class="card" id="logCard" hidden><h2 id="logTitle">Scanning</h2><div class="log" id="log"></div></div>
+
+<div class="card best" id="bestCard" hidden></div>
+
+<div class="card" id="tblCard" hidden>
+  <h2>Ranked setups</h2>
+  <div class="tw"><table><thead><tr><th>#</th><th>Market</th><th>Trade</th><th>Entry digit</th><th>Share vs fair</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div class="note">Share vs fair is how far the winning digits sit above an even split over the last 1,000 ticks. Digits are random and independent, so this is not a chance of winning.</div>
+</div>
+
+<div class="card" id="loadCard" hidden>
+  <h2>Bot parameters</h2>
+  <div class="muted" id="loadFor"></div>
+  <div class="grid" style="margin-top:8px">
+    <div><label for="stake">Stake</label><input id="stake" type="number" min="0.35" step="0.01" value="0.35"></div>
+    <div><label for="mult">Martingale (x after a loss)</label><input id="mult" type="number" min="1" step="0.1" value="1"></div>
+    <div><label for="tp">Take profit</label><input id="tp" type="number" min="0" step="0.1" value="5"></div>
+    <div><label for="sl">Stop loss</label><input id="sl" type="number" min="0" step="0.1" value="5"></div>
+    <div><label for="runs">Number of runs</label><input id="runs" type="number" min="1" step="1" value="5"></div>
+    <div><label for="dur">Duration (ticks)</label><input id="dur" type="number" min="1" max="10" step="1" value="1"></div>
+  </div>
+  <div class="row" style="margin-top:10px"><button type="button" id="cancel">Cancel</button><button type="button" class="p" id="confirm">Confirm and load</button></div>
+  <div class="note" id="botNote">Saved on this device.</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var PREVIEW=false; /* set true only in the hosted preview, which cannot open the market connection */
+var $=function(i){return document.getElementById(i)};
+var MK=[["Volatility 10 Index","R_10"],["Volatility 25 Index","R_25"],["Volatility 50 Index","R_50"],["Volatility 75 Index","R_75"],["Volatility 100 Index","R_100"],
+["Volatility 10 (1s) Index","1HZ10V"],["Volatility 25 (1s) Index","1HZ25V"],["Volatility 50 (1s) Index","1HZ50V"],["Volatility 75 (1s) Index","1HZ75V"],["Volatility 100 (1s) Index","1HZ100V"]];
+var WS="wss://api.derivws.com/trading/v1/options/ws/public";
+function load(k,d){try{return JSON.parse(localStorage.getItem(k)||"")||d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+var set=Object.assign({mode:"both"},load("sai.set",{})),bot=load("sai.bot",{});
+["stake","mult","tp","sl","runs","dur"].forEach(function(id){if(bot[id]!==undefined&&bot[id]!=="")$(id).value=bot[id];$(id).addEventListener("input",function(){bot[id]=$(id).value;save("sai.bot",bot)})});
+function tabs(){document.querySelectorAll("#modes button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.m===set.mode?"true":"false")})}
+document.querySelectorAll("#modes button").forEach(function(b){b.addEventListener("click",function(){set.mode=b.dataset.m;save("sai.set",set);tabs()})});tabs();
+if(PREVIEW)$("preview").hidden=false;
+
+function digitOf(q,pip){var s=Number(q).toFixed(Math.max(0,Math.min(12,Math.trunc(pip||2))));var p=s.split(".");return +((p.length>1?p[1]:p[0]).slice(-1)||"0")}
+function counts(d){var c=new Array(10).fill(0);d.forEach(function(x){c[x]++});return c}
+
+/* ---- scoring (plain digit counts over the last 1,000 ticks) ---- */
+function scoreEO(m,par){
+  var n=m.d.length,c=counts(m.d),ok=0,share=0,g=par;
+  for(var d=par;d<10;d+=2){var pc=c[d]/n*100;share+=pc;if(pc>=10)ok++;if(c[d]>c[g])g=d}
+  return{m:m,n:n,c:c,type:par?"Odd":"Even",contract:par?"DIGITODD":"DIGITEVEN",kind:par?"odd":"even",barrier:null,entry:g,share:share,fair:50,edge:share-50,ready:n>=300&&ok>=4,why:ok+" of 5 "+(par?"odd":"even")+" digits at 10% or more"};
+}
+function scoreOU(m){
+  var n=m.d.length,c=counts(m.d),order=c.map(function(v,i){return i}).sort(function(a,b){return c[b]-c[a]}),t1=order[0],t2=order[1],best=null;
+  for(var b=1;b<=8;b++)["Under","Over"].forEach(function(side){
+    if(side==="Under"&&b<1)return;
+    var win=function(d){return side==="Under"?d<b:d>b},fair=(side==="Under"?b:9-b)*10,w=0;
+    for(var d=0;d<10;d++)if(win(d))w+=c[d];w=w/n*100;
+    var ready=n>=300&&win(t1)&&win(t2)&&c[t1]/n*100>=12,edge=w-fair;
+    var s={m:m,n:n,c:c,type:side+" "+b,contract:side==="Under"?"DIGITUNDER":"DIGITOVER",kind:side.toLowerCase(),barrier:b,entry:t1,share:w,fair:fair,edge:edge,ready:ready,why:"Top digits "+t1+" ("+(c[t1]/n*100).toFixed(1)+"%) and "+t2+" ("+(c[t2]/n*100).toFixed(1)+"%) "+((win(t1)&&win(t2))?"are both on the winning side of ":"are not both on the winning side of ")+side+" "+b};
+    if(fair>=30&&fair<=70&&(!best||(s.ready&&!best.ready)||(s.ready===best.ready&&s.edge>best.edge)))best=s;
+  });
+  return best;
+}
+
+/* ---- data ---- */
+function sample(sym){var skew=sym.length%2?0.6:0.5,a=[];for(var i=0;i<1000;i++){var r=Math.random(),ev=r<skew;a.push(ev?[0,2,2,4,4,4,6,6,8][Math.floor(Math.random()*9)]:Math.floor(Math.random()*5)*2+1)}return a}
+function fetchAll(onTick,onDone,onFail){
+  if(PREVIEW){var i=0;(function nx(){if(i>=MK.length)return onDone();var x=MK[i++];onTick(x,sample(x[1]));setTimeout(nx,160)})();return}
+  var sock,got={},left=MK.length,fin=false,timer;
+  function done(){if(fin)return;fin=true;clearTimeout(timer);try{sock.close()}catch(e){}onDone()}
+  try{sock=new WebSocket(WS)}catch(e){return onFail()}
+  timer=setTimeout(function(){if(!fin){if(!Object.keys(got).length){fin=true;try{sock.close()}catch(e){}onFail()}else done()}},15000);
+  sock.onopen=function(){MK.forEach(function(x,i){sock.send(JSON.stringify({ticks_history:x[1],count:1000,end:"latest",style:"ticks",req_id:300+i}))})};
+  sock.onmessage=function(ev){var x;try{x=JSON.parse(ev.data)}catch(e){return}
+    if(x.error){left--;if(left<=0)done();return}
+    if(x.history&&x.history.prices){var sym=x.echo_req&&x.echo_req.ticks_history,mk=MK.filter(function(k){return k[1]===sym})[0];if(!mk||got[sym])return;got[sym]=1;
+      onTick(mk,x.history.prices.map(function(q){return digitOf(q,x.pip_size)}));left--;if(left<=0)done()}};
+  sock.onerror=function(){if(!fin&&!Object.keys(got).length){fin=true;clearTimeout(timer);onFail()}};
+}
+
+/* ---- scan ---- */
+var results=[],picked=null,busy=false;
+function log(t){var l=$("log");l.insertAdjacentHTML("beforeend",t+"\n");l.scrollTop=l.scrollHeight}
+$("scan").addEventListener("click",function(){
+  if(busy)return;busy=true;results=[];$("scan").disabled=true;$("scan").textContent="SCANNING…";
+  ["bestCard","tblCard","loadCard"].forEach(function(i){$(i).hidden=true});
+  $("logCard").hidden=false;$("log").innerHTML="";$("logTitle").textContent="Scanning";
+  log("<b>Reading the last 1,000 ticks of "+MK.length+" Volatility markets…</b>");
+  fetchAll(function(mk,d){
+    var m={name:mk[0],sym:mk[1],d:d};log(mk[0]+": "+d.length+" ticks");
+    if(d.length<300){log("  skipped, too few ticks");return}
+    if(set.mode!=="ou"){results.push(scoreEO(m,0));results.push(scoreEO(m,1))}
+    if(set.mode!=="eo"){var o=scoreOU(m);if(o)results.push(o)}
+  },function(){
+    log("<b>Scoring "+results.length+" setups and ranking…</b>");
+    results.sort(function(a,b){return (b.ready-a.ready)||(b.edge-a.edge)});
+    var nr=results.filter(function(r){return r.ready}).length;
+    log('<span class="g">Done: '+nr+" ready, "+(results.length-nr)+" watching.</span>");
+    $("logTitle").textContent="Scan complete";$("conn").textContent=PREVIEW?"Sample data":"Live (public market data)";$("conn").className="status ok";
+    finish();
+  },function(){
+    log('<span style="color:#FCA5A5">Could not reach the market data. Check your connection and scan again.</span>');
+    $("conn").textContent="Not connected";$("conn").className="status bad";busy=false;$("scan").disabled=false;$("scan").textContent="SCAN";
+  });
+});
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
+function finish(){
+  busy=false;$("scan").disabled=false;$("scan").textContent="SCAN AGAIN";
+  var top=results.filter(function(r){return r.ready})[0],list=results.slice(0,10);picked=top||null;
+  var bc=$("bestCard");bc.hidden=false;
+  if(top){
+    var digs="";for(var d=0;d<10;d++){var pc=(top.c[d]/top.n*100);var win=top.kind==="even"?d%2===0:top.kind==="odd"?d%2===1:top.kind==="under"?d<top.barrier:d>top.barrier;digs+='<div class="'+(win?"on ":"")+(d===top.entry?"en":"")+'">'+d+"<small>"+pc.toFixed(1)+"%</small></div>"}
+    bc.innerHTML='<div class="muted">Best opportunity</div><div class="pick">'+esc(top.type)+'</div><div><b>'+esc(top.m.name)+'</b> <span class="tag s">Ready</span></div>'
+      +'<div class="muted" style="margin:6px 0">'+esc(top.why)+'. The winning side is '+top.share.toFixed(1)+'% of the last '+top.n+' ticks against '+top.fair+'% on a fair split ('+(top.edge>=0?"+":"")+top.edge.toFixed(1)+' points). Entry digit '+top.entry+'.</div>'
+      +'<div class="dgs">'+digs+'</div><div class="note">Green digits are on the winning side. The ringed digit is the entry digit.</div><button type="button" class="p" id="loadBtn" style="margin-top:10px;width:100%">Load bot</button>';
+    $("loadBtn").addEventListener("click",openLoad);
+  }else{
+    bc.innerHTML='<div class="pick" style="font-size:18px">No market passed the rules in this pass</div><div class="muted">Nothing has the digit pattern the rules ask for right now. Scan again shortly, or look at the closest setups below.</div>';
+  }
+  $("tblCard").hidden=false;
+  $("rows").innerHTML=list.map(function(r,i){return "<tr><td>"+(i+1)+"</td><td>"+esc(r.m.name)+"</td><td><b>"+esc(r.type)+"</b></td><td>"+r.entry+"</td><td>"+r.share.toFixed(1)+"% vs "+r.fair+"% ("+(r.edge>=0?"+":"")+r.edge.toFixed(1)+")</td><td><span class='tag "+(r.ready?"s":"w")+"'>"+(r.ready?"Ready":"Watch")+"</span></td></tr>"}).join("");
+}
+function openLoad(){if(!picked)return;$("loadCard").hidden=false;$("loadFor").textContent=picked.type+" on "+picked.m.name+", entry digit "+picked.entry;$("loadCard").scrollIntoView({behavior:"smooth",block:"nearest"})}
+$("cancel").addEventListener("click",function(){$("loadCard").hidden=true});
+function num(id,d,min){var v=parseFloat($(id).value);return isFinite(v)&&v>=min?v:d}
+$("confirm").addEventListener("click",function(){
+  if(!picked)return;
+  if(window.parent===window){$("botNote").textContent="Open Scanner AI from the Joytrader site to load the bot.";return}
+  var r=picked;
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:r.contract,kind:r.kind,barrier:r.barrier,trigger:[r.entry],runs:Math.max(1,Math.round(num("runs",5,1))),
+    stake:num("stake",0.35,0.35),mult:num("mult",1,1),tp:num("tp",0,0),sl:num("sl",0,0),ticks:Math.max(1,Math.min(10,Math.round(num("dur",1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
+  $("botNote").textContent="Opening Bot Builder with "+r.type+" on "+r.m.name+"…";
+});
+})();
+</script>
+</body>
+</html>
