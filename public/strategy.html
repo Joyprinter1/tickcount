@@ -50,7 +50,7 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
 </style>
 </head>
 <body>
-<h1>Reversal Strategy</h1>
+<h1 id="h1">Reversal Strategy</h1>
 <div class="muted">Two digit strategies, checked on every Volatility market nonstop. A market is Ready only when its rule is met. Jump markets are left out because Deriv does not sell these contracts there.</div>
 <div class="status" id="conn">Connecting…</div>
 
@@ -226,6 +226,15 @@ function retry(){tries++;setTimeout(connect,Math.min(15000,1000*tries))}
 connect();
 setInterval(function(){draw(false)},1000);
 setInterval(function(){if(sock&&sock.readyState===1&&Date.now()-lastMsg>25000){try{sock.close()}catch(e){}}if(sock&&sock.readyState===1&&Date.now()-lastMsg>10000)$("conn").textContent="Waiting for ticks…"},5000);
+})();
+</script>
+<script>
+/* Embedded inside the Scanner page (?embed=1): hide the title and tell the Scanner how tall this page is. */
+(function(){
+  if(!/[?&]embed=1/.test(location.search)||window.parent===window)return;
+  var h=document.getElementById("h1");if(h)h.hidden=true;document.body.style.padding="0 0 24px";var cn=document.getElementById("conn");if(cn)cn.hidden=true;
+  var last=0;function send(){var n=Math.ceil(document.documentElement.scrollHeight);if(n!==last){last=n;window.parent.postMessage({type:"tickdesk:height",h:n},location.origin)}}
+  if(window.ResizeObserver)new ResizeObserver(send).observe(document.body);setInterval(send,700);send();
 })();
 </script>
 </body>

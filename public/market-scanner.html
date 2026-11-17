@@ -60,6 +60,7 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
     <button type="button" data-t="eo" aria-pressed="false">Even / Odd</button>
     <button type="button" data-t="ou" aria-pressed="false">Over / Under</button>
     <button type="button" data-t="pt" aria-pressed="false">Even/Odd 3 Ticks</button>
+    <button type="button" data-t="rv" aria-pressed="false">Reversal Strategy</button>
   </div>
   <div class="grid" id="cgrid" style="margin-top:10px">
     <div id="barBox" hidden><label for="barrier">Over / Under barrier</label><select id="barrier"><option value="auto">Auto (strongest)</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
@@ -84,6 +85,8 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
   </div>
   <div class="note" id="botNote">Saved automatically on this device.</div>
 </div>
+
+<iframe id="rvFrame" title="Reversal Strategy" hidden style="width:100%;border:0;display:block;margin:6px 0;height:900px;background:transparent"></iframe>
 
 <div class="card pt" id="ptCard" hidden>
   <h2>Even / Odd · 3 ticks</h2>
@@ -123,7 +126,7 @@ var BOT_IDS=["stake","mult","tp","sl","runs","dur"],bot=load("ms.bot",{});
 BOT_IDS.forEach(function(id){if(bot[id]!==undefined&&bot[id]!=="")$(id).value=bot[id];$(id).addEventListener("input",function(){bot[id]=$(id).value;save("ms.bot",bot)})});
 EL_SET.forEach(function(id){$(id).value=set[id];$(id).addEventListener("change",function(){set[id]=$(id).value;save("ms.set",set);draw(true)})});
 $("pause").checked=!!set.pause;$("pause").addEventListener("change",function(){set.pause=$("pause").checked;save("ms.set",set);draw(true)});
-function syncTabs(){document.querySelectorAll("#types button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===set.type?"true":"false")});$("barBox").hidden=set.type!=="ou";var pt=set.type==="pt";$("ptCard").hidden=!pt;["bestCard","cgrid","pauseRow","cStrong","cWait"].forEach(function(i){$(i).hidden=pt});$("runs").parentNode.hidden=pt;$("dur").parentNode.hidden=pt}
+function syncTabs(){document.querySelectorAll("#types button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===set.type?"true":"false")});$("barBox").hidden=set.type!=="ou";var pt=set.type==="pt",rv=set.type==="rv";$("ptCard").hidden=!pt;["bestCard","cgrid","pauseRow","cStrong","cWait"].forEach(function(i){$(i).hidden=pt||rv});$("botCard").hidden=rv;$("runs").parentNode.hidden=pt;$("dur").parentNode.hidden=pt;var f=$("rvFrame");f.hidden=!rv;if(rv&&!f.getAttribute("src"))f.setAttribute("src","/strategy.html?embed=1")}
 document.querySelectorAll("#types button").forEach(function(b){b.addEventListener("click",function(){set.type=b.dataset.t;save("ms.set",set);syncTabs();draw(true)})});
 syncTabs();
 
@@ -180,6 +183,7 @@ function rowHtml(r,i){
 }
 var order=null,orderAt=0;
 function draw(force){
+  if(set.type==="rv")return;
   if(set.type==="pt"){drawPT(force);return}
   if(set.pause&&!force)return;
   var now=Date.now();
@@ -205,6 +209,13 @@ function draw(force){
 }
 document.body.addEventListener("click",function(e){var b=e.target.closest("button[data-i]");if(!b||!shown)return;var r=shown[+b.dataset.i];if(r)trade(r)});
 
+
+/* Reversal Strategy lives in a frame inside this page: pass its Trade now messages up to the app and size the frame to its content. */
+window.addEventListener("message",function(e){
+  var f=$("rvFrame");if(!f||e.source!==f.contentWindow||e.origin!==location.origin||!e.data)return;
+  if(e.data.type==="tickdesk:height"){var h=Math.max(300,Math.min(6000,+e.data.h||0));f.style.height=h+"px";return}
+  if(e.data.type==="tickdesk:signal"&&window.parent!==window)window.parent.postMessage(e.data,location.origin);
+});
 
 /* ---------- Even / Odd 3 ticks (parity setups) ---------- */
 function ptSetup(m,par){ // par 0 = Even, 1 = Odd
