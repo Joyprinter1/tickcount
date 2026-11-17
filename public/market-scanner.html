@@ -40,6 +40,9 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
 .empty{color:var(--muted);padding:6px 0}
 .status{font-size:12.5px}.ok{color:var(--win)}.bad{color:var(--loss)}
 .note{color:var(--muted);font-size:12px;margin-top:6px}
+.pt .mk .nm{padding-right:26px}.pt .cm{display:flex;gap:14px;align-items:center;margin:10px 0}.pt .gd{width:62px;height:62px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:28px;font-weight:800;border:3px solid var(--win);color:var(--win);background:#E9FAF3}.pt .gd.no{border-color:var(--line);color:var(--muted);background:var(--raise)}
+.dgs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}.dgs div{border:1px solid var(--line);border-radius:10px;padding:4px 0;text-align:center;font-weight:800;background:var(--raise)}.dgs small{display:block;font-weight:600;font-size:10.5px;color:var(--muted)}
+.dgs .on{border-color:var(--win);background:#E9FAF3}.dgs .gr{outline:2px solid var(--win)}.dgs .lv{box-shadow:0 0 0 3px var(--accent)}
 .chk{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:13.5px}.chk input{width:18px;min-height:18px;height:18px}
 </style>
 </head>
@@ -56,15 +59,16 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
     <button type="button" data-t="match" aria-pressed="true">Matches</button>
     <button type="button" data-t="eo" aria-pressed="false">Even / Odd</button>
     <button type="button" data-t="ou" aria-pressed="false">Over / Under</button>
+    <button type="button" data-t="pt" aria-pressed="false">Even/Odd 3 Ticks</button>
   </div>
-  <div class="grid" style="margin-top:10px">
+  <div class="grid" id="cgrid" style="margin-top:10px">
     <div id="barBox" hidden><label for="barrier">Over / Under barrier</label><select id="barrier"><option value="auto">Auto (strongest)</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select></div>
     <div><label for="win">Rolling window</label><select id="win"><option value="30">30 seconds</option><option value="60">60 seconds</option><option value="90">90 seconds</option><option value="120">120 seconds</option></select></div>
     <div><label for="str">Signal strength</label><select id="str"><option value="0.1">Moderate (1 in 10)</option><option value="0.02">Strong (1 in 50)</option><option value="0.005">Very strong (1 in 200)</option></select></div>
     <div><label for="min">Minimum share</label><select id="min"><option value="0">Any</option><option value="40">40%</option><option value="50">50%</option><option value="60">60%</option><option value="70">70%</option><option value="80">80%</option></select></div>
     <div><label for="spd">Signal speed</label><select id="spd"><option value="3000">Fast (every 3 s)</option><option value="20000">Steady (every 20 s)</option><option value="45000">Slow (every 45 s)</option></select></div>
   </div>
-  <label class="chk"><input type="checkbox" id="pause"> Pause the screen</label>
+  <label class="chk" id="pauseRow"><input type="checkbox" id="pause"> Pause the screen</label>
 </div>
 
 <div class="card" id="botCard">
@@ -81,8 +85,21 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
   <div class="note" id="botNote">Saved automatically on this device.</div>
 </div>
 
-<div class="card"><h2>Strong signals (<span id="nS">0</span>)</h2><div id="strong"><div class="empty">No market has reached the chosen strength yet.</div></div></div>
-<div class="card"><h2>Waiting (<span id="nW">0</span>)</h2><div class="muted" style="margin-bottom:4px">Not strong enough yet. Each shows its current leader, and you can tap Trade now on it.</div><div id="waiting"></div></div>
+<div class="card pt" id="ptCard" hidden>
+  <h2>Even / Odd · 3 ticks</h2>
+  <div class="muted">Looks at the last 1,000 ticks of every Volatility market. A market is ready when most of its Even (or Odd) digits are each at the chosen share. Then wait for the green digit, and the bot trades 3-tick Even/Odd from there.</div>
+  <div class="grid" style="margin-top:8px">
+    <div><label for="ptMode">Side</label><select id="ptMode"><option value="both">Even and Odd</option><option value="even">Even only</option><option value="odd">Odd only</option></select></div>
+    <div><label for="ptNeed">Digits needed (of 5)</label><select id="ptNeed"><option value="3">3 of 5</option><option value="4">4 of 5</option><option value="5">5 of 5</option></select></div>
+    <div><label for="ptMin">Each digit at least</label><select id="ptMin"><option value="9">9%</option><option value="10">10%</option><option value="11">11%</option></select></div>
+    <div><label for="ptRuns">Runs per setup</label><select id="ptRuns"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+  </div>
+  <div class="note">Uses the stake, martingale, take profit and stop loss from Bot settings below. Duration is always 3 ticks.</div>
+  <div id="ptList"></div>
+</div>
+
+<div class="card" id="cStrong"><h2>Strong signals (<span id="nS">0</span>)</h2><div id="strong"><div class="empty">No market has reached the chosen strength yet.</div></div></div>
+<div class="card" id="cWait"><h2>Waiting (<span id="nW">0</span>)</h2><div class="muted" style="margin-bottom:4px">Not strong enough yet. Each shows its current leader, and you can tap Trade now on it.</div><div id="waiting"></div></div>
 
 <div class="card muted">
   "By luck" is how often purely random digits would look this skewed, after allowing for picking the best option. It is not the chance of winning. Last digits are random and independent, so a skew does not predict the next digit, and scanning many markets makes unusual readings likely by chance. Use a demo account first.
@@ -97,8 +114,8 @@ var MK=[["Volatility 10 Index","R_10"],["Volatility 25 Index","R_25"],["Volatili
 ["Jump 10 Index","JD10"],["Jump 25 Index","JD25"],["Jump 50 Index","JD50"],["Jump 75 Index","JD75"],["Jump 100 Index","JD100"]];
 var WS="wss://api.derivws.com/trading/v1/options/ws/public";
 var st={};MK.forEach(function(x){st[x[1]]={name:x[0],sym:x[1],pip:2,t:[],d:[],hold:{}}});
-var set={type:"match",win:"60",str:"0.02",min:"0",spd:"20000",barrier:"auto",pause:false};
-var EL_SET=["win","str","min","spd","barrier"];
+var set={ptMode:"both",ptNeed:"4",ptMin:"10",ptRuns:"5",type:"match",win:"60",str:"0.02",min:"0",spd:"20000",barrier:"auto",pause:false};
+var EL_SET=["win","str","min","spd","barrier","ptMode","ptNeed","ptMin","ptRuns"];
 function load(k,d){try{return JSON.parse(localStorage.getItem(k)||"")||d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 Object.assign(set,load("ms.set",{}));
@@ -106,7 +123,7 @@ var BOT_IDS=["stake","mult","tp","sl","runs","dur"],bot=load("ms.bot",{});
 BOT_IDS.forEach(function(id){if(bot[id]!==undefined&&bot[id]!=="")$(id).value=bot[id];$(id).addEventListener("input",function(){bot[id]=$(id).value;save("ms.bot",bot)})});
 EL_SET.forEach(function(id){$(id).value=set[id];$(id).addEventListener("change",function(){set[id]=$(id).value;save("ms.set",set);draw(true)})});
 $("pause").checked=!!set.pause;$("pause").addEventListener("change",function(){set.pause=$("pause").checked;save("ms.set",set);draw(true)});
-function syncTabs(){document.querySelectorAll("#types button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===set.type?"true":"false")});$("barBox").hidden=set.type!=="ou"}
+function syncTabs(){document.querySelectorAll("#types button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===set.type?"true":"false")});$("barBox").hidden=set.type!=="ou";var pt=set.type==="pt";$("ptCard").hidden=!pt;["bestCard","cgrid","pauseRow","cStrong","cWait"].forEach(function(i){$(i).hidden=pt});$("runs").parentNode.hidden=pt;$("dur").parentNode.hidden=pt}
 document.querySelectorAll("#types button").forEach(function(b){b.addEventListener("click",function(){set.type=b.dataset.t;save("ms.set",set);syncTabs();draw(true)})});
 syncTabs();
 
@@ -163,6 +180,7 @@ function rowHtml(r,i){
 }
 var order=null,orderAt=0;
 function draw(force){
+  if(set.type==="pt"){drawPT(force);return}
   if(set.pause&&!force)return;
   var now=Date.now();
   if(!force&&now-lastDraw<900)return;
@@ -187,6 +205,56 @@ function draw(force){
 }
 document.body.addEventListener("click",function(e){var b=e.target.closest("button[data-i]");if(!b||!shown)return;var r=shown[+b.dataset.i];if(r)trade(r)});
 
+
+/* ---------- Even / Odd 3 ticks (parity setups) ---------- */
+function ptSetup(m,par){ // par 0 = Even, 1 = Odd
+  var a=m.d.slice(-1000),n=a.length,c=new Array(10).fill(0);a.forEach(function(d){c[d]++});
+  var min=+set.ptMin,need=+set.ptNeed,ok=0,best=-1,share=0;
+  for(var d=par;d<10;d+=2){var pc=n?c[d]/n*100:0;share+=pc;if(pc>=min)ok++;if(best<0||c[d]>c[best])best=d}
+  return{n:n,c:c,ok:ok,need:need,share:share,green:best,ready:n>=300&&ok>=need}
+}
+function paperTick(m){
+  var n=m.d.length;if(!n)return;
+  var pp=m.pp||(m.pp={pend:[],res:[{n:0,w:0},{n:0,w:0}],idx:0});
+  pp.idx++;var d=m.d[n-1],i=pp.idx;
+  pp.pend=pp.pend.filter(function(e){if(e.due>i)return true;var r=pp.res[e.par];r.n++;if(d%2===e.par)r.w++;return false});
+  [0,1].forEach(function(par){
+    if(pp.pend.some(function(e){return e.par===par}))return;
+    var su=ptSetup(m,par);
+    if(su.ready&&d===su.green)pp.pend.push({par:par,due:i+3});
+  });
+}
+function drawPT(force){
+  var now=Date.now();if(!force&&now-lastDraw<900)return;lastDraw=now;
+  var rows=[];
+  MK.forEach(function(x){if(/^JD/.test(x[1]))return;var m=st[x[1]];if(m.d.length<30)return;
+    [0,1].forEach(function(par){
+      if(set.ptMode==="even"&&par!==0)return;if(set.ptMode==="odd"&&par!==1)return;
+      var su=ptSetup(m,par);rows.push({m:m,par:par,su:su})})});
+  var good=rows.filter(function(r){return r.su.ready}).sort(function(a,b){return b.su.share-a.su.share});
+  var rest=rows.filter(function(r){return !r.su.ready}).sort(function(a,b){return b.su.ok-a.su.ok||b.su.share-a.su.share});
+  ptShown=good.concat(rest);
+  function card(r,i){
+    var su=r.su,nm=r.par?"Odd":"Even",m=r.m,last=m.d[m.d.length-1],hit=su.ready&&last===su.green,pp=m.pp&&m.pp.res[r.par]||{n:0,w:0};
+    var digs="";for(var d=r.par;d<10;d+=2){digs+='<div class="'+(su.c[d]/su.n*100>=+set.ptMin?"on ":"")+(d===su.green?"gr ":"")+(d===last?"lv":"")+'">'+d+'<small>'+(su.n?(su.c[d]/su.n*100).toFixed(1):"0.0")+'%</small></div>'}
+    var msg=su.ready?(hit?"Green digit "+su.green+" just came. Entry now.":"Wait for green digit "+su.green):"Not ready: "+su.ok+" of 5 "+nm.toLowerCase()+" digits at "+set.ptMin+"%+. Stop the bot if it is running.";
+    return '<div class="mk"><span class="dot'+(now-(m.last||0)>20000?" off":"")+'"></span><div class="nm">'+m.name+' · '+nm+' · 3 ticks</div><div class="sy">'+su.ok+'/5 '+nm.toLowerCase()+' digits at '+set.ptMin+'%+ · '+su.share.toFixed(1)+'% observed share · '+su.n+' ticks</div>'
+     +'<div class="cm"><div class="gd'+(su.ready?"":" no")+'">'+(su.ready?su.green:"–")+'</div><div class="tx"><div class="big">'+msg+'</div><div class="muted">Last digit '+last+' · paper results '+pp.w+' won of '+pp.n+'</div></div></div>'
+     +'<div class="dgs">'+digs+'</div>'+(su.ready?'<button type="button" class="p" data-p="'+i+'">Trade now ('+nm+' · 3 ticks)</button>':'')+'</div>';
+  }
+  $("ptList").innerHTML=(good.length?'<h2 style="margin-top:12px">Ready ('+good.length+')</h2>'+good.map(function(r,i){return card(r,i)}).join(""):'<div class="empty" style="margin-top:10px">No market is ready yet. The scan continues and ready markets appear here.</div>')
+    +(rest.length?'<h2 style="margin-top:14px">Not ready ('+rest.length+')</h2>'+rest.slice(0,8).map(function(r,i){return card(r,good.length+i)}).join(""):"");
+}
+var ptShown=[];
+document.body.addEventListener("click",function(e){var b=e.target.closest("button[data-p]");if(!b)return;var r=ptShown[+b.dataset.p];if(r)tradePT(r)});
+function tradePT(r){
+  if(window.parent===window){$("botNote").textContent="Open this page from the Joytrader site to load the bot.";return}
+  var par=r.par,su=r.su,runs=Math.max(1,Math.min(5,Math.round(+set.ptRuns||5)));
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:par?"DIGITODD":"DIGITEVEN",kind:par?"odd":"even",barrier:null,trigger:[su.green],runs:runs,
+    stake:num("stake",0.35,0.35),mult:num("mult",1,1),tp:num("tp",0,0),sl:num("sl",0,0),ticks:3,rate:0,base:0,at:Date.now()}},window.location.origin);
+  $("botNote").textContent="Opening Bot Builder: "+(par?"Odd":"Even")+" 3 ticks on "+r.m.name+", entry digit "+su.green+"…";
+}
+
 /* ---------- Trade now: loads a bot into Bot Builder with this page's own settings ---------- */
 function num(id,d,min){var v=parseFloat($(id).value);return isFinite(v)&&v>=min?v:d}
 function trade(r){
@@ -200,18 +268,18 @@ function trade(r){
 
 /* ---------- data ---------- */
 var sock=null,tries=0,pingT=null,lastMsg=Date.now();
-function push(m,epoch,q,pip){m.last=Date.now();if(pip!==undefined)m.pip=pip;var l=m.t.length?m.t[m.t.length-1]:0;if(epoch<=l&&m.t.length)return;m.t.push(epoch);m.d.push(digitOf(q,m.pip));if(m.t.length>600){m.t.splice(0,m.t.length-600);m.d.splice(0,m.d.length-600)}}
+function push(m,epoch,q,pip){m.last=Date.now();if(pip!==undefined)m.pip=pip;var l=m.t.length?m.t[m.t.length-1]:0;if(epoch<=l&&m.t.length)return;m.t.push(epoch);m.d.push(digitOf(q,m.pip));if(m.t.length>1200){m.t.splice(0,m.t.length-1000);m.d.splice(0,m.d.length-1000)}paperTick(m)}
 function connect(){
   try{sock=new WebSocket(WS)}catch(e){retry();return}
   var s=sock;
   s.onopen=function(){tries=0;$("conn").textContent="Live (public market data)";$("conn").className="status ok";
-    MK.forEach(function(x,i){s.send(JSON.stringify({ticks_history:x[1],count:150,end:"latest",style:"ticks",req_id:100+i}));s.send(JSON.stringify({ticks:x[1],subscribe:1,req_id:200+i}))});
+    MK.forEach(function(x,i){s.send(JSON.stringify({ticks_history:x[1],count:1000,end:"latest",style:"ticks",req_id:100+i}));s.send(JSON.stringify({ticks:x[1],subscribe:1,req_id:200+i}))});
     clearInterval(pingT);pingT=setInterval(function(){if(s.readyState===1)s.send(JSON.stringify({ping:1}))},30000)};
   s.onmessage=function(ev){
     lastMsg=Date.now();var x;try{x=JSON.parse(ev.data)}catch(e){return}
     if(x.error)return;
     if(x.history&&x.history.prices){var sym=x.echo_req&&x.echo_req.ticks_history,m=st[sym];if(!m)return;m.pip=x.pip_size!==undefined?x.pip_size:m.pip;m.t=[];m.d=[];
-      x.history.prices.forEach(function(q,i){push(m,x.history.times[i],q)});draw(true)}
+      x.history.prices.forEach(function(q,i){push(m,x.history.times[i],q)});m.pp=null;draw(true)}
     if(x.tick){$("conn").textContent="Live (public market data)";$("conn").className="status ok";var m2=st[x.tick.symbol];if(m2){push(m2,x.tick.epoch,x.tick.quote,x.tick.pip_size);draw(false)}}
   };
   s.onclose=function(){if(s!==sock)return;$("conn").textContent="Disconnected. Reconnecting…";$("conn").className="status bad";retry()};
