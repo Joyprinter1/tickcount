@@ -123,6 +123,9 @@ export const buildSignalBotXml = (o: TSignalBotOptions) => {
     const is_hl = o.tradetype === 'higherlower';
     const has_barrier = is_inout || is_touch || is_hl;
     const uses_ticks =
+        o.tradetype === 'evenodd' ||
+        o.tradetype === 'overunder' ||
+        o.tradetype === 'matchesdiffers' ||
         o.tradetype === 'risefall' ||
         o.tradetype === 'runs' ||
         o.tradetype === 'highlowticks' ||
