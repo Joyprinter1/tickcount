@@ -349,6 +349,15 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
             const market = await contracts_for?.getMarketBySymbol(signal.symbol);
             const submarket = await contracts_for?.getSubmarketBySymbol(signal.symbol);
             if (market && submarket) {
+                // A bot loaded with more than 1 tick must keep it: switch the Fast pill off so Run does not shorten it.
+                if (Number(signal.ticks) > 1) {
+                    try {
+                        localStorage.setItem('td.fast', '0');
+                        window.dispatchEvent(new Event('td-fast-off'));
+                    } catch (e) {
+                        // ignore
+                    }
+                }
                 const xml = buildSignalBotXml({
                     market,
                     submarket,

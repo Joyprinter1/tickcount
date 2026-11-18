@@ -43,6 +43,11 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
         }
     });
     const [fast_note, setFastNote] = React.useState('');
+    React.useEffect(() => {
+        const off = () => setIsFast(false);
+        window.addEventListener('td-fast-off', off);
+        return () => window.removeEventListener('td-fast-off', off);
+    }, []);
     const toggleFast = () => {
         const next = !is_fast;
         const result = applyFastMode(next);
