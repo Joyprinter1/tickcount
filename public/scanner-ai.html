@@ -4,196 +4,231 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="color-scheme" content="light">
-<meta name="theme-color" content="#5A3CF0">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#080a14">
 <title>Scanner AI</title>
 <style>
-/* Layout: one column. Scan button on top, a plain log while it works, a ranked table, then the best setup with its Load bot sheet. */
-:root{--bg:#EEEBFF;--surface:#fff;--raise:#F4F2FF;--line:#D9D3FA;--fg:#1B1446;--muted:#6B6591;--accent:#5A3CF0;--accent-fg:#fff;--win:#0E9F6E;--loss:#D6455D;--warn:#B7791F;--ink:#16123A;--ink-fg:#CFC9F7}
-*{box-sizing:border-box}[hidden]{display:none!important}
-html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-body{padding:12px 16px 40px;max-width:760px;margin:0 auto}
-h1{font-size:20px;margin:6px 0 2px}h2{font-size:15px;margin:0 0 8px}
-.muted{color:var(--muted);font-size:12.5px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin:0 0 3px}
-input,select{width:100%;background:var(--raise);border:1px solid var(--line);color:var(--fg);border-radius:9px;padding:8px 10px;min-height:40px;font:inherit}
-button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--raise);color:var(--fg);border-radius:9px;padding:8px 12px;min-height:40px}
-button.p{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:700}
-button:disabled{opacity:.55;cursor:default}
-.tabs button{flex:1;min-width:90px}.tabs button[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:transparent;font-weight:700}
-.scan{display:block;width:100%;min-height:64px;font-size:18px;letter-spacing:.06em;border-radius:16px}
-.status{font-size:12.5px}.ok{color:var(--win)}.bad{color:var(--loss)}
-.log{background:var(--ink);color:var(--ink-fg);border-radius:12px;padding:10px 12px;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;max-height:190px;overflow:auto;white-space:pre-wrap}
-.log b{color:#fff}.log .g{color:#6EE7B7}
+/* Layout: a centred title, the three trade modes as a pill row, one big SCAN ring. Scanning, results and bot setup open as bottom sheets. */
+:root{--bg:#080a14;--sheet:#13132f;--sheet-line:#3a2a7a;--panel:#0e0e28;--panel-line:#2a2a5a;--fg:#fff;--muted:#8a8ab0;--dim:#5a5a7a;--accent:#8b5cf6;--accent2:#7c5cff;--win:#22c55e;--winsoft:#7af0a0;--loss:#ef4444;--warn:#f0a07a;color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center}
+.main{width:100%;max-width:440px;padding:24px 16px 90px;display:flex;flex-direction:column;align-items:center}
+.h1{font-size:32px;font-weight:800;margin-top:10px}
+.sub{font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:1px;text-transform:uppercase;text-align:center}
+.seg{display:flex;background:#13132b;border:1px solid var(--panel-line);border-radius:999px;padding:4px;margin:22px auto 6px;gap:3px;flex-wrap:wrap;justify-content:center}
+.seg button{padding:8px 14px;border-radius:999px;font:inherit;font-size:12px;color:var(--muted);cursor:pointer;font-weight:600;white-space:nowrap;background:none;border:0}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff;box-shadow:0 0 16px rgba(139,92,246,.6)}
+.scan-btn{width:200px;height:200px;border-radius:50%;background:radial-gradient(circle at 50% 50%,#1e1e40 0%,#10102a 100%);border:2px solid #a78bfa;box-shadow:0 0 0 10px rgba(124,92,255,.08),0 0 60px rgba(124,92,255,.5);color:var(--fg);font:800 28px/1 inherit;letter-spacing:3px;cursor:pointer;margin:28px 0}
+.scan-btn:disabled{opacity:.6;cursor:default}
+.conn{font-size:11px;color:var(--muted);text-align:center}.conn.ok{color:var(--win)}.conn.bad{color:var(--loss)}
+.note{font-size:10.5px;color:var(--dim);text-align:center;line-height:1.6;max-width:340px;margin-top:8px}
+.banner{background:#2b2210;color:#f3c77a;border-radius:12px;padding:8px 12px;font-size:12px;margin-top:14px;text-align:center}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(10px);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:12px}
+.modal.show{display:flex}
+.sheet{background:var(--sheet);border:1px solid var(--sheet-line);border-radius:22px;width:100%;max-width:460px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #22224a;font-weight:700;font-size:13px;gap:10px}
+.close{width:30px;height:30px;border-radius:50%;background:#2a1a5a;border:1px solid #5a3ac0;color:#fff;cursor:pointer;flex:none;font:inherit}
+.prog{height:4px;background:#1a1a35;margin:0 16px;border-radius:999px;overflow:hidden}
+.prog-bar{height:100%;background:linear-gradient(90deg,#8b5cf6,#22c55e);width:0%;transition:width .25s}
+.logs{padding:12px 14px;font:11px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#b8b8d8;overflow:auto;max-height:340px;white-space:pre-wrap}
+.scroll{overflow:auto;padding:10px}
 .tw{overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:520px}
-th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
-td{padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
-tr:last-child td{border-bottom:0}
-.tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:11.5px;font-weight:700}
-.tag.s{background:#D9F5E9;color:#0B7A55}.tag.w{background:#FBEFD2;color:#8A5A0B}
-.best{border-color:var(--accent)}
-.pick{font-size:24px;font-weight:800}
-.dgs{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:10px 0}
-.dgs div{border:1px solid var(--line);border-radius:8px;padding:3px 0;text-align:center;font-weight:800;background:var(--raise);font-size:13px}
-.dgs small{display:block;font-weight:600;font-size:9.5px;color:var(--muted)}
-.dgs .on{border-color:var(--win);background:#E9FAF3}.dgs .en{outline:2px solid var(--accent)}
-.note{color:var(--muted);font-size:12px;margin-top:6px}
-.banner{background:#FBEFD2;color:#6B4A0B;border-radius:12px;padding:8px 12px;font-size:12.5px;margin:10px 0}
-.empty{color:var(--muted);padding:6px 0}
-@media (max-width:420px){.dgs{grid-template-columns:repeat(5,1fr)}}
+.table{width:100%;border-collapse:collapse;font-size:10.5px}
+.table th{color:var(--muted);text-align:left;padding:7px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.table td{padding:8px 4px;border-top:1px solid #1f1f3a;font-variant-numeric:tabular-nums}
+.best{margin:12px 2px;background:linear-gradient(135deg,#1a1035,#201040);border:1px solid #4a2ab0;border-radius:14px;padding:14px;font-size:11.5px;line-height:1.7}
+.dgs{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin:8px 0 2px}
+.dgs div{border:1px solid #2e2e5a;border-radius:7px;padding:3px 0;text-align:center;font-weight:800;font-size:12px;background:#0e0e28}
+.dgs small{display:block;font-weight:600;font-size:8.5px;color:var(--muted)}
+.dgs .on{border-color:var(--win);background:#0f2a1e}.dgs .en{outline:2px solid var(--accent)}
+.label{font-size:11px;color:#9aa;margin-top:12px;display:block}
+.input{background:#080810;border:1px solid var(--panel-line);border-radius:10px;padding:11px 12px;color:#fff;width:100%;font:inherit;font-size:13px;margin-top:6px}
+.btn{border:none;border-radius:999px;padding:11px 18px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;min-height:40px}
+.btn-dark{background:#1e1e3a;color:#a0a0c0;border:1px solid #2e2e5a}
+.btn-purple{background:var(--accent2);color:#fff;box-shadow:0 0 14px rgba(124,92,255,.5)}
+.row{display:flex;gap:10px;justify-content:center;padding:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.tg{display:flex;justify-content:space-between;align-items:center;margin-top:14px;background:#0a0a1a;border:1px solid var(--panel-line);border-radius:10px;padding:12px}
+.tg input{width:42px;height:24px;accent-color:var(--accent2)}
+.tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:700}
+.tag.s{background:#0f2a1e;color:var(--winsoft)}.tag.w{background:#2b2210;color:#f3c77a}
+.sum{background:var(--panel);border:1px solid var(--panel-line);border-radius:10px;padding:10px;font-size:11.5px;line-height:1.6}
+.small{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:8px}
 </style>
 </head>
 <body>
-<h1>Scanner AI</h1>
-<div class="muted">Press Scan. It reads the last 1,000 ticks of every Volatility market, ranks the Even/Odd and Over/Under setups, and loads the best one into the bot. It counts digits. It cannot know the next digit.</div>
-<div class="status" id="conn">Ready</div>
-<div class="banner" id="preview" hidden>Preview with sample ticks, not live markets. Open Scanner AI inside Joytrader for live data.</div>
-
-<div class="card">
-  <h2>Look for</h2>
-  <div class="row tabs" id="modes">
-    <button type="button" data-m="both" aria-pressed="true">Both</button>
-    <button type="button" data-m="eo" aria-pressed="false">Even / Odd</button>
+<div class="main">
+  <div class="h1">Scanner AI</div>
+  <div class="sub">Even / Odd • Over / Under • Matches / Differs</div>
+  <div class="seg" id="modes" role="group" aria-label="Trade type">
+    <button type="button" data-m="eo" aria-pressed="true">Even / Odd</button>
     <button type="button" data-m="ou" aria-pressed="false">Over / Under</button>
+    <button type="button" data-m="md" aria-pressed="false">Matches / Differs</button>
   </div>
-  <button type="button" class="p scan" id="scan" style="margin-top:12px">SCAN</button>
-  <div class="note" id="rules">Even/Odd is ready when 4 of the 5 Even (or Odd) digits are each at 10% or more. Over/Under is ready when the two most common digits are both on the winning side and the top digit is at 12% or more.</div>
+  <button type="button" class="scan-btn" id="scan">SCAN</button>
+  <div class="conn" id="conn">Ready</div>
+  <div class="note">Reads the last 1,000 ticks of every Volatility market and ranks the digit setups. It counts digits and cannot know the next one.</div>
+  <div class="banner" id="preview" hidden>Preview with sample ticks, not live markets. Open Scanner AI inside Joytrader for live data.</div>
 </div>
 
-<div class="card" id="logCard" hidden><h2 id="logTitle">Scanning</h2><div class="log" id="log"></div></div>
+<div class="modal" id="scanModal"><div class="sheet">
+  <div class="sheet-head"><span id="scanTitle">Scanning…</span><button type="button" class="close" id="scanClose" aria-label="Close">✕</button></div>
+  <div class="prog"><div class="prog-bar" id="prog"></div></div>
+  <div class="logs" id="logs"></div>
+  <div class="row"><button type="button" class="btn btn-purple" id="stop">Stop</button></div>
+</div></div>
 
-<div class="card best" id="bestCard" hidden></div>
-
-<div class="card" id="tblCard" hidden>
-  <h2>Ranked setups</h2>
-  <div class="tw"><table><thead><tr><th>#</th><th>Market</th><th>Trade</th><th>Entry digit</th><th>Share vs fair</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
-  <div class="note">Share vs fair is how far the winning digits sit above an even split over the last 1,000 ticks. Digits are random and independent, so this is not a chance of winning.</div>
-</div>
-
-<div class="card" id="loadCard" hidden>
-  <h2>Bot parameters</h2>
-  <div class="muted" id="loadFor"></div>
-  <div class="grid" style="margin-top:8px">
-    <div><label for="stake">Stake</label><input id="stake" type="number" min="0.35" step="0.01" value="0.35"></div>
-    <div><label for="mult">Martingale (x after a loss)</label><input id="mult" type="number" min="1" step="0.1" value="1"></div>
-    <div><label for="tp">Take profit</label><input id="tp" type="number" min="0" step="0.1" value="5"></div>
-    <div><label for="sl">Stop loss</label><input id="sl" type="number" min="0" step="0.1" value="5"></div>
-    <div><label for="runs">Number of runs</label><input id="runs" type="number" min="1" step="1" value="5"></div>
-    <div><label for="dur">Duration (ticks)</label><input id="dur" type="number" min="1" max="10" step="1" value="1"></div>
+<div class="modal" id="resultModal"><div class="sheet">
+  <div class="sheet-head"><span>Analysis complete</span><button type="button" class="close" id="resClose" aria-label="Close">✕</button></div>
+  <div class="scroll">
+    <div class="tw"><table class="table"><thead><tr><th>#</th><th>Market</th><th>Signal</th><th>Win</th><th>Exp</th><th>Edge</th><th>Str.</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="small">Strength is how many standard deviations the win share sits above a fair split. It is not a chance of winning: digits are random and independent. With 10 markets scanned, some setups look unusual by luck.</div>
+    <div class="best" id="best"></div>
+    <div class="row"><button type="button" class="btn btn-dark" id="again">Scan again</button><button type="button" class="btn btn-purple" id="openBot">Load signal bot</button></div>
   </div>
-  <div class="row" style="margin-top:10px"><button type="button" id="cancel">Cancel</button><button type="button" class="p" id="confirm">Confirm and load</button></div>
-  <div class="note" id="botNote">Saved on this device.</div>
-</div>
+</div></div>
+
+<div class="modal" id="botModal"><div class="sheet">
+  <div class="sheet-head"><span>Bot parameters</span><button type="button" class="close" id="botClose" aria-label="Close">✕</button></div>
+  <div class="scroll" style="padding:16px">
+    <div class="sum" id="botSummary"></div>
+    <div class="grid2">
+      <div><label class="label" for="stake" style="margin-top:0">Stake</label><input class="input" id="stake" type="number" min="0.35" step="0.01" value="0.35"></div>
+      <div><label class="label" for="mult" style="margin-top:0">Martingale (x after a loss)</label><input class="input" id="mult" type="number" min="1" step="0.1" value="2"></div>
+      <div><label class="label" for="tp">Take profit</label><input class="input" id="tp" type="number" min="0" step="0.1" value="5"></div>
+      <div><label class="label" for="sl">Stop loss</label><input class="input" id="sl" type="number" min="0" step="0.1" value="30"></div>
+      <div><label class="label" for="runs">Number of runs</label><input class="input" id="runs" type="number" min="1" step="1" value="5"></div>
+      <div><label class="label" for="dur">Duration (ticks)</label><input class="input" id="dur" type="number" min="1" max="10" step="1" value="1"></div>
+    </div>
+    <label class="tg" for="usem"><span>Use martingale</span><input type="checkbox" id="usem" checked></label>
+    <div class="small" id="botNote">Your Deriv account is the one already signed in on Joytrader. Nothing is asked for here, and no token is stored by this page.</div>
+    <div class="row"><button type="button" class="btn btn-dark" id="cancel">Cancel</button><button type="button" class="btn btn-purple" id="confirm">Confirm and load</button></div>
+  </div>
+</div></div>
 
 <script>
 (function(){
 "use strict";
-var PREVIEW=false; /* set true only in the hosted preview, which cannot open the market connection */
+var PREVIEW=false; /* true only in the hosted preview, which cannot open the market connection */
 var $=function(i){return document.getElementById(i)};
 var MK=[["Volatility 10 Index","R_10"],["Volatility 25 Index","R_25"],["Volatility 50 Index","R_50"],["Volatility 75 Index","R_75"],["Volatility 100 Index","R_100"],
-["Volatility 10 (1s) Index","1HZ10V"],["Volatility 25 (1s) Index","1HZ25V"],["Volatility 50 (1s) Index","1HZ50V"],["Volatility 75 (1s) Index","1HZ75V"],["Volatility 100 (1s) Index","1HZ100V"]];
+["Volatility 10 (1s)","1HZ10V"],["Volatility 25 (1s)","1HZ25V"],["Volatility 50 (1s)","1HZ50V"],["Volatility 75 (1s)","1HZ75V"],["Volatility 100 (1s)","1HZ100V"]];
 var WS="wss://api.derivws.com/trading/v1/options/ws/public";
 function load(k,d){try{return JSON.parse(localStorage.getItem(k)||"")||d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-var set=Object.assign({mode:"both"},load("sai.set",{})),bot=load("sai.bot",{});
+var set=Object.assign({mode:"eo"},load("sai.set",{})),bot=load("sai.bot",{});
 ["stake","mult","tp","sl","runs","dur"].forEach(function(id){if(bot[id]!==undefined&&bot[id]!=="")$(id).value=bot[id];$(id).addEventListener("input",function(){bot[id]=$(id).value;save("sai.bot",bot)})});
 function tabs(){document.querySelectorAll("#modes button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.m===set.mode?"true":"false")})}
 document.querySelectorAll("#modes button").forEach(function(b){b.addEventListener("click",function(){set.mode=b.dataset.m;save("sai.set",set);tabs()})});tabs();
 if(PREVIEW)$("preview").hidden=false;
-
+function open_(id){$(id).classList.add("show")}function close_(id){$(id).classList.remove("show")}
 function digitOf(q,pip){var s=Number(q).toFixed(Math.max(0,Math.min(12,Math.trunc(pip||2))));var p=s.split(".");return +((p.length>1?p[1]:p[0]).slice(-1)||"0")}
 function counts(d){var c=new Array(10).fill(0);d.forEach(function(x){c[x]++});return c}
-
-/* ---- scoring (plain digit counts over the last 1,000 ticks) ---- */
-function scoreEO(m,par){
-  var n=m.d.length,c=counts(m.d),ok=0,share=0,g=par;
-  for(var d=par;d<10;d+=2){var pc=c[d]/n*100;share+=pc;if(pc>=10)ok++;if(c[d]>c[g])g=d}
-  return{m:m,n:n,c:c,type:par?"Odd":"Even",contract:par?"DIGITODD":"DIGITEVEN",kind:par?"odd":"even",barrier:null,entry:g,share:share,fair:50,edge:share-50,ready:n>=300&&ok>=4,why:ok+" of 5 "+(par?"odd":"even")+" digits at 10% or more"};
+function mk(m,c,o){ /* one ranked setup */
+  var n=m.d.length,p=o.fair/100,sd=Math.sqrt(p*(1-p)/n)*100;
+  o.m=m;o.n=n;o.c=c;o.z=(o.share-o.fair)/sd;o.edge=o.share-o.fair;return o;
 }
-function scoreOU(m){
-  var n=m.d.length,c=counts(m.d),order=c.map(function(v,i){return i}).sort(function(a,b){return c[b]-c[a]}),t1=order[0],t2=order[1],best=null;
+function scoreEO(m,par,c){
+  var n=m.d.length,ok=0,share=0,g=par;
+  for(var d=par;d<10;d+=2){var pc=c[d]/n*100;share+=pc;if(pc>=10)ok++;if(c[d]>c[g])g=d}
+  return mk(m,c,{type:par?"Odd":"Even",contract:par?"DIGITODD":"DIGITEVEN",kind:par?"odd":"even",barrier:null,entry:g,share:share,fair:50,ready:n>=300&&ok>=4,why:ok+" of 5 "+(par?"odd":"even")+" digits are at 10% or more",win:function(d){return d%2===par}});
+}
+function scoreOU(m,c){
+  var n=m.d.length,order=c.map(function(v,i){return i}).sort(function(a,b){return c[b]-c[a]}),t1=order[0],t2=order[1],best=null;
   for(var b=1;b<=8;b++)["Under","Over"].forEach(function(side){
-    if(side==="Under"&&b<1)return;
     var win=function(d){return side==="Under"?d<b:d>b},fair=(side==="Under"?b:9-b)*10,w=0;
     for(var d=0;d<10;d++)if(win(d))w+=c[d];w=w/n*100;
-    var ready=n>=300&&win(t1)&&win(t2)&&c[t1]/n*100>=12,edge=w-fair;
-    var s={m:m,n:n,c:c,type:side+" "+b,contract:side==="Under"?"DIGITUNDER":"DIGITOVER",kind:side.toLowerCase(),barrier:b,entry:t1,share:w,fair:fair,edge:edge,ready:ready,why:"Top digits "+t1+" ("+(c[t1]/n*100).toFixed(1)+"%) and "+t2+" ("+(c[t2]/n*100).toFixed(1)+"%) "+((win(t1)&&win(t2))?"are both on the winning side of ":"are not both on the winning side of ")+side+" "+b};
-    if(fair>=30&&fair<=70&&(!best||(s.ready&&!best.ready)||(s.ready===best.ready&&s.edge>best.edge)))best=s;
+    var s=mk(m,c,{type:side+" "+b,contract:side==="Under"?"DIGITUNDER":"DIGITOVER",kind:side.toLowerCase(),barrier:b,entry:t1,share:w,fair:fair,win:win,
+      ready:n>=300&&win(t1)&&win(t2)&&c[t1]/n*100>=12,why:"Top digits "+t1+" ("+(c[t1]/n*100).toFixed(1)+"%) and "+t2+" ("+(c[t2]/n*100).toFixed(1)+"%) "+((win(t1)&&win(t2))?"are both on the winning side":"are not both on the winning side")});
+    if(fair>=30&&fair<=70&&(!best||(s.ready&&!best.ready)||(s.ready===best.ready&&s.z>best.z)))best=s;
   });
   return best;
 }
-
-/* ---- data ---- */
-function sample(sym){var skew=sym.length%2?0.6:0.5,a=[];for(var i=0;i<1000;i++){var r=Math.random(),ev=r<skew;a.push(ev?[0,2,2,4,4,4,6,6,8][Math.floor(Math.random()*9)]:Math.floor(Math.random()*5)*2+1)}return a}
+function scoreMD(m,c){
+  var n=m.d.length,out=[];
+  for(var d=0;d<10;d++){
+    out.push(mk(m,c,{type:"Matches "+d,contract:"DIGITMATCH",kind:"matches",barrier:d,entry:null,share:c[d]/n*100,fair:10,win:function(x){return function(y){return y===x}}(d),ready:false,why:"Digit "+d+" came up "+(c[d]/n*100).toFixed(1)+"% of the time against 10% on a fair split"}));
+    out.push(mk(m,c,{type:"Differs "+d,contract:"DIGITDIFF",kind:"differs",barrier:d,entry:null,share:100-c[d]/n*100,fair:90,win:function(x){return function(y){return y!==x}}(d),ready:false,why:"Digit "+d+" came up only "+(c[d]/n*100).toFixed(1)+"% of the time, so Differs "+d+" won "+(100-c[d]/n*100).toFixed(1)+"% against 90%"}));
+  }
+  out.forEach(function(s){s.ready=n>=300&&s.z>=2.5});
+  return out;
+}
+function sample(sym){var skew=sym.length%2?0.6:0.5,a=[];for(var i=0;i<1000;i++){var r=Math.random();a.push(r<skew?[0,2,2,4,4,4,6,6,8][Math.floor(Math.random()*9)]:Math.floor(Math.random()*5)*2+1)}return a}
+var abortFlag=false;
 function fetchAll(onTick,onDone,onFail){
-  if(PREVIEW){var i=0;(function nx(){if(i>=MK.length)return onDone();var x=MK[i++];onTick(x,sample(x[1]));setTimeout(nx,160)})();return}
-  var sock,got={},left=MK.length,fin=false,timer;
+  if(PREVIEW){var i=0;(function nx(){if(abortFlag)return onDone();if(i>=MK.length)return onDone();var x=MK[i++];onTick(x,sample(x[1]),i);setTimeout(nx,200)})();return}
+  var sock,got={},left=MK.length,fin=false,timer,k=0;
   function done(){if(fin)return;fin=true;clearTimeout(timer);try{sock.close()}catch(e){}onDone()}
   try{sock=new WebSocket(WS)}catch(e){return onFail()}
   timer=setTimeout(function(){if(!fin){if(!Object.keys(got).length){fin=true;try{sock.close()}catch(e){}onFail()}else done()}},15000);
   sock.onopen=function(){MK.forEach(function(x,i){sock.send(JSON.stringify({ticks_history:x[1],count:1000,end:"latest",style:"ticks",req_id:300+i}))})};
   sock.onmessage=function(ev){var x;try{x=JSON.parse(ev.data)}catch(e){return}
+    if(abortFlag){done();return}
     if(x.error){left--;if(left<=0)done();return}
-    if(x.history&&x.history.prices){var sym=x.echo_req&&x.echo_req.ticks_history,mk=MK.filter(function(k){return k[1]===sym})[0];if(!mk||got[sym])return;got[sym]=1;
-      onTick(mk,x.history.prices.map(function(q){return digitOf(q,x.pip_size)}));left--;if(left<=0)done()}};
+    if(x.history&&x.history.prices){var sym=x.echo_req&&x.echo_req.ticks_history,m=MK.filter(function(q){return q[1]===sym})[0];if(!m||got[sym])return;got[sym]=1;
+      onTick(m,x.history.prices.map(function(q){return digitOf(q,x.pip_size)}),++k);left--;if(left<=0)done()}};
   sock.onerror=function(){if(!fin&&!Object.keys(got).length){fin=true;clearTimeout(timer);onFail()}};
 }
-
-/* ---- scan ---- */
 var results=[],picked=null,busy=false;
-function log(t){var l=$("log");l.insertAdjacentHTML("beforeend",t+"\n");l.scrollTop=l.scrollHeight}
-$("scan").addEventListener("click",function(){
-  if(busy)return;busy=true;results=[];$("scan").disabled=true;$("scan").textContent="SCANNING…";
-  ["bestCard","tblCard","loadCard"].forEach(function(i){$(i).hidden=true});
-  $("logCard").hidden=false;$("log").innerHTML="";$("logTitle").textContent="Scanning";
-  log("<b>Reading the last 1,000 ticks of "+MK.length+" Volatility markets…</b>");
-  fetchAll(function(mk,d){
-    var m={name:mk[0],sym:mk[1],d:d};log(mk[0]+": "+d.length+" ticks");
-    if(d.length<300){log("  skipped, too few ticks");return}
-    if(set.mode!=="ou"){results.push(scoreEO(m,0));results.push(scoreEO(m,1))}
-    if(set.mode!=="eo"){var o=scoreOU(m);if(o)results.push(o)}
-  },function(){
-    log("<b>Scoring "+results.length+" setups and ranking…</b>");
-    results.sort(function(a,b){return (b.ready-a.ready)||(b.edge-a.edge)});
-    var nr=results.filter(function(r){return r.ready}).length;
-    log('<span class="g">Done: '+nr+" ready, "+(results.length-nr)+" watching.</span>");
-    $("logTitle").textContent="Scan complete";$("conn").textContent=PREVIEW?"Sample data":"Live (public market data)";$("conn").className="status ok";
-    finish();
-  },function(){
-    log('<span style="color:#FCA5A5">Could not reach the market data. Check your connection and scan again.</span>');
-    $("conn").textContent="Not connected";$("conn").className="status bad";busy=false;$("scan").disabled=false;$("scan").textContent="SCAN";
-  });
-});
+function log(t){var l=$("logs");l.insertAdjacentHTML("beforeend",t+"\n");l.scrollTop=l.scrollHeight}
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
-function finish(){
-  busy=false;$("scan").disabled=false;$("scan").textContent="SCAN AGAIN";
-  var top=results.filter(function(r){return r.ready})[0],list=results.slice(0,10);picked=top||null;
-  var bc=$("bestCard");bc.hidden=false;
-  if(top){
-    var digs="";for(var d=0;d<10;d++){var pc=(top.c[d]/top.n*100);var win=top.kind==="even"?d%2===0:top.kind==="odd"?d%2===1:top.kind==="under"?d<top.barrier:d>top.barrier;digs+='<div class="'+(win?"on ":"")+(d===top.entry?"en":"")+'">'+d+"<small>"+pc.toFixed(1)+"%</small></div>"}
-    bc.innerHTML='<div class="muted">Best opportunity</div><div class="pick">'+esc(top.type)+'</div><div><b>'+esc(top.m.name)+'</b> <span class="tag s">Ready</span></div>'
-      +'<div class="muted" style="margin:6px 0">'+esc(top.why)+'. The winning side is '+top.share.toFixed(1)+'% of the last '+top.n+' ticks against '+top.fair+'% on a fair split ('+(top.edge>=0?"+":"")+top.edge.toFixed(1)+' points). Entry digit '+top.entry+'.</div>'
-      +'<div class="dgs">'+digs+'</div><div class="note">Green digits are on the winning side. The ringed digit is the entry digit.</div><button type="button" class="p" id="loadBtn" style="margin-top:10px;width:100%">Load bot</button>';
-    $("loadBtn").addEventListener("click",openLoad);
-  }else{
-    bc.innerHTML='<div class="pick" style="font-size:18px">No market passed the rules in this pass</div><div class="muted">Nothing has the digit pattern the rules ask for right now. Scan again shortly, or look at the closest setups below.</div>';
-  }
-  $("tblCard").hidden=false;
-  $("rows").innerHTML=list.map(function(r,i){return "<tr><td>"+(i+1)+"</td><td>"+esc(r.m.name)+"</td><td><b>"+esc(r.type)+"</b></td><td>"+r.entry+"</td><td>"+r.share.toFixed(1)+"% vs "+r.fair+"% ("+(r.edge>=0?"+":"")+r.edge.toFixed(1)+")</td><td><span class='tag "+(r.ready?"s":"w")+"'>"+(r.ready?"Ready":"Watch")+"</span></td></tr>"}).join("");
+function startScan(){
+  if(busy)return;busy=true;abortFlag=false;results=[];picked=null;$("scan").disabled=true;
+  close_("resultModal");close_("botModal");$("logs").innerHTML="";$("prog").style.width="0%";$("scanTitle").textContent="Scanning…";open_("scanModal");
+  log("<b>Mode: "+({eo:"Even / Odd",ou:"Over / Under",md:"Matches / Differs"})[set.mode]+". Reading the last 1,000 ticks of "+MK.length+" markets.</b>");
+  fetchAll(function(x,d,k){
+    $("prog").style.width=Math.round(k/MK.length*100)+"%";$("scanTitle").textContent="Scanning "+x[0]+" "+k+"/"+MK.length;
+    var m={name:x[0],sym:x[1],d:d};log("[LIVE] "+x[0]+": "+d.length+" ticks");
+    if(d.length<300){log("  skipped, too few ticks");return}
+    var c=counts(d);
+    if(set.mode==="eo"){results.push(scoreEO(m,0,c));results.push(scoreEO(m,1,c))}
+    else if(set.mode==="ou"){var o=scoreOU(m,c);if(o)results.push(o)}
+    else scoreMD(m,c).forEach(function(s){results.push(s)});
+  },function(){
+    $("prog").style.width="100%";
+    if(abortFlag){busy=false;$("scan").disabled=false;return}
+    results.sort(function(a,b){return (b.ready-a.ready)||(b.z-a.z)});
+    var nr=results.filter(function(r){return r.ready}).length;
+    log("<b>Ranked "+results.length+" setups: "+nr+" ready.</b>");
+    $("conn").textContent=PREVIEW?"Sample data":"Live (public market data)";$("conn").className="conn ok";
+    busy=false;$("scan").disabled=false;close_("scanModal");show();
+  },function(){
+    log("Could not reach the market data. Check your connection and scan again.");$("scanTitle").textContent="Not connected";
+    $("conn").textContent="Not connected";$("conn").className="conn bad";busy=false;$("scan").disabled=false;
+  });
 }
-function openLoad(){if(!picked)return;$("loadCard").hidden=false;$("loadFor").textContent=picked.type+" on "+picked.m.name+", entry digit "+picked.entry;$("loadCard").scrollIntoView({behavior:"smooth",block:"nearest"})}
-$("cancel").addEventListener("click",function(){$("loadCard").hidden=true});
+$("scan").addEventListener("click",startScan);$("again").addEventListener("click",startScan);
+$("stop").addEventListener("click",function(){abortFlag=true;close_("scanModal");busy=false;$("scan").disabled=false});
+$("scanClose").addEventListener("click",function(){abortFlag=true;close_("scanModal");busy=false;$("scan").disabled=false});
+$("resClose").addEventListener("click",function(){close_("resultModal")});
+$("botClose").addEventListener("click",function(){close_("botModal")});$("cancel").addEventListener("click",function(){close_("botModal")});
+function show(){
+  var top=results.filter(function(r){return r.ready})[0],list=results.slice(0,12);picked=top||null;
+  $("rows").innerHTML=list.map(function(r,i){var good=r.edge>=0;return "<tr><td>"+(i+1)+"</td><td>"+esc(r.m.name)+"</td><td style='font-weight:700;color:"+(r.ready?"var(--winsoft)":"var(--warn)")+"'>"+esc(r.type)+"</td><td>"+r.share.toFixed(1)+"%</td><td>"+r.fair+"%</td><td style='color:"+(good?"var(--win)":"var(--loss)")+"'>"+(good?"+":"")+r.edge.toFixed(1)+"</td><td><b>"+r.z.toFixed(1)+"σ</b></td></tr>"}).join("");
+  var b=$("best");
+  if(top){
+    var digs="";for(var d=0;d<10;d++){digs+='<div class="'+(top.win(d)?"on ":"")+(d===top.entry?"en":"")+'">'+d+"<small>"+(top.c[d]/top.n*100).toFixed(1)+"%</small></div>"}
+    b.innerHTML="<b>Best opportunity</b> <span class='tag s'>Ready</span><br>Market: <b>"+esc(top.m.name)+" ("+top.m.sym+")</b><br>Trade: <b style='color:var(--winsoft);font-size:14px'>"+esc(top.type)+"</b>"+(top.entry!==null?" · entry digit <b>"+top.entry+"</b>":"")+"<br>Win "+top.share.toFixed(1)+"% vs "+top.fair+"% on a fair split ("+(top.edge>=0?"+":"")+top.edge.toFixed(1)+" points, "+top.z.toFixed(1)+"σ)<br><span style='color:var(--muted)'>"+esc(top.why)+".</span><div class='dgs'>"+digs+"</div><span style='color:var(--muted);font-size:10px'>Green digits win. Ringed digit is the entry digit.</span>";
+    $("openBot").hidden=false;
+  }else{
+    b.innerHTML="<b>No market passed the rules in this pass</b><br><span style='color:var(--muted)'>None of the setups meets the digit pattern the rules ask for right now. Scan again shortly. The closest ones are listed above.</span>";$("openBot").hidden=true;
+  }
+  open_("resultModal");
+}
+$("openBot").addEventListener("click",function(){
+  if(!picked)return;close_("resultModal");
+  $("botSummary").innerHTML="<b>The bot will load:</b><br>Market: <b>"+esc(picked.m.name)+" ("+picked.m.sym+")</b><br>Trade: <b style='color:var(--winsoft)'>"+esc(picked.type)+"</b>"+(picked.entry!==null?" with entry digit <b>"+picked.entry+"</b>":", buys on every run")+"<br><span style='color:var(--muted)'>"+esc(picked.why)+".</span>";
+  open_("botModal");
+});
 function num(id,d,min){var v=parseFloat($(id).value);return isFinite(v)&&v>=min?v:d}
 $("confirm").addEventListener("click",function(){
   if(!picked)return;
   if(window.parent===window){$("botNote").textContent="Open Scanner AI from the Joytrader site to load the bot.";return}
   var r=picked;
-  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:r.contract,kind:r.kind,barrier:r.barrier,trigger:[r.entry],runs:Math.max(1,Math.round(num("runs",5,1))),
-    stake:num("stake",0.35,0.35),mult:num("mult",1,1),tp:num("tp",0,0),sl:num("sl",0,0),ticks:Math.max(1,Math.min(10,Math.round(num("dur",1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:r.contract,kind:r.kind,barrier:r.barrier===null?undefined:r.barrier,trigger:r.entry===null?[]:[r.entry],runs:Math.max(1,Math.round(num("runs",5,1))),
+    stake:num("stake",0.35,0.35),mult:$("usem").checked?num("mult",2,1):1,tp:num("tp",0,0),sl:num("sl",0,0),ticks:Math.max(1,Math.min(10,Math.round(num("dur",1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
   $("botNote").textContent="Opening Bot Builder with "+r.type+" on "+r.m.name+"…";
 });
 })();
