@@ -53,7 +53,7 @@ export function makeDeriv({ fetchFn = fetch, WS = globalThis.WebSocket, appId })
         const j = await r.json();
         return (j?.data ?? []).map(a => ({
             id: String(a.account_id),
-            type: a.account_type === 'demo' || /^VR/i.test(String(a.account_id)) ? 'demo' : 'real',
+            type: a.account_type === 'demo' || /^(VR|DEM|DOT)/i.test(String(a.account_id)) ? 'demo' : 'real',
             currency: String(a.currency || 'USD'),
             balance: Number(a.balance) || 0,
         }));

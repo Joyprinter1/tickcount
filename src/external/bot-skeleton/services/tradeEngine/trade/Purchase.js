@@ -50,7 +50,7 @@ export default Engine =>
                     if (typeof window !== 'undefined' && window.__tickdeskCopy) {
                         window.__tickdeskCopy({
                             parameters: tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, trade_options)).parameters,
-                            isVirtual: /^VR/i.test(String(this.accountInfo?.loginid ?? '')),
+                            isVirtual: /^(VR|DEM|DOT)/i.test(String(this.accountInfo?.loginid ?? '')),
                             masterContractId: buy.contract_id,
                         });
                     }
