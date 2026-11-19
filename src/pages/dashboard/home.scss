@@ -219,3 +219,19 @@
         }
     }
 }
+
+@media (min-width: 900px) {
+    .tab__dashboard__content > .td-home {
+        margin: 0;
+        padding: 2.4rem 3.2rem 3rem;
+        box-sizing: border-box;
+    }
+    .td-home > * {
+        max-width: 140rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .td-home__grid {
+        max-width: 140rem;
+    }
+}
