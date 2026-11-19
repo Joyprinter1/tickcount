@@ -84,7 +84,7 @@ const STEP=[['stpRNG','Step Index 100',1],['stpRNG2','Step Index 200',1],['stpRN
 const STEPKEYS=STEP.map(m=>m[0]),SF=['srf','seq','shl'];
 const PAIRS=[[4,5],[3,6],[2,7],[1,8]];
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const cfg=Object.assign({stake:1,mult:2,tp:10,sl:10},store.get('tickdesk.bot',{}));
+const cfg=Object.assign({stake:1,mult:2,tp:10,sl:10},store.get('tickdesk.bot.hedge',store.get('tickdesk.bot',{})));
 const hs=Object.assign({pair:'auto',mkt:'auto',step:'auto'},store.get('tickdesk.hedge',{}));
 const D={};MARKETS.concat(STEP).forEach(m=>{D[m[0]]={p:[],pip:2}});
 const ALL=MARKETS.concat(STEP),info=k=>ALL.find(m=>m[0]===k);
@@ -287,7 +287,7 @@ function init(){
   ['stake','mult','tp','sl'].forEach(k=>{
     const el=$('#f-'+k);el.value=cfg[k];
     el.addEventListener('input',()=>{let v=parseFloat(el.value);if(!isFinite(v))return;v=k==='stake'?Math.max(.35,v):k==='mult'?Math.max(1,v):Math.max(0,v);cfg[k]=v;
-      const all=Object.assign(store.get('tickdesk.bot',{}),{stake:cfg.stake,mult:cfg.mult,tp:cfg.tp,sl:cfg.sl});store.set('tickdesk.bot',all);note()});
+      const all=Object.assign(store.get('tickdesk.bot.hedge',store.get('tickdesk.bot',{})),{stake:cfg.stake,mult:cfg.mult,tp:cfg.tp,sl:cfg.sl});store.set('tickdesk.bot.hedge',all);note()});
   });
   const note=()=>{$('#note').textContent=`Each trade stakes ${cfg.stake}. After a net loss the stake is multiplied by ${cfg.mult}. Stops at +${cfg.tp||'no limit'} profit or -${cfg.sl||'no limit'} loss. Same settings as the other signal pages.`};note();
   $('#f-mkt').innerHTML='<option value="auto">Best market (auto)</option>'+MARKETS.map(m=>`<option value="${m[0]}">${m[1]}</option>`).join('');
