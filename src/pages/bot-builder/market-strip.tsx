@@ -36,6 +36,14 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
     const [bot, setBot] = React.useState({ symbol: '', category: '' });
     const [digits, setDigits] = React.useState<number[]>([]);
     const [candles, setCandles] = React.useState<TCandle[]>([]);
+    const [big, setBig] = React.useState(() => typeof window !== 'undefined' && window.matchMedia?.('(min-width: 900px)').matches);
+    React.useEffect(() => {
+        const mq = window.matchMedia?.('(min-width: 900px)');
+        if (!mq) return undefined;
+        const on = () => setBig(mq.matches);
+        mq.addEventListener?.('change', on);
+        return () => mq.removeEventListener?.('change', on);
+    }, []);
     const [open, setOpen] = React.useState(() => {
         try {
             return localStorage.getItem('td.strip') !== '0';
@@ -188,17 +196,17 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
     const box: React.CSSProperties = {
         position: 'absolute',
         top: 8,
-        insetInlineEnd: 12,
+        insetInlineEnd: big ? 24 : 12,
         insetInlineStart: 'auto',
         zIndex: 20,
-        maxWidth: 'calc(100vw - 80px)',
+        maxWidth: big ? 'min(560px, calc(100vw - 420px))' : 'calc(100vw - 80px)',
         background: 'var(--general-main-1, #fff)',
         color: 'var(--text-general, #0e0e0e)',
         border: '1px solid var(--border-normal, #d6dadb)',
         borderRadius: 12,
         padding: open ? '6px 8px 8px' : '4px 10px',
         boxShadow: '0 2px 8px rgba(0,0,0,.18)',
-        font: '600 12px/1.2 system-ui, sans-serif',
+        font: `600 ${big ? 15 : 12}px/1.25 system-ui, sans-serif`,
     };
 
     return (
@@ -209,18 +217,18 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
                 aria-expanded={open}
                 style={{ all: 'unset', cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center' }}
             >
-                <span style={{ fontWeight: 800, fontSize: 13 }}>{name}</span>
+                <span style={{ fontWeight: 800, fontSize: big ? 16 : 13 }}>{name}</span>
                 <span aria-hidden='true'>{open ? '▾' : '▸'}</span>
             </button>
             {open && (
                 <>
-                    <div style={{ display: 'flex', gap: 3, marginTop: 4, padding: 3, overflowX: 'auto' }}>
+                    <div style={{ display: 'flex', gap: big ? 6 : 3, marginTop: 4, padding: 3, overflowX: 'auto' }}>
                         {counts.map((n, d) => (
                             <div key={d} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 <div
                                     style={{
-                                        width: 'clamp(22px, calc((100vw - 130px) / 10), 30px)',
-                                        height: 'clamp(22px, calc((100vw - 130px) / 10), 30px)',
+                                        width: big ? 46 : 'clamp(22px, calc((100vw - 130px) / 10), 30px)',
+                                        height: big ? 46 : 'clamp(22px, calc((100vw - 130px) / 10), 30px)',
                                         borderRadius: '50%',
                                         background: role[d] || '#BFC3C7',
                                         color: role[d] && role[d] !== '#F2E01A' ? '#fff' : '#111',
@@ -228,16 +236,16 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        fontSize: 'clamp(10px, 3.2vw, 12px)',
+                                        fontSize: big ? 17 : 'clamp(10px, 3.2vw, 12px)',
                                         lineHeight: 1,
                                         outline: last === d ? '3px solid #E02F2F' : 'none',
                                         outlineOffset: 1,
                                     }}
                                 >
                                     <b>{d}</b>
-                                    <span style={{ fontSize: 'clamp(6px, 2vw, 8px)' }}>{digits.length ? ((n / total) * 100).toFixed(1) : '–'}%</span>
+                                    <span style={{ fontSize: big ? 11 : 'clamp(6px, 2vw, 8px)', fontWeight: 700 }}>{digits.length ? ((n / total) * 100).toFixed(1) : '–'}%</span>
                                 </div>
-                                <span style={{ color: '#E02F2F', fontSize: 9, height: 9 }}>{last === d ? '▲' : ''}</span>
+                                <span style={{ color: '#E02F2F', fontSize: big ? 12 : 9, height: big ? 12 : 9 }}>{last === d ? '▲' : ''}</span>
                             </div>
                         ))}
                     </div>
