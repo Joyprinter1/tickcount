@@ -139,6 +139,11 @@ p{margin:0}
 .cleg{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font-size:11.5px;color:var(--muted);margin-top:6px}
 .cleg i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
 @media (max-width:360px){.stream{grid-template-columns:repeat(9,1fr)}}
+@media (min-width:900px){
+.app{max-width:1180px}
+#wide-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;align-items:start}
+#wide-list .card{margin-top:0}
+}
 </style>
 </head>
 <body>

@@ -44,6 +44,12 @@ button.p{background:var(--accent);color:var(--accent-fg);border-color:transparen
 .dgs{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:8px 0}.dgs div{border:1px solid var(--line);border-radius:10px;padding:4px 0;text-align:center;font-weight:800;background:var(--raise)}.dgs small{display:block;font-weight:600;font-size:10.5px;color:var(--muted)}
 .dgs .on{border-color:var(--win);background:#E9FAF3}.dgs .gr{outline:2px solid var(--win)}.dgs .lv{box-shadow:0 0 0 3px var(--accent)}
 .chk{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:13.5px}.chk input{width:18px;min-height:18px;height:18px}
+@media (min-width:900px){
+body{max-width:1120px}
+#strong,#wait,#ptList{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;align-items:start}
+#strong .mk,#wait .mk,#ptList .mk{margin:0}
+#strong .empty,#wait .empty,#ptList h2,#ptList .empty{grid-column:1/-1}
+}
 </style>
 </head>
 <body>
