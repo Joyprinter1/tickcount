@@ -227,6 +227,15 @@ export default Engine =>
                 globalThis.__tdMatch = undefined;
                 const d = live ? (m && Date.now() - m.at < 5000 ? m.d : getSignalDigit(Date.now(), globalThis.localStorage, undefined, isScanBot() ? 'sc.signal' : 'td.signal')) : -1;
                 const out = d >= 0 ? { ...options, prediction: d } : options;
+                try {
+                    // show the real barrier in the Journal so every Matches trade can be checked against its exit digit
+                    globalObserver.emit('ui.log.notify', {
+                        className: 'journal__text--info',
+                        message: 'Matches barrier digit: ' + out.prediction + (d >= 0 ? ' (live signal)' : ' (bot setting)'),
+                    });
+                } catch (e) {
+                    // ignore
+                }
                 this.lastLive = { type: contract_type, options: out, at: Date.now() };
                 return out;
             } catch (e) {
