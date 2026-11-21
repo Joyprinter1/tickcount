@@ -49,7 +49,13 @@ export default Engine =>
                 try {
                     if (typeof window !== 'undefined' && window.__tickdeskCopy) {
                         window.__tickdeskCopy({
-                            parameters: tradeOptionToBuy(contract_type, this.withLiveDigit(contract_type, trade_options)).parameters,
+                            parameters: tradeOptionToBuy(
+                                contract_type,
+                                // the exact options the bot bought with (live Matches digit included), not a second live read
+                                this.lastLive && this.lastLive.type === contract_type && Date.now() - this.lastLive.at < 15000
+                                    ? this.lastLive.options
+                                    : this.withLiveDigit(contract_type, trade_options)
+                            ).parameters,
                             isVirtual: /^(VR|DEM|DOT)/i.test(String(this.accountInfo?.loginid ?? '')),
                             masterContractId: buy.contract_id,
                         });
@@ -220,7 +226,9 @@ export default Engine =>
                 const m = globalThis.__tdMatch;
                 globalThis.__tdMatch = undefined;
                 const d = live ? (m && Date.now() - m.at < 5000 ? m.d : getSignalDigit(Date.now(), globalThis.localStorage, undefined, isScanBot() ? 'sc.signal' : 'td.signal')) : -1;
-                return d >= 0 ? { ...options, prediction: d } : options;
+                const out = d >= 0 ? { ...options, prediction: d } : options;
+                this.lastLive = { type: contract_type, options: out, at: Date.now() };
+                return out;
             } catch (e) {
                 return options;
             }
