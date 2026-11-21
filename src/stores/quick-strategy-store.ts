@@ -11,6 +11,7 @@ import { getSetting, storeSetting } from '../utils/settings';
 import RootStore from './root-store';
 
 export type TTickdeskSignal = {
+    autorun?: boolean; // press Run for the user once the bot is loaded (only when the user tapped Trade now)
     symbol: string;
     contract: string;
     barrier: number | null;
@@ -396,7 +397,13 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     strategy_id: null,
                     showIncompatibleStrategyDialog: null,
                 });
-                if (!result?.error) return;
+                if (!result?.error) {
+                    if (signal.autorun === true) {
+                        await new Promise(resolve => setTimeout(resolve, 800));
+                        if (!this.root_store.run_panel.is_running) this.root_store.run_panel.onRunButtonClick();
+                    }
+                    return;
+                }
                 // eslint-disable-next-line no-console
                 console.warn('Signal bot was rejected by the builder, loading the simple bot instead.', result.error);
             }
