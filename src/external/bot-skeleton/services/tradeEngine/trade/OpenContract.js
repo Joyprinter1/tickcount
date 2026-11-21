@@ -1,4 +1,5 @@
 import { getRoundedNumber } from '@/components/shared';
+import { observer as globalObserver } from '../../../utils/observer';
 import { api_base } from '../../api/api-base';
 import { contract as broadcastContract, contractStatus } from '../utils/broadcast';
 import { openContractReceived, sell } from './state/actions';
@@ -86,6 +87,31 @@ export default Engine =>
                     const ex = String(contract.exit_tick_display_value ?? contract.exit_tick ?? '');
                     const dg = parseInt(ex.slice(-1), 10);
                     this.switchState.digit = Number.isNaN(dg) ? -1 : dg;
+                }
+                // Journal: how the last ticks ran and the digit the trade finished on (every bot)
+                try {
+                    const exitTxt = String(contract.exit_tick_display_value ?? contract.exit_tick ?? '');
+                    const exitDigit = parseInt(exitTxt.slice(-1), 10);
+                    const won = Number(contract.profit) >= 0;
+                    const barrier = /^DIGIT(MATCH|DIFF|OVER|UNDER)$/.test(String(contract.contract_type ?? ''))
+                        ? ' · barrier ' + String(contract.barrier ?? '')
+                        : '';
+                    Promise.resolve(this.getLastDigitList ? this.getLastDigitList() : [])
+                        .then(list => {
+                            const recent = (Array.isArray(list) ? list : []).slice(-12).join(',');
+                            globalObserver.emit('ui.log.notify', {
+                                className: 'journal__text--info',
+                                message:
+                                    (won ? 'WON' : 'LOST') +
+                                    ' · exit digit ' +
+                                    (Number.isNaN(exitDigit) ? '?' : exitDigit) +
+                                    barrier +
+                                    (recent ? ' · last digits: ' + recent : ''),
+                            });
+                        })
+                        .catch(() => {});
+                } catch (e) {
+                    // never let logging affect the bot
                 }
                 this.contractId = '';
                 this.hedgeContractId = '';
