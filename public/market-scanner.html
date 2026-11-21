@@ -66,6 +66,7 @@ body{max-width:1120px}
     <button type="button" data-t="eo" aria-pressed="false">Even / Odd</button>
     <button type="button" data-t="ou" aria-pressed="false">Over / Under</button>
     <button type="button" data-t="pt" aria-pressed="false">Even/Odd 3 Ticks</button>
+    <button type="button" data-t="mr" aria-pressed="false">Matches Reversal</button>
     <button type="button" data-t="rv" aria-pressed="false">Reversal Strategy</button>
   </div>
   <div class="grid" id="cgrid" style="margin-top:10px">
@@ -107,6 +108,18 @@ body{max-width:1120px}
   <div id="ptList"></div>
 </div>
 
+<div class="card pt" id="mrCard" hidden>
+  <h2>Matches reversal</h2>
+  <div class="muted">Looks for a digit that has been <b>cold</b> over the last 1,000 ticks (at or below the share you choose) but is <b>turning up</b> in the last 100 ticks. That digit is the reversal pick. After you tap Trade now the bot picks the digit again before every trade, so it follows the market without you.</div>
+  <div class="grid" style="margin-top:8px">
+    <div><label for="mrCold">Cold: 1,000-tick share at most</label><select id="mrCold"><option value="8">8%</option><option value="9">9%</option><option value="10">10%</option></select></div>
+    <div><label for="mrRise">Turning up: last 100 at least</label><select id="mrRise"><option value="2">2 points above</option><option value="3">3 points above</option><option value="4">4 points above</option></select></div>
+  </div>
+  <div class="note">Uses the stake, martingale, take profit, stop loss, runs and duration from Bot settings below. One stake, one Matches trade at a time. Matches pays when the exit digit equals the pick, about 1 time in 10 whatever digit is chosen, so please test on a demo account first.</div>
+  <div class="note" id="mrAuto"></div>
+  <div id="mrList"></div>
+</div>
+
 <div class="card" id="cStrong"><h2>Strong signals (<span id="nS">0</span>)</h2><div id="strong"><div class="empty">No market has reached the chosen strength yet.</div></div></div>
 <div class="card" id="cWait"><h2>Waiting (<span id="nW">0</span>)</h2><div class="muted" style="margin-bottom:4px">Not strong enough yet. Each shows its current leader, and you can tap Trade now on it.</div><div id="waiting"></div></div>
 
@@ -123,8 +136,8 @@ var MK=[["Volatility 10 Index","R_10"],["Volatility 25 Index","R_25"],["Volatili
 ["Jump 10 Index","JD10"],["Jump 25 Index","JD25"],["Jump 50 Index","JD50"],["Jump 75 Index","JD75"],["Jump 100 Index","JD100"]];
 var WS="wss://api.derivws.com/trading/v1/options/ws/public";
 var st={};MK.forEach(function(x){st[x[1]]={name:x[0],sym:x[1],pip:2,t:[],d:[],hold:{}}});
-var set={ptMode:"both",ptNeed:"4",ptMin:"10",ptRuns:"5",type:"match",win:"60",str:"0.02",min:"0",spd:"20000",barrier:"auto",pause:false};
-var EL_SET=["win","str","min","spd","barrier","ptMode","ptNeed","ptMin","ptRuns"];
+var set={mrCold:"9",mrRise:"3",ptMode:"both",ptNeed:"4",ptMin:"10",ptRuns:"5",type:"match",win:"60",str:"0.02",min:"0",spd:"20000",barrier:"auto",pause:false};
+var EL_SET=["mrCold","mrRise","win","str","min","spd","barrier","ptMode","ptNeed","ptMin","ptRuns"];
 function load(k,d){try{return JSON.parse(localStorage.getItem(k)||"")||d}catch(e){return d}}
 function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 Object.assign(set,load("ms.set",{}));
@@ -132,7 +145,7 @@ var BOT_IDS=["stake","mult","tp","sl","runs","dur"],bot=load("ms.bot",{});
 BOT_IDS.forEach(function(id){if(bot[id]!==undefined&&bot[id]!=="")$(id).value=bot[id];$(id).addEventListener("input",function(){bot[id]=$(id).value;save("ms.bot",bot)})});
 EL_SET.forEach(function(id){$(id).value=set[id];$(id).addEventListener("change",function(){set[id]=$(id).value;save("ms.set",set);draw(true)})});
 $("pause").checked=!!set.pause;$("pause").addEventListener("change",function(){set.pause=$("pause").checked;save("ms.set",set);draw(true)});
-function syncTabs(){document.querySelectorAll("#types button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===set.type?"true":"false")});$("barBox").hidden=set.type!=="ou";var pt=set.type==="pt",rv=set.type==="rv";$("ptCard").hidden=!pt;["bestCard","cgrid","pauseRow","cStrong","cWait"].forEach(function(i){$(i).hidden=pt||rv});$("botCard").hidden=rv;$("runs").parentNode.hidden=pt;$("dur").parentNode.hidden=pt;var f=$("rvFrame");f.hidden=!rv;if(rv&&!f.getAttribute("src"))f.setAttribute("src","/strategy.html?embed=1")}
+function syncTabs(){document.querySelectorAll("#types button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.t===set.type?"true":"false")});$("barBox").hidden=set.type!=="ou";var pt=set.type==="pt",rv=set.type==="rv",mr=set.type==="mr";$("ptCard").hidden=!pt;$("mrCard").hidden=!mr;["bestCard","cgrid","pauseRow","cStrong","cWait"].forEach(function(i){$(i).hidden=pt||rv||mr});$("botCard").hidden=rv;$("runs").parentNode.hidden=pt;$("dur").parentNode.hidden=pt;var f=$("rvFrame");f.hidden=!rv;if(rv&&!f.getAttribute("src"))f.setAttribute("src","/strategy.html?embed=1")}
 document.querySelectorAll("#types button").forEach(function(b){b.addEventListener("click",function(){set.type=b.dataset.t;save("ms.set",set);syncTabs();draw(true)})});
 syncTabs();
 
@@ -191,6 +204,7 @@ var order=null,orderAt=0;
 function draw(force){
   if(set.type==="rv")return;
   if(set.type==="pt"){drawPT(force);return}
+  if(set.type==="mr"){drawMR(force);return}
   if(set.pause&&!force)return;
   var now=Date.now();
   if(!force&&now-lastDraw<900)return;
@@ -271,6 +285,54 @@ function tradePT(r){
     stake:num("stake",0.35,0.35),mult:num("mult",1,1),tp:num("tp",0,0),sl:num("sl",0,0),ticks:3,rate:0,base:0,at:Date.now()}},window.location.origin);
   $("botNote").textContent="Opening Bot Builder: "+(par?"Odd":"Even")+" 3 ticks on "+r.m.name+", entry digit "+su.green+"…";
 }
+
+
+/* ---------- Matches reversal: a cold digit that is turning up ---------- */
+function mrPick(m){
+  var a=m.d.slice(-1000),n=a.length,r=a.slice(-100),k=r.length,c=new Array(10).fill(0),rc=new Array(10).fill(0);
+  a.forEach(function(d){c[d]++});r.forEach(function(d){rc[d]++});
+  var cold=+set.mrCold,rise=+set.mrRise,best=-1,bestUp=-1e9,list=[];
+  for(var d=0;d<10;d++){var lp=n?c[d]/n*100:0,sp=k?rc[d]/k*100:0,up=sp-lp;list.push({d:d,lp:lp,sp:sp,up:up,ok:n>=300&&k>=100&&lp<=cold&&up>=rise});
+    if(n>=300&&k>=100&&up>bestUp){bestUp=up;best=d}}
+  var ok=best>=0&&list[best].ok;
+  return{n:n,k:k,list:list,pick:best,ready:ok}
+}
+var mrShown=[],mrTarget=load("ms.mrt","");
+function drawMR(force){
+  var now=Date.now();if(!force&&now-lastDraw<900)return;lastDraw=now;
+  var rows=[];
+  MK.forEach(function(x){if(/^JD/.test(x[1]))return;var m=st[x[1]];if(m.d.length<30)return;rows.push({m:m,su:mrPick(m)})});
+  var good=rows.filter(function(r){return r.su.ready}).sort(function(a,b){return b.su.list[b.su.pick].up-a.su.list[a.su.pick].up});
+  var rest=rows.filter(function(r){return !r.su.ready}).sort(function(a,b){return(b.su.pick>=0?b.su.list[b.su.pick].up:-99)-(a.su.pick>=0?a.su.list[a.su.pick].up:-99)});
+  mrShown=good.concat(rest.slice(0,8));
+  function card(r,i){
+    var su=r.su,m=r.m,last=m.d[m.d.length-1],p=su.pick,L=p>=0?su.list[p]:null;
+    var digs="";su.list.forEach(function(x){digs+='<div class="'+(x.ok?"on ":"")+(x.d===p&&su.ready?"gr ":"")+(x.d===last?"lv":"")+'">'+x.d+'<small>'+x.lp.toFixed(1)+'%</small><small>'+x.sp.toFixed(0)+'% now</small></div>'});
+    var msg=su.ready?"Reversal pick: "+p:"Not ready: no cold digit is turning up (best so far "+(L?p+", "+(L.up>=0?"+":"")+L.up.toFixed(1)+" points":"none")+").";
+    return '<div class="mk"><span class="dot'+(now-(m.last||0)>20000?" off":"")+'"></span><div class="nm">'+m.name+' · Matches</div><div class="sy">'+su.n+' ticks · last digit '+last+(mrTarget===m.sym?' · <b>auto-picking</b>':'')+'</div>'
+     +'<div class="cm"><div class="gd'+(su.ready?"":" no")+'">'+(su.ready?p:"–")+'</div><div class="tx"><div class="big">'+msg+'</div><div class="muted">'+(su.ready?"Cold at "+L.lp.toFixed(1)+"% over 1,000 ticks, "+L.sp.toFixed(0)+"% of the last 100.":"The digits below show the 1,000-tick share and the last 100.")+'</div></div></div>'
+     +'<div class="dgs">'+digs+'</div>'+(su.ready?'<button type="button" class="p" data-mr="'+i+'">Trade now (Matches '+p+', auto-pick)</button>':'')+'</div>';
+  }
+  $("mrList").innerHTML=(good.length?'<h2 style="margin-top:12px">Ready ('+good.length+')</h2>'+good.map(function(r,i){return card(r,i)}).join(""):'<div class="empty" style="margin-top:10px">No market has a cold digit turning up right now. The scan continues.</div>')
+    +(rest.length?'<h2 style="margin-top:14px">Not ready ('+rest.length+')</h2>'+rest.slice(0,8).map(function(r,i){return card(r,good.length+i)}).join(""):"");
+  $("mrAuto").textContent=mrTarget&&st[mrTarget]?"Auto-pick is on for "+st[mrTarget].name+": the bot reads a fresh reversal digit before each trade while this page stays open.":"";
+}
+document.body.addEventListener("click",function(e){var b=e.target.closest("button[data-mr]");if(!b)return;var r=mrShown[+b.dataset.mr];if(r)tradeMR(r)});
+function tradeMR(r){
+  if(window.parent===window){$("botNote").textContent="Open this page from the Joytrader site to load the bot.";return}
+  var p=r.su.pick;mrTarget=r.m.sym;save("ms.mrt",mrTarget);mrPublish();
+  var runs=Math.max(1,Math.round(num("runs",10,1)));
+  window.parent.postMessage({type:"tickdesk:signal",signal:{symbol:r.m.sym,name:r.m.name,contract:"DIGITMATCH",kind:"matches",barrier:p,trigger:[],runs:runs,live:true,scan:true,
+    stake:num("stake",0.35,0.35),mult:num("mult",1,1),tp:num("tp",0,0),sl:num("sl",0,0),ticks:Math.max(1,Math.min(10,Math.round(num("dur",1,1)))),rate:0,base:0,at:Date.now()}},window.location.origin);
+  $("botNote").textContent="Opening Bot Builder: Matches on "+r.m.name+", first digit "+p+", then it re-picks before every trade…";
+}
+// keeps the bot's digit fresh (the bot only trusts a value under 20 seconds old)
+function mrPublish(){
+  if(!mrTarget||!st[mrTarget])return;
+  var su=mrPick(st[mrTarget]);if(su.pick<0)return;
+  save("sc.signal",{digit:su.pick,digits:[su.pick],market:mrTarget,at:Date.now()});
+}
+setInterval(mrPublish,1000);
 
 /* ---------- Trade now: loads a bot into Bot Builder with this page's own settings ---------- */
 function num(id,d,min){var v=parseFloat($(id).value);return isFinite(v)&&v>=min?v:d}
