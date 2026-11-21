@@ -65,7 +65,19 @@ const getTicksInterface = tradeEngine => {
         getLastDigit: (...args) => tradeEngine.getLastDigit(...args),
         getSignalDigit: () =>
             Promise.resolve(tradeEngine.getLastDigit()).then(last => {
-                const d = getSignalDigit(Date.now(), globalThis.localStorage, Number(last), isScanBot() ? 'sc.signal' : 'td.signal');
+                const key = isScanBot() ? 'sc.signal' : 'td.signal';
+                const d = getSignalDigit(Date.now(), globalThis.localStorage, Number(last), key);
+                // "Buy right away" (Matches Reversal): the page marks its signal with any:true, so the bot buys Matches on
+                // the picked digit at once instead of waiting for that digit to appear as the last digit.
+                try {
+                    const sig = JSON.parse(globalThis.localStorage.getItem(key) || 'null');
+                    if (d >= 0 && sig?.any === true && Date.now() - Number(sig.at) < 20000) {
+                        globalThis.__tdMatch = { d: Number(sig.digit), at: Date.now() };
+                        return Number(last);
+                    }
+                } catch (e) {
+                    // fall through to the normal rule
+                }
                 // remember a hit so the purchase buys Matches on exactly this digit
                 if (d >= 0 && d === Number(last)) globalThis.__tdMatch = { d, at: Date.now() };
                 return d;
