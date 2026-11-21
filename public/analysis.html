@@ -358,7 +358,13 @@ pub.onclose=()=>{setFeed('offline');tries=1;retryT=setTimeout(connect,1200);};
 async function goLive(){
   MARKETS.forEach(m=>{const d=mk[m.key];d.prices=[];d.digits=[];d.err='';});
   setFeed('live');lastTick=Date.now();
-  if(st.view==='focus')candleSub();
+  // The small chart comes first: ask for its candles and let them arrive before the heavy 1000-tick
+  // histories of every market go out on the same connection.
+  if(st.view==='focus'){
+    const first=new Promise(r=>{cd.first=r;setTimeout(r,2500);});
+    candleSub();
+    await first;
+  }
   MARKETS.forEach(m=>pub.stream({ticks:m.sym,subscribe:1},msg=>onTick(m.key,msg)));
   await Promise.all(MARKETS.map(loadHistory));
   dirty=true;
@@ -484,7 +490,7 @@ function renderFocus(){
 
 
 /* ---------- candles + indicators ---------- */
-const cd={key:'',tf:0,sock:null,id:0,c:[],live:false};
+const cd={key:'',tf:0,sock:null,id:0,c:[],live:false,first:null};
 const cv={n:70,off:-6};
 const HOME=()=>-Math.max(3,Math.round(cv.n*.08));
 const ccKey=(k,t)=>'tickdesk.cc.'+k+'.'+t;
@@ -495,12 +501,12 @@ function candleSub(){
   if(cd.id){pub.unstream(cd.id);cd.id=0;}
   pub.send({forget_all:'candles'}).catch(()=>{});
   const sym=MARKETS.find(m=>m.key===st.focus).sym;
-  cd.id=pub.stream({ticks_history:sym,count:300,end:'latest',style:'candles',granularity:st.tf,subscribe:1},onCandles);
+  cd.id=pub.stream({ticks_history:sym,count:150,end:'latest',style:'candles',granularity:st.tf,subscribe:1},onCandles);
   drawCandles();
 }
 function onCandles(m){
   if(m.error)return;
-  if(m.candles){cd.c=m.candles.map(x=>({t:+x.epoch,o:+x.open,h:+x.high,l:+x.low,c:+x.close}));cd.live=true;store.set(ccKey(cd.key,cd.tf),cd.c.slice(-160));}
+  if(m.candles){if(cd.first){cd.first();cd.first=null;}cd.c=m.candles.map(x=>({t:+x.epoch,o:+x.open,h:+x.high,l:+x.low,c:+x.close}));cd.live=true;store.set(ccKey(cd.key,cd.tf),cd.c.slice(-160));}
   else if(m.ohlc){cd.live=true;
     const x=m.ohlc,k={t:+x.open_time,o:+x.open,h:+x.high,l:+x.low,c:+x.close},L=cd.c[cd.c.length-1];
     if(L&&L.t===k.t)cd.c[cd.c.length-1]=k;else if(!L||k.t>L.t){cd.c.push(k);if(cd.c.length>260)cd.c.shift();}

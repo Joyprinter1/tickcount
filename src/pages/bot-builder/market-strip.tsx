@@ -17,6 +17,23 @@ const digitOf = (q: number, pip: number) => {
     return Number(s[s.length - 1]);
 };
 
+const cacheKey = (sym: string) => `td.sd.${sym}`;
+const readCache = (sym: string): number[] => {
+    try {
+        const raw = localStorage.getItem(cacheKey(sym));
+        return raw ? raw.split('').map(Number).filter(n => n >= 0 && n <= 9) : [];
+    } catch (e) {
+        return [];
+    }
+};
+const writeCache = (sym: string, digits: number[]) => {
+    try {
+        localStorage.setItem(cacheKey(sym), digits.slice(-1000).join(''));
+    } catch (e) {
+        // ignore
+    }
+};
+
 const readBot = () => {
     try {
         const ws = window.Blockly?.derivWorkspace;
@@ -60,100 +77,140 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
             setBot(prev => (prev.symbol === next.symbol && prev.category === next.category ? prev : next));
         };
         read();
-        const id = window.setInterval(read, 1000);
+        const id = window.setInterval(read, 250);
         return () => window.clearInterval(id);
     }, [visible]);
 
     const wants_candles = UPDOWN.includes(bot.category);
 
     React.useEffect(() => {
-        setDigits([]);
+        // Show the last known spread straight away (so the circles are there the moment the bot loads),
+        // then replace it with fresh data as soon as the first server answers.
+        const cached = bot.symbol ? readCache(bot.symbol) : [];
+        setDigits(cached);
         setCandles([]);
         if (!visible || !open || !bot.symbol) return;
-        let ws: WebSocket | null = null;
+        const symbol = bot.symbol;
         let stopped = false;
-        let ep = 0;
+        let winner: WebSocket | null = null;
         let retry: number | undefined;
-        const connect = () => {
-            if (stopped) return;
-            let opened = false;
+        const socks: WebSocket[] = [];
+        let latest: number[] = cached;
+        let lastSave = 0;
+
+        const handle = (sock: WebSocket, ev: MessageEvent) => {
+            let m;
             try {
-                ws = new WebSocket(EPS[ep % EPS.length]);
+                m = JSON.parse(ev.data);
             } catch (e) {
-                ep++;
-                retry = window.setTimeout(connect, 3000);
                 return;
             }
-            const sock = ws;
-            sock.addEventListener('open', () => {
-                opened = true;
-                sock.send(
-                    JSON.stringify({
-                        ticks_history: bot.symbol,
-                        count: 1000,
-                        end: 'latest',
-                        style: 'ticks',
-                        subscribe: 1,
-                        req_id: 1,
-                    })
-                );
-                if (wants_candles) {
-                    sock.send(
-                        JSON.stringify({
-                            ticks_history: bot.symbol,
-                            count: 10,
-                            end: 'latest',
-                            style: 'candles',
-                            granularity: 60,
-                            subscribe: 1,
-                            req_id: 2,
-                        })
-                    );
-                }
-            });
-            sock.addEventListener('message', ev => {
-                let m;
-                try {
-                    m = JSON.parse(ev.data);
-                } catch (e) {
-                    return;
-                }
-                if (m.msg_type === 'history' && m.history) {
-                    pip.current = m.pip_size || 2;
-                    setDigits(m.history.prices.map(p => digitOf(p, pip.current)));
-                } else if (m.msg_type === 'tick' && m.tick) {
-                    pip.current = m.tick.pip_size || pip.current;
-                    const d = digitOf(m.tick.quote, pip.current);
-                    setDigits(prev => (prev.length ? [...prev.slice(-999), d] : prev));
-                } else if (m.msg_type === 'candles' && m.candles) {
-                    setCandles(
-                        m.candles.map(c => ({ o: +c.open, h: +c.high, l: +c.low, c: +c.close, t: +c.epoch }))
-                    );
-                } else if (m.msg_type === 'ohlc' && m.ohlc) {
-                    const c = { o: +m.ohlc.open, h: +m.ohlc.high, l: +m.ohlc.low, c: +m.ohlc.close, t: +m.ohlc.open_time };
-                    setCandles(prev => {
-                        if (!prev.length) return prev;
-                        const last = prev[prev.length - 1];
-                        if (last.t === c.t) return [...prev.slice(0, -1), c];
-                        return [...prev.slice(-9), c];
+            if (m.msg_type === 'history' && m.history) {
+                if (winner && winner !== sock) return;
+                if (!winner) {
+                    winner = sock;
+                    // first endpoint to answer wins, the other one is dropped
+                    socks.forEach(o => {
+                        if (o !== sock) {
+                            try {
+                                o.close();
+                            } catch (e) {
+                                // ignore
+                            }
+                        }
                     });
                 }
-            });
-            sock.addEventListener('close', () => {
-                if (stopped || ws !== sock) return;
-                if (!opened) ep++;
-                retry = window.setTimeout(connect, 3000);
+                pip.current = m.pip_size || 2;
+                latest = m.history.prices.map(p => digitOf(p, pip.current));
+                setDigits(latest);
+                writeCache(symbol, latest);
+            } else if (m.msg_type === 'tick' && m.tick) {
+                if (winner && winner !== sock) return;
+                pip.current = m.tick.pip_size || pip.current;
+                const d = digitOf(m.tick.quote, pip.current);
+                setDigits(prev => {
+                    if (!winner && !prev.length) return prev;
+                    const next = [...prev.slice(-999), d];
+                    latest = next;
+                    return next;
+                });
+                const now = Date.now();
+                if (now - lastSave > 5000) {
+                    lastSave = now;
+                    writeCache(symbol, latest);
+                }
+            } else if (m.msg_type === 'candles' && m.candles) {
+                if (winner && winner !== sock) return;
+                setCandles(m.candles.map(c => ({ o: +c.open, h: +c.high, l: +c.low, c: +c.close, t: +c.epoch })));
+            } else if (m.msg_type === 'ohlc' && m.ohlc) {
+                if (winner && winner !== sock) return;
+                const c = { o: +m.ohlc.open, h: +m.ohlc.high, l: +m.ohlc.low, c: +m.ohlc.close, t: +m.ohlc.open_time };
+                setCandles(prev => {
+                    if (!prev.length) return prev;
+                    const last = prev[prev.length - 1];
+                    if (last.t === c.t) return [...prev.slice(0, -1), c];
+                    return [...prev.slice(-9), c];
+                });
+            }
+        };
+
+        const connect = () => {
+            if (stopped) return;
+            winner = null;
+            socks.length = 0;
+            let closed = 0;
+            EPS.forEach(url => {
+                let sock: WebSocket;
+                try {
+                    sock = new WebSocket(url);
+                } catch (e) {
+                    closed++;
+                    return;
+                }
+                socks.push(sock);
+                sock.addEventListener('open', () => {
+                    sock.send(
+                        JSON.stringify({ ticks_history: symbol, count: 1000, end: 'latest', style: 'ticks', subscribe: 1, req_id: 1 })
+                    );
+                    if (wants_candles) {
+                        sock.send(
+                            JSON.stringify({
+                                ticks_history: symbol,
+                                count: 10,
+                                end: 'latest',
+                                style: 'candles',
+                                granularity: 60,
+                                subscribe: 1,
+                                req_id: 2,
+                            })
+                        );
+                    }
+                });
+                sock.addEventListener('message', ev => handle(sock, ev));
+                sock.addEventListener('close', () => {
+                    if (stopped) return;
+                    closed++;
+                    // retry only when the live connection dropped, or when every endpoint failed
+                    if ((winner === sock || (!winner && closed >= EPS.length)) && !retry) {
+                        retry = window.setTimeout(() => {
+                            retry = undefined;
+                            connect();
+                        }, 1000);
+                    }
+                });
             });
         };
         connect();
         return () => {
             stopped = true;
             window.clearTimeout(retry);
-            try {
-                ws?.close();
-            } catch (e) {
-                // ignore
-            }
+            socks.forEach(o => {
+                try {
+                    o.close();
+                } catch (e) {
+                    // ignore
+                }
+            });
         };
     }, [bot.symbol, wants_candles, visible, open]);
 
