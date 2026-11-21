@@ -14,6 +14,7 @@ import { AppLogo } from '../app-logo';
 import AccountSwitcher from './account-switcher';
 import MenuItems from './menu-items';
 import MobileMenu from './mobile-menu';
+import TokenLogin from './token-login';
 import './header.scss';
 
 const AppHeader = observer(() => {
@@ -177,6 +178,7 @@ const AppHeader = observer(() => {
                 const isAuthConfigured = Boolean(process.env.NEXT_PUBLIC_DERIV_APP_ID);
                 return (
                     <div className='auth-actions'>
+                        <TokenLogin />
                         <Button tertiary disabled={!isAuthConfigured} onClick={handleLogin}>
                             <Localize i18n_default_text='Log in' />
                         </Button>
