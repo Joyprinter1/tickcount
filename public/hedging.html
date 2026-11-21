@@ -222,7 +222,7 @@ function tradeOf(r){
   if(r.family==='srf')return{contract:'CALL',barrier:null,hedge:'HEDGE|PUT',legA:'Rise',legB:'Fall',extra:{ticks:5}};
   if(r.family==='seq')return{contract:'CALLE',barrier:null,hedge:'HEDGE|PUTE',legA:'Rise Equals',legB:'Fall Equals',extra:{ticks:4}};
   if(r.family==='shl'){const N=r.N.toFixed(r.pip);return{contract:'CALL',barrier:null,hedge:`HEDGE|PUT||+${N}`,legA:`Higher -${N}`,legB:`Lower +${N}`,extra:{ticks:5,tradetype:'higherlower',offset:+N,side:'-'}}}
-  if(r.family==='eo')return{contract:'DIGITEVEN',barrier:null,hedge:null,legA:'Even',legB:'Odd',extra:{ticks:1,cycle:['DIGITEVEN','DIGITODD']}};
+  if(r.family==='eo')return{contract:'DIGITEVEN',barrier:null,hedge:null,legA:'Even',legB:'Odd',extra:{ticks:1,cycle:['DIGITEVEN','DIGITODD'],parity_recover:true}};
   if(r.family==='rf')return{contract:'CALL',barrier:null,hedge:'HEDGE|PUT',legA:'Rise',legB:'Fall',extra:{ticks:5}};
   if(r.family==='ru')return{contract:'RUNHIGH',barrier:null,hedge:'HEDGE|RUNLOW',legA:'Only Ups',legB:'Only Downs',extra:{ticks:2}};
   if(r.family==='ou')return{contract:'DIGITOVER',barrier:r.a,hedge:`HEDGE|DIGITUNDER|${r.b}`,legA:`Over ${r.a}`,legB:`Under ${r.b}`,extra:{ticks:1}};
@@ -247,7 +247,7 @@ function cardHtml(f,title,tag,r){
     else if(f==='hl')mets=`<span>Best high spot <b>${r.ph}</b> (${Math.round(r.rh*100)}%)</span><span>Best low spot <b>${r.pl}</b> (${Math.round(r.rl*100)}%)</span><span>vs normal 20%</span>`;
     else if(f==='seq')mets=`<span>Back to start after 4 ticks <b>${Math.round(r.tie*100)}%</b></span><span>Normal 37%. On those ticks both legs win</span>`;
     else if(f==='shl')mets=`<span>Swings now <b>${r.ratio.toFixed(2)}x</b> normal</span><span>Both win when the move stays within \u00b1${r.N.toFixed(r.pip)} (${Math.round(r.inband*100)}% lately)</span>`;
-    else if(f==='eo')mets=`<span>Even <b>${Math.round(r.ev*100)}%</b> / Odd <b>${Math.round((1-r.ev)*100)}%</b> lately</span><span>One stake per trade: Even, then Odd, then Even again</span>`;
+    else if(f==='eo')mets=`<span>Even <b>${Math.round(r.ev*100)}%</b> / Odd <b>${Math.round((1-r.ev)*100)}%</b> lately</span><span>One stake: Even, Odd, Even\u2026 and after a loss the opposite side</span>`;
     else if(f==='rf')mets=`<span>Up moves <b>${Math.round(r.sh*100)}%</b></span><span>Flat ticks <b>${Math.round(r.flat*100)}%</b></span><span>One side wins unless flat</span>`;
     else if(f==='ru')mets=`<span>Up-up <b>${Math.round(r.uu*100)}%</b> \u00b7 down-down <b>${Math.round(r.dd*100)}%</b></span><span>vs normal 25%</span>`;
     else mets=`<span>Swings now <b>${r.ratio.toFixed(2)}x</b> normal</span><span>Both win when the move lands in the middle band</span>`;

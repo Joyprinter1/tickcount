@@ -184,6 +184,11 @@ export default Engine =>
                 if (st.loss && parity && st.digit >= 0) {
                     // recover with Even when the losing digit was even, Odd when it was odd
                     apply(st.digit % 2 === 0 ? 'DIGITEVEN' : 'DIGITODD');
+                    // keep a running cycle in step: the next win-trade continues after the type just bought
+                    if (has(cycle)) {
+                        const at = cycle.findIndex(c => c.split(':')[0] === type);
+                        if (at >= 0) st.c = at + 1;
+                    }
                 } else if (st.loss && has(recover)) {
                     // consecutive losses walk through the list: e.g. DIGITEVEN, then DIGITODD, then DIGITEVEN...
                     apply(recover[st.rec++ % recover.length]);
