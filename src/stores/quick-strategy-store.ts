@@ -22,6 +22,7 @@ export type TTickdeskSignal = {
     offset?: number;
     side?: '+' | '-';
     hedge?: string;
+    cycle?: string[]; // contract types bought one after the other, one per trade
     turbo?: boolean;
     tradetype?: string;
     scan?: boolean; // from the Market Scanner page: live bot follows the scanner's own board
@@ -373,6 +374,7 @@ export default class QuickStrategyStore implements IQuickStrategyStore {
                     offset: signal.offset,
                     side: signal.side,
                     hedge: signal.hedge,
+                    cycle: Array.isArray(signal.cycle) ? signal.cycle.filter(x => /^[A-Z]+(:\d(-\d)?)?$/.test(String(x))).map(String) : undefined,
                     turbo: signal.turbo === true,
                     live_signal: signal.live === true && tradetype === 'matchesdiffers' && signal.contract === 'DIGITMATCH',
                     live_search: signal.live === true && signal.gap === true,
