@@ -253,10 +253,12 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
     const box: React.CSSProperties = {
         position: 'absolute',
         top: 8,
-        insetInlineEnd: big ? 24 : 12,
-        insetInlineStart: 'auto',
+        // computers: centred over the workspace, clear of the run panel on the right; phones keep the corner spot
+        ...(big
+            ? { left: 'calc((100% - 367px) / 2)', transform: 'translateX(-50%)', right: 'auto' }
+            : { insetInlineEnd: 12, insetInlineStart: 'auto' }),
         zIndex: 20,
-        maxWidth: big ? 'min(560px, calc(100vw - 420px))' : 'calc(100vw - 80px)',
+        maxWidth: big ? 'min(560px, calc(100% - 420px))' : 'calc(100vw - 80px)',
         background: 'var(--general-main-1, #fff)',
         color: 'var(--text-general, #0e0e0e)',
         border: '1px solid var(--border-normal, #d6dadb)',
