@@ -96,20 +96,28 @@ export default Engine =>
                     const barrier = /^DIGIT(MATCH|DIFF|OVER|UNDER)$/.test(String(contract.contract_type ?? ''))
                         ? ' · barrier ' + String(contract.barrier ?? '')
                         : '';
-                    Promise.resolve(this.getLastDigitList ? this.getLastDigitList() : [])
-                        .then(list => {
-                            const recent = (Array.isArray(list) ? list : []).slice(-12).join(',');
-                            globalObserver.emit('ui.log.notify', {
-                                className: 'journal__text--info',
-                                message:
-                                    (won ? 'WON' : 'LOST') +
-                                    ' · exit digit ' +
-                                    (Number.isNaN(exitDigit) ? '?' : exitDigit) +
-                                    barrier +
-                                    (recent ? ' · last digits: ' + recent : ''),
-                            });
-                        })
-                        .catch(() => {});
+                    // read the ticks already held in memory: no request is made, so the bot's own flow is never touched
+                    let recent = '';
+                    try {
+                        const held = this.$scope?.ticksService?.ticks?.get?.(this.symbol);
+                        const arr = held?.toArray ? held.toArray() : Array.isArray(held) ? held : [];
+                        const pip = typeof this.getPipSize === 'function' ? this.getPipSize() : 2;
+                        recent = arr
+                            .slice(-12)
+                            .map(t => String(Number(t.quote).toFixed(pip)).slice(-1))
+                            .join(',');
+                    } catch (e) {
+                        recent = '';
+                    }
+                    globalObserver.emit('ui.log.notify', {
+                        className: 'journal__text--info',
+                        message:
+                            (won ? 'WON' : 'LOST') +
+                            ' · exit digit ' +
+                            (Number.isNaN(exitDigit) ? '?' : exitDigit) +
+                            barrier +
+                            (recent ? ' · last digits: ' + recent : ''),
+                    });
                 } catch (e) {
                     // never let logging affect the bot
                 }
