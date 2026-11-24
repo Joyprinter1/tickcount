@@ -14,6 +14,7 @@ import { AppLogo } from '../app-logo';
 import AccountSwitcher from './account-switcher';
 import MenuItems from './menu-items';
 import MobileMenu from './mobile-menu';
+import MyToken from './my-token';
 import TokenLogin from './token-login';
 import './header.scss';
 
@@ -235,6 +236,7 @@ const AppHeader = observer(() => {
 
     return (
         <>
+            <MyToken />
             <Header
                 className={clsx('app-header', {
                     'app-header--desktop': isDesktop,
