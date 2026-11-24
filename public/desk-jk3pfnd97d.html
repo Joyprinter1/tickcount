@@ -90,12 +90,22 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
       <button role="tab" data-tab="bots" aria-selected="false">Bots</button>
       <button role="tab" data-tab="copy" aria-selected="false">Copy trading</button>
       <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+      <button role="tab" data-tab="token" aria-selected="false">Token API</button>
     </nav>
 
     <div data-pane="dash">
       <div class="tiles" id="d-tiles"></div>
       <section class="card"><h2>Right now</h2><div id="d-now" class="muted"></div></section>
       <section class="card"><h2>Latest copied trades</h2><div id="d-log" class="muted">Nothing yet.</div></section>
+    </div>
+
+    <div data-pane="token" hidden>
+      <section class="card">
+        <div class="row"><h2 style="margin:0">Token login</h2><label class="sw" style="margin:0" title="Token login on/off"><input type="checkbox" id="tk-on" aria-label="Token login"><span></span></label></div>
+        <p class="muted" id="tk-state" style="margin:8px 0 0;font-size:13px"></p>
+        <p class="muted" style="margin:8px 0 0;font-size:13px">When this is on, a <b>Token</b> button appears next to Log in on the site, in <b>this browser only</b>, so you can sign in with your own Deriv API token. Visitors and clients never see it. Switch it off when you are done and the button disappears. Do this on each phone or computer where you want to use it. Your token is never sent to our server and never saved here.</p>
+        <p class="muted" style="margin:8px 0 0;font-size:13px">Switching off hides the button. To remove a token you already signed in with, use Log out on the site.</p>
+      </section>
     </div>
 
     <div data-pane="settings" hidden>
@@ -320,9 +330,12 @@ const ICONS={
 function setTab(t){
   document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
   document.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==t);
-  if(t==='dash')refreshDash();if(t==='settings')loadSettings();if(t==='copy')refreshCopy();if(t==='bots')refresh();
+  if(t==='dash')refreshDash();if(t==='settings')loadSettings();if(t==='token')loadToken();if(t==='copy')refreshCopy();if(t==='bots')refresh();
   window.scrollTo(0,0);
 }
+const TK='tickdesk.token.login';
+function loadToken(){let on=false;try{on=localStorage.getItem(TK)==='1'}catch(e){}$('#tk-on').checked=on;$('#tk-state').textContent=on?'On in this browser. The Token button shows next to Log in.':'Off. The Token button is hidden.';}
+$('#tk-on').addEventListener('change',e=>{try{e.target.checked?localStorage.setItem(TK,'1'):localStorage.removeItem(TK)}catch(err){e.target.checked=!e.target.checked;alert('This browser would not save the setting.');}loadToken();});
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab);});
 async function refreshDash(){
   try{
