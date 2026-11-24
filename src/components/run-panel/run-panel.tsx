@@ -133,6 +133,19 @@ const DrawerHeader = ({ is_clear_stat_disabled, is_mobile, is_drawer_open, onCle
         </>
     );
 
+const LiveDigitLine = observer(() => {
+    const { journal } = useStore();
+    if (!journal.live_digit_note) return null;
+    return (
+        <div
+            data-testid='live-digit-line'
+            style={{ padding: '4px 12px', fontWeight: 600, color: 'var(--status-info, #2f4be0)', fontSize: 14 }}
+        >
+            {journal.live_digit_note}
+        </div>
+    );
+});
+
 const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTabIndex, ...props }: TDrawerContent) => {
     const { isDesktop } = useDevice();
     // Use the useBlockScroll hook to prevent body scrolling when drawer is open on mobile
@@ -151,6 +164,7 @@ const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTab
 
     return (
         <>
+            <LiveDigitLine />
             <Tabs active_index={active_index} onTabItemClick={setActiveTabIndex} top>
                 <div id='db-run-panel-tab__summary' label={<Localize i18n_default_text='Summary' />}>
                     <Summary is_drawer_open={is_drawer_open} />
