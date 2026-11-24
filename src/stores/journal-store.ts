@@ -48,6 +48,7 @@ type TNotifyData = {
 
 export interface IJournalStore {
     is_filter_dialog_visible: boolean;
+    live_digit_note: string;
     journal_filters: string[];
     filters: { id: string; label: string }[];
     unfiltered_messages: TMessageItem[];
@@ -78,6 +79,7 @@ export default class JournalStore {
     constructor(root_store: RootStore, core: RootStore['core']) {
         makeObservable(this, {
             is_filter_dialog_visible: observable,
+            live_digit_note: observable,
             journal_filters: observable.shallow,
             filters: observable.shallow,
             unfiltered_messages: observable.shallow,
@@ -105,6 +107,9 @@ export default class JournalStore {
     JOURNAL_CACHE = 'journal_cache';
 
     is_filter_dialog_visible = false;
+
+    // latest "Last Digit is N" line from a bot's tick analysis, shown at the top of the run panel
+    live_digit_note = '';
 
     filters = [
         { id: MessageTypes.ERROR, label: localize('Errors') },
@@ -209,6 +214,10 @@ export default class JournalStore {
 
         const { message, className, message_type, sound, block_id, variable_name } = data;
         const selected_quick_strategy = quick_strategy.selected_strategy_for_notofy;
+
+        if (typeof message === 'string' && /^Last Digit is \d$/.test(message.trim())) {
+            this.live_digit_note = message.trim();
+        }
 
         // Special handling for stat notifications by block_id
         const isStatNotification =
@@ -328,6 +337,7 @@ export default class JournalStore {
     }
 
     clear() {
+        this.live_digit_note = '';
         this.unfiltered_messages = this.unfiltered_messages.slice(0, 0);
     }
 
