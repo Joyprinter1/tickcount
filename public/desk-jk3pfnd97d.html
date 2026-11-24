@@ -90,12 +90,28 @@ input[type=file]{width:100%;padding:10px;border:1px dashed var(--line);border-ra
       <button role="tab" data-tab="bots" aria-selected="false">Bots</button>
       <button role="tab" data-tab="copy" aria-selected="false">Copy trading</button>
       <button role="tab" data-tab="settings" aria-selected="false">Settings</button>
+      <button role="tab" data-tab="token" aria-selected="false">Token API</button>
     </nav>
 
     <div data-pane="dash">
       <div class="tiles" id="d-tiles"></div>
       <section class="card"><h2>Right now</h2><div id="d-now" class="muted"></div></section>
       <section class="card"><h2>Latest copied trades</h2><div id="d-log" class="muted">Nothing yet.</div></section>
+    </div>
+
+    <div data-pane="token" hidden>
+      <section class="card">
+        <div class="row"><h2 style="margin:0">My token</h2><label class="sw" style="margin:0" title="Use my token on/off"><input type="checkbox" id="tk-on" aria-label="Use my token"><span></span></label></div>
+        <p class="muted" id="tk-state" style="margin:8px 0 0;font-size:13px"></p>
+        <label for="tk-in">Your Deriv API token</label>
+        <input type="password" id="tk-in" placeholder="Paste your own token" autocomplete="off" spellcheck="false">
+        <label style="display:flex;align-items:center;gap:8px;margin-top:6px;font-weight:400"><input type="checkbox" id="tk-show"> Show token</label>
+        <p class="msg" id="tk-msg"></p>
+        <button class="btn" id="tk-save" type="button">Save token</button>
+        <button class="btn sec" id="tk-del" type="button">Remove saved token</button>
+        <p class="muted" style="margin:10px 0 0;font-size:13px">This is only for you. The token is saved in <b>this browser only</b>. It is never sent to our server and clients never see it. Switch <b>On</b> and the site signs this browser in with your token so you can trade for yourself. Switch <b>Off</b> and it signs you out of it. Do this on each phone or computer you use. Create the token on your Deriv account&apos;s API token page with only <b>Read</b> and <b>Trade</b> permissions, and delete it there if you ever lose the device.</p>
+        <p class="muted" style="margin:8px 0 0;font-size:13px">After switching, open the trading site in another tab (or reload it). It signs in or out by itself.</p>
+      </section>
     </div>
 
     <div data-pane="settings" hidden>
@@ -320,9 +336,41 @@ const ICONS={
 function setTab(t){
   document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
   document.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==t);
-  if(t==='dash')refreshDash();if(t==='settings')loadSettings();if(t==='copy')refreshCopy();if(t==='bots')refresh();
+  if(t==='dash')refreshDash();if(t==='settings')loadSettings();if(t==='token')loadToken();if(t==='copy')refreshCopy();if(t==='bots')refresh();
   window.scrollTo(0,0);
 }
+const TK='tickdesk.mytoken',TC='tickdesk.mytoken.cmd',TA='tickdesk.mytoken.active',TS='tickdesk.mytoken.status';
+const lsg=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lss=(k,v)=>{try{v===null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+function loadToken(){
+  const t=lsg(TK)||'',cmd=lsg(TC),on=cmd==='on'||(lsg(TA)==='1'&&cmd!=='off'),st=lsg(TS)||'';
+  $('#tk-on').checked=on;
+  let line=t?'Saved token: \u2022\u2022\u2022\u2022'+t.slice(-4)+'. ':'No token saved yet. ';
+  line+=on?(cmd==='on'?'On. Waiting for the trading site to sign in.':'On. This browser trades with your token.'):'Off.';
+  if(st.startsWith('error:')){line+=' Last attempt failed: '+st.slice(6);}
+  $('#tk-state').textContent=line;
+}
+window.addEventListener('storage',e=>{if(e.key&&e.key.indexOf('tickdesk.mytoken')===0&&!$('#panel').hidden)loadToken();});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!$('#panel').hidden)loadToken();});
+$('#tk-show').addEventListener('change',e=>{$('#tk-in').type=e.target.checked?'text':'password';});
+$('#tk-save').onclick=()=>{
+  const t=$('#tk-in').value.trim();
+  if(t.length<8||t.length>300||/\s/.test(t)){msg($('#tk-msg'),'Paste your Deriv API token, with no spaces.');return;}
+  lss(TK,t);$('#tk-in').value='';msg($('#tk-msg'),'Token saved in this browser.',true);loadToken();
+};
+$('#tk-del').onclick=()=>{
+  if(lsg(TA)==='1')lss(TC,'off');
+  lss(TK,null);msg($('#tk-msg'),'Token removed from this browser.',true);loadToken();
+};
+$('#tk-on').addEventListener('change',e=>{
+  if(e.target.checked){
+    if(!lsg(TK)){e.target.checked=false;msg($('#tk-msg'),'Save your token first.');return;}
+    lss(TS,null);lss(TC,'on');msg($('#tk-msg'),'On. Open the trading site (or reload it) and it signs in.',true);
+  }else{
+    lss(TC,'off');msg($('#tk-msg'),'Off. Open the trading site (or reload it) and it signs you out.',true);
+  }
+  loadToken();
+});
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b)setTab(b.dataset.tab);});
 async function refreshDash(){
   try{
