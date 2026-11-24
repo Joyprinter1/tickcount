@@ -308,6 +308,28 @@ const MarketStrip = ({ visible }: { visible: boolean }) => {
                             </div>
                         ))}
                     </div>
+                    {digits.length > 0 && (
+                        <div
+                            data-testid='market-strip-running'
+                            style={{ display: 'flex', gap: big ? 6 : 4, alignItems: 'center', marginTop: 2, padding: '0 3px', overflowX: 'auto' }}
+                        >
+                            <span style={{ fontWeight: 500, opacity: 0.7, fontSize: big ? 12 : 10 }}>Last digits</span>
+                            {digits.slice(-12).map((d, i, arr) => (
+                                <b
+                                    key={digits.length - arr.length + i}
+                                    style={{
+                                        minWidth: big ? 22 : 16,
+                                        textAlign: 'center',
+                                        fontSize: big ? 18 : 13,
+                                        opacity: i === arr.length - 1 ? 1 : 0.55,
+                                        color: i === arr.length - 1 ? '#E02F2F' : 'inherit',
+                                    }}
+                                >
+                                    {d}
+                                </b>
+                            ))}
+                        </div>
+                    )}
                     {wants_candles && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
                             <svg width={candles.length * 12 + 4} height={H} aria-label='Last 10 one-minute candles'>
