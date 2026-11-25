@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Button from '@/components/shared_ui/button';
 import { storeAuthInfo } from '@/external/deriv-core';
 import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
@@ -8,23 +8,7 @@ import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
  * The token is checked with Deriv straight from the browser and kept in this browser only (the same place the
  * normal Log in keeps its token). It is never sent to our own server. Log out clears it.
  */
-const FLAG = 'tickdesk.token.login';
-const flagOn = () => {
-    try {
-        return localStorage.getItem(FLAG) === '1';
-    } catch {
-        return false;
-    }
-};
-
 const TokenLogin = () => {
-    // Only shown in a browser where the owner switched it on from the Admin panel (Token API tab)
-    const [enabled, setEnabled] = useState(flagOn);
-    useEffect(() => {
-        const sync = () => setEnabled(flagOn());
-        window.addEventListener('storage', sync);
-        return () => window.removeEventListener('storage', sync);
-    }, []);
     const [open, setOpen] = useState(false);
     const [token, setToken] = useState('');
     const [show, setShow] = useState(false);
@@ -78,8 +62,6 @@ const TokenLogin = () => {
             setBusy(false);
         }
     };
-
-    if (!enabled) return null;
 
     return (
         <>
